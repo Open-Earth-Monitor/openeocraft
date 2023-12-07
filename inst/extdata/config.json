@@ -1,0 +1,15 @@
+{
+  "api_version": "1.2.0",
+  "backend_version": "0.1.0",
+  "stac_version": "1.0.0",
+  "id": "openeo-sits-R-backend",
+  "title": "openeo-sits-R-backend",
+  "description": "This is an OpenEO compliant R backend interfacing with sits package and STAC API",
+  "endpoints": {"$ref": "sits-openeo:endpoints"},
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://localhost:8000/"
+    }
+  ]
+}
