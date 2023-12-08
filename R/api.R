@@ -129,10 +129,117 @@ function() {
   list(access_token = token)
 }
 
-run_process <- function(process) {
-
+is_pnode <- function(node) {
+  if (!is.list(node) || is.null(names(node)))
+    return(FALSE)
+  if (!all(c("process_id", "arguments") %in% names(node)))
+    return(FALSE)
+  if (!is.character(node$process_id))
+    return(FALSE)
+  return(TRUE)
 }
 
+pgraph_result <- function(x) {
+  !is.null(x$result) && x$result
+}
+
+is_pgraph <- function(p) {
+  if (!is.list(p) || is.null(names(p)))
+    return(FALSE)
+  if (!"process_graph" %in% names(p))
+    return(FALSE)
+  if (!all(vapply(p$process_graph, is_pnode, logical(1))))
+    return(FALSE)
+  if (sum(vapply(p$process_graph, pgraph_result, logical(1))) != 1)
+    return(FALSE)
+  return(TRUE)
+}
+
+pgraph_par_default <- function(p, parent = NULL) {
+  if (is.null(parent))
+    parent <- emptyenv()
+  par_env <- list2env(list(), parent = parent)
+  if (!"parameters" %in% names(p))
+    return(par_env)
+  for (par in p$parameters)
+    if ("default" %in% names(par) &&
+        !exists(par$name, envir = parent, inherits = TRUE))
+      assign(par$name, par$default, inherits = FALSE)
+  return(par_env)
+}
+
+arg_type <- function(x) {
+  if (is.null(x))
+    return("null")
+  if (is.character(x))
+    return("character")
+  if (is.numeric(x))
+    return("numeric")
+  if (is.logical(x))
+    return("logical")
+  if (is.list(x)) {
+    if (is.null(names(x)))
+      return("array")
+    if ("from_node" %in% names(x))
+      return("result_reference")
+    if ("process_graph" %in% names(x))
+      return("user_defined_process")
+    if ("from_parameter" %in% names(x))
+      return("parameter_reference")
+    return("object")
+  }
+  stop("Not supported argument type.")
+}
+
+arg_switch <- function(x, ...) {
+  switch(x, ..., stop("Not supported argument type."))
+}
+
+
+# TODO: Bind the execution of defined functions with the process graph execution
+# TODO: Start the execution from the node with result = TRUE
+
+# ns_env <- list2env(
+#   list(
+#     load_collection = list(...),
+#     save_result = list(...),
+#     ml_fit_class_random_forest = list(...)
+#   )
+# )
+#
+# run_process <- function(p, parent = NULL) {
+#   stopifnot(is_pgraph(p))
+#   p_env <- pgraph_par_default(p, parent = parent)
+#   p_env <- list2env(p$process_graph, envir = p_env)
+#   for (node in p$process_graph) {
+#     for (arg in node$argument)
+#       # Maybe this is just a check?
+#       arg <- arg_switch(
+#         arg,
+#         null = , character = , numeric = , logical = arg,
+#         array = , object = lapply(arg, run_process, parent = p_env),
+#         result_reference = run_process(
+#           get(arg$from_node, envir = p_env, inherits = TRUE),
+#           parent = p_env
+#         ),
+#         user_defined_process = run_process(arg, parent = p_env),
+#         parameter_reference = arg
+#       )
+#   }
+#   # Start the execution from the result = TRUE node
+#   node <- get_starting_node(p)
+#   for (arg in node$argument)
+#     # Maybe this is just a check?
+#     arg <- arg_switch(
+#       arg,
+#       null = , character = , numeric = , logical = arg,
+#       array = , object = lapply(arg, run_process, parent = p_env),
+#       result_reference = ...,
+#       user_defined_process = ...,
+#       parameter_reference = ...
+#     )
+#   ...
+# }
 
 #* Process and download data synchronously
 #* @post /result
