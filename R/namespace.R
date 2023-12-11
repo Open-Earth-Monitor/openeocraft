@@ -1,13 +1,18 @@
-.namespace <- new.env(hash = TRUE, parent = emptyenv())
+.openeo <- new.env()
+assign("namespace", new.env(parent = emptyenv()), envir = .openeo)
+
+namespace <- function() {
+  get("namespace", envir = .openeo)
+}
 
 reg_fn <- function(fn, parent = NULL) {
   fn_name <- gsub("^.+::", "", deparse(substitute(fn)))
   if (!is.null(parent))
     environment(fn) <- parent
-  assign(fn_name, fn, envir = .namespace, inherits = FALSE)
+  assign(fn_name, fn, envir = namespace(), inherits = FALSE)
 }
 
-reg_rlang <- function() {
+load_rlang <- function() {
   reg_fn(`{`)
   reg_fn(`(`)
   reg_fn(`::`)
@@ -44,102 +49,27 @@ reg_rlang <- function() {
   reg_fn(stats::runif)
 }
 
-reg_namespace <- function(file) {
-  file <- system.file("R/namespace.R", package = "sitsopeneo")
-  lines <- readLines(file)
-  openeo_lines <- which(grepl("^#\\*[ ]+@openeo", lines))
-  for (line_start in seq_along(openeo_lines[-1])) {
-    i <- openeo_lines[[line_start]] + 1
-    line_end <- openeo_lines[[i + 1]]
-    while (i <= line_end) {
-      if (grepl("^\\s*#", lines[[i]]) || grepl("^$", lines[[i]]))
-        next
-      i <- i + 1
-    }
+load_namespace <- function(file) {
+  load_rlang()
+  src <- readLines(file)
+  decor <- c(which(grepl("^\\s*#\\*\\s+@openeo\\s*$", src)), length(src))
+  env <- new.env(size = length(decor))
+  for (i in seq_len(length(decor) - 1)) {
+    expr <- tryCatch({
+      parse(text = src[seq(decor[[i]], decor[[i + 1]])])[[1]]
+    },
+    error = function(e) {
+      stop("Cannot parse code at ", basename(file), "@", decor[[i]])
+    })
+    value <- eval(expr, envir = env)
+    if (class(value) != "function")
+      stop("Cannot define API function on a value of type ", typeof(value))
+    # return the name of the function
+    fn_name <- as.character(expr[[2]])
+    # get the function object
+    fn <- get(fn_name, envir = parent.frame())
+    # change parent environment and assign it to namespace
+    environment(fn) <- namespace()
+    assign(fn_name, fn, envir = namespace(), inherits = FALSE)
   }
-  reg_fn(save_result, parent = .namespace)
-  reg_fn(reduce_dimension, parent = .namespace)
-  reg_fn(load_collection, parent = .namespace)
-  reg_fn(multiply, parent = .namespace)
-  reg_fn(divide, parent = .namespace)
-  reg_fn(subtract, parent = .namespace)
-  reg_fn(array_element, parent = .namespace)
-  reg_fn(sum, parent = .namespace)
-  reg_fn(min, parent = .namespace)
 }
-
-#* @openeo
-save_result <- function(data, format, options = NULL) {
-  list(data = data, format = format)
-}
-
-#* @openeo
-reduce_dimension <- function(data, reducer, dimension, context = NULL) {
-  reducer_fn <- function(data, context = NULL) {}
-  body(reducer_fn) <- substitute(reducer)
-  reducer_fn(data, context = context)
-}
-
-#* @openeo
-load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
-                            bands = NULL, properties = NULL) {
-  list(
-    B01 = runif(10),
-    B02 = runif(10),
-    B03 = runif(10),
-    B04 = runif(10),
-    B05 = runif(10),
-    B06 = runif(10),
-    B07 = runif(10),
-    B08 = runif(10)
-  )
-}
-
-#* @openeo
-multiply <- function(x, y) {
-  x * y
-}
-
-#* @openeo
-divide <- function(x, y) {
-  x / y
-}
-
-#* @openeo
-subtract <- function(x, y) {
-  x - y
-}
-
-#* @openeo
-array_element <- function(data, index = NULL, label = NULL,
-                          return_nodata = FALSE) {
-  if (!is.null(index))
-    return(data[[index]])
-  if (!is.null(label))
-    return(data[[label]])
-  data
-}
-
-#* @openeo
-sum <- function(data, ignore_nodata = TRUE) {
-  if (is.list(data) && length(data) > 0) {
-    result <- NULL
-    for (value in data) {
-      if (is.null(result))
-        result <- value
-      else
-        result <- result + value
-    }
-  } else if (!is.list(data)) {
-    result <- base::sum(result)
-  } else
-    result <- data
-  result
-}
-
-#* @openeo
-min <- function(data, ignore_nodata = TRUE) {
-  base::min(data)
-}
-
-reg_rlang()

@@ -1,5 +1,3 @@
-.openeo <- new.env()
-
 #* @apiTitle Plumber Example API
 
 #* Information about the back-end
@@ -23,37 +21,15 @@ function() {
   )
 }
 
-list_collections <- function() {
-  collections <- list()
-  collections_id <- character()
-  for (source in sits:::.sources()) {
-    for (collection in sits:::.source_collections(source)) {
-      platform <- sits:::.source_collection_satellite(source, collection)
-      instrument <- sits:::.source_collection_sensor(source, collection)
-      collections <- c(collections, list(
-        list(
-          id = paste(source, collection, sep = "/"),
-          title = paste0(platform, " (", instrument, ")"),
-          constellation = paste(platform, instrument, sep = "/"),
-          description = "(Include a description on sits collections metadata)"
-        )
-      ))
-      collections_id <- c(collections_id, paste(source, collection, sep = "/"))
-    }
-  }
-  names(collections) <- collections_id
-  assign("collections", collections, .openeo)
-}
-
 #* Basic metadata for all datasets
 #* @serializer unboxedJSON
 #* @get /collections
 function() {
   my_endpoint <- "/collections"
   if (!exists("collections", envir = .openeo, inherits = FALSE))
-    list_collections()
+    load_collections()
   collections <- list(
-    collections = unname(get("collections", envir = .openeo, inherits = FALSE)),
+    collections = unname(collections()),
     links = list(list(
       href = paste0(get_host(), ":", get_port(), my_endpoint),
       rel = "self"
@@ -70,10 +46,9 @@ function(collection_id) {
   collection_id <- URLdecode(collection_id)
   my_endpoint <- paste("/collections", collection_id, sep = "/")
   if (!exists("collections", envir = .openeo, inherits = FALSE))
-    list_collections()
-  collections <- get("collections", envir = .openeo, inherits = FALSE)
-  stopifnot(collection_id %in% names(collections))
-  collection <- collections[[collection_id]]
+    load_collections()
+  collection <- collection(collection_id)
+  #TODO: move this to load_collection() and store final dictionary
   list(
     stac_version = "1.0.0",
     stac_extensions = list(),
