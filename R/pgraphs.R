@@ -71,10 +71,6 @@ arg_switch <- function(x, ...) {
   switch(arg_type(x), ..., stop("Not supported argument type."))
 }
 
-# arg_from_param <- function(arg, env) {
-#   quote(get(arg$from_param, envir = env, inherits = TRUE))
-# }
-
 get_starting_pnode <- function(p) {
   for (node in p$process_graph)
     if (pgraph_result(node))

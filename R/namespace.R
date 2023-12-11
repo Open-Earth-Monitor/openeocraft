@@ -1,8 +1,7 @@
-.openeo <- new.env()
 assign("namespace", new.env(parent = emptyenv()), envir = .openeo)
 
 namespace <- function() {
-  get("namespace", envir = .openeo)
+  get("namespace", envir = .openeo, inherits = FALSE)
 }
 
 reg_fn <- function(fn, parent = NULL) {
