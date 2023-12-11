@@ -40,7 +40,7 @@ is_pgraph <- function(p) {
     return(FALSE)
   if (!all(vapply(p$process_graph, is_pnode, logical(1))))
     return(FALSE)
-  if (sum(vapply(p$process_graph, pgraph_result, logical(1))) != 1)
+  if (base::sum(vapply(p$process_graph, pgraph_result, logical(1))) != 1)
     return(FALSE)
   return(TRUE)
 }

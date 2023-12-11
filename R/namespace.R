@@ -1,19 +1,40 @@
 .namespace <- list2env(list(
   `::` = `::`,
+  `$` = `$`,
   `{` = `{`,
   `(` = `(`,
+  `[` = `[`,
+  `[[` = `[[`,
   `*` = `*`,
   `+` = `+`,
   `-` = `-`,
   `/` = `/`,
   `=` = `=`,
+  `==` = `==`,
+  `<` = `<`,
+  `>` = `>`,
+  `<=` = `<=`,
+  `>=` = `>=`,
+  `!=` = `!=`,
+  `&` = `&`,
+  `&&` = `&&`,
+  `|` = `|`,
+  `||` = `||`,
   `!` = `!`,
   `<-` = `<-`,
   `if` = `if`,
+  `for` = `for`,
   `function` = `function`,
+  `return` = `return`,
   `list` = `list`,
   `substitute` = `substitute`,
-  `body<-` = `body<-`
+  `is.null` = `is.null`,
+  `is.list` = `is.list`,
+  `body<-` = `body<-`,
+  `length` = `length`,
+  `print` = `print`,
+  `eval` = `eval`,
+  `runif` = stats::runif
 ), parent = emptyenv())
 
 add_fn <- function(fn) {
@@ -22,17 +43,17 @@ add_fn <- function(fn) {
   assign(fn_name, fn, envir = .namespace, inherits = FALSE)
 }
 
-save_result = function(data, format, options = NULL) {
+save_result <- function(data, format, options = NULL) {
   list(data = data, format = format)
 }
 
-reduce_dimension = function(data, reducer, dimension, context = NULL) {
+reduce_dimension <- function(data, reducer, dimension, context = NULL) {
   reducer_fn <- function(data, context = NULL) {}
   body(reducer_fn) <- substitute(reducer)
   reducer_fn(data, context = context)
 }
 
-load_collection = function(id, spatial_extent = NULL, temporal_extent = NULL,
+load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
                            bands = NULL, properties = NULL) {
   list(
     B01 = runif(10),
@@ -46,19 +67,19 @@ load_collection = function(id, spatial_extent = NULL, temporal_extent = NULL,
   )
 }
 
-multiply = function(x, y) {
+multiply <- function(x, y) {
   x * y
 }
 
-divide = function(x, y) {
+divide <- function(x, y) {
   x / y
 }
 
-subtract = function(x, y) {
+subtract <- function(x, y) {
   x - y
 }
 
-array_element = function(data, index = NULL, label = NULL,
+array_element <- function(data, index = NULL, label = NULL,
                          return_nodata = FALSE) {
   if (!is.null(index))
     return(data[[index]])
@@ -67,7 +88,7 @@ array_element = function(data, index = NULL, label = NULL,
   data
 }
 
-sum = function(data, ignore_nodata = TRUE) {
+sum <- function(data, ignore_nodata = TRUE) {
   if (is.list(data) && length(data) > 0) {
     result <- NULL
     for (value in data) {
@@ -78,11 +99,12 @@ sum = function(data, ignore_nodata = TRUE) {
     }
   } else if (!is.list(data)) {
     result <- base::sum(result)
-  }
+  } else
+    result <- data
   result
 }
 
-min = function(data, ignore_nodata = TRUE) {
+min <- function(data, ignore_nodata = TRUE) {
   base::min(data)
 }
 
