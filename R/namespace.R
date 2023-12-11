@@ -47,7 +47,16 @@ reg_rlang <- function() {
 reg_namespace <- function(file) {
   file <- system.file("R/namespace.R", package = "sitsopeneo")
   lines <- readLines(file)
-  lines <- lines[which(grepl("^#\\*[ ]+@openeo", lines)) + 1]
+  openeo_lines <- which(grepl("^#\\*[ ]+@openeo", lines))
+  for (line_start in seq_along(openeo_lines[-1])) {
+    i <- openeo_lines[[line_start]] + 1
+    line_end <- openeo_lines[[i + 1]]
+    while (i <= line_end) {
+      if (grepl("^\\s*#", lines[[i]]) || grepl("^$", lines[[i]]))
+        next
+      i <- i + 1
+    }
+  }
   reg_fn(save_result, parent = .namespace)
   reg_fn(reduce_dimension, parent = .namespace)
   reg_fn(load_collection, parent = .namespace)
