@@ -132,6 +132,7 @@ function() {
 #* Process and download data synchronously
 #* @post /result
 function(req, res) {
-  process <- req$body$process
-
+  p <- req$body$process
+  expr <- pgraph_expr(p)
+  eval(expr, envir = parent.env(environment()))
 }
