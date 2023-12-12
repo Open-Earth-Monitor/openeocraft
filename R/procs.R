@@ -1,19 +1,19 @@
-#* @openeo
-save_result <- function(data, format, options = NULL) {
+#* @openeo save_result
+function(data, format, options = NULL) {
   list(data = data, format = format)
 }
 
 
-#* @openeo
-reduce_dimension <- function(data, reducer, dimension, context = NULL) {
+#* @openeo reduce_dimension
+function(data, reducer, dimension, context = NULL) {
   reducer_fn <- function(data, context = NULL) {}
   body(reducer_fn) <- substitute(reducer)
   reducer_fn(data, context = context)
 }
 
-#* @openeo
-load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
-                            bands = NULL, properties = NULL) {
+#* @openeo load_collection
+function(id, spatial_extent = NULL, temporal_extent = NULL,
+         bands = NULL, properties = NULL) {
   list(
     B01 = runif(10),
     B02 = runif(10),
@@ -26,23 +26,23 @@ load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
   )
 }
 
-#* @openeo
-multiply <- function(x, y) {
+#* @openeo multiply
+function(x, y) {
   x * y
 }
 
-#* @openeo
-divide <- function(x, y) {
+#* @openeo divide
+function(x, y) {
   x / y
 }
 
-#* @openeo
-subtract <- function(x, y) {
+#* @openeo subtract
+function(x, y) {
   x - y
 }
 
-#* @openeo
-array_element <- function(data, index = NULL, label = NULL,
+#* @openeo array_element
+function(data, index = NULL, label = NULL,
                           return_nodata = FALSE) {
   if (!is.null(index))
     return(data[[index]])
@@ -51,8 +51,8 @@ array_element <- function(data, index = NULL, label = NULL,
   data
 }
 
-#* @openeo
-sum <- function(data, ignore_nodata = TRUE) {
+#* @openeo sum
+function(data, ignore_nodata = TRUE) {
   if (is.list(data) && length(data) > 0) {
     result <- NULL
     for (value in data) {
@@ -68,10 +68,7 @@ sum <- function(data, ignore_nodata = TRUE) {
   result
 }
 
-#* @openeo
-min <- function(data, ignore_nodata = TRUE) {
+#* @openeo min
+function(data, ignore_nodata = TRUE) {
   base::min(data)
 }
-
-# process openeo decorators
-load_namespace(system.file("R/procs.R", package = "sitsopeneo"))

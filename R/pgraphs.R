@@ -1,28 +1,3 @@
-as_name <- function(x) {
-  as.name(x)
-}
-
-as_call <- function(id, args) {
-  as.call(c(list(as_name(id)), lapply(args, function(x) x)))
-}
-
-make_fn <- function(params, body = NULL, env = parent.frame()) {
-  fn <- function() {}
-  formals(fn) <- params
-  if (!is.null(body))
-    body(fn) <- body
-  environment(fn) <- env
-  fn
-}
-
-param <- function(name, default = NULL) {
-  par <- alist(x = )
-  if (!is.null(default))
-    par <- list(x = default)
-  names(par) <- name
-  par
-}
-
 is_pnode <- function(node) {
   if (!is.list(node) || is.null(names(node)))
     return(FALSE)
@@ -71,7 +46,7 @@ arg_switch <- function(x, ...) {
   switch(arg_type(x), ..., stop("Not supported argument type."))
 }
 
-get_starting_pnode <- function(p) {
+starting_pnode <- function(p) {
   for (node in p$process_graph)
     if (pgraph_result(node))
       return(node)
@@ -114,7 +89,7 @@ pgraph_expr <- function(p, parent = NULL) {
   stopifnot(is_pgraph(p))
   if (is.null(parent))
     parent <- emptyenv()
-  pnode <- get_starting_pnode(p)
+  pnode <- starting_pnode(p)
   env <- list2env(p$process_graph, parent = parent)
   pnode_expr(pnode, env = env)
 }
@@ -123,4 +98,9 @@ pgraph_fn <- function(p, parent = NULL) {
   par <- pgraph_params(p)
   expr <- pgraph_expr(p, parent = parent)
   make_fn(par, body = expr, env = parent.frame())
+}
+
+run_pgraph <- function(p) {
+  expr <- pgraph_expr(p)
+  eval(expr, envir = get_procs())
 }

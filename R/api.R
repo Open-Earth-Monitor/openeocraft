@@ -25,17 +25,7 @@ function() {
 #* @serializer unboxedJSON
 #* @get /collections
 function() {
-  my_endpoint <- "/collections"
-  if (!exists("collections", envir = .openeo, inherits = FALSE))
-    load_collections()
-  collections <- list(
-    collections = unname(collections()),
-    links = list(list(
-      href = paste0(get_host(), ":", get_port(), my_endpoint),
-      rel = "self"
-    ))
-  )
-  collections
+  get_collections()
 }
 
 #* Full metadata for a specific dataset
@@ -44,57 +34,7 @@ function() {
 #* @get /collections/<collection_id>
 function(collection_id) {
   collection_id <- URLdecode(collection_id)
-  my_endpoint <- paste("/collections", collection_id, sep = "/")
-  if (!exists("collections", envir = .openeo, inherits = FALSE))
-    load_collections()
-  collection <- collection(collection_id)
-  #TODO: move this to load_collection() and store final dictionary
-  list(
-    stac_version = "1.0.0",
-    stac_extensions = list(),
-    id = collection$id,
-    title = collection$title,
-    description = collection$description,
-    license = "proprietary",
-    extent = list(
-      spatial = list(bbox = unname(collection$bbox)),
-      temporal = list(interval = list(unname(collection$interval)))
-    ),
-    links = list(
-      list(
-        rel = "root",
-        href = paste0(get_host(), ":", get_port(), "/collections")
-      ),
-      list(
-        rel = "self",
-        href = paste0(get_host(), ":", get_port(), my_endpoint)
-      )
-    ),
-    `cube:dimensions` = list(
-      x = list(
-        type = "spatial",
-        axis = "x",
-        extent = list(collection$bbox$xmin, collection$bbox$xmax)
-      ),
-      y = list(
-        type = "spatial",
-        axis = "y",
-        extent = list(collection$bbox$ymin, collection$bbox$ymax)
-      ),
-      t = list(
-        type = "temporal",
-        extent = list(collection$interval$start_date, collection$interval$end_date)
-      ),
-      bands = list(
-        type = "bands",
-        values = list(collection$bands)
-      )
-    ),
-    summaries = list(
-      constellation = list(collection$constelation),
-      `eo:bands` = list()
-    )
-  )
+  get_collections(collection_id)
 }
 
 #* HTTP Basic authentication
@@ -108,6 +48,5 @@ function() {
 #* @post /result
 function(req, res) {
   p <- req$body$process
-  expr <- pgraph_expr(p)
-  eval(expr, envir = parent.env(environment()))
+  run_pgraph(p)
 }
