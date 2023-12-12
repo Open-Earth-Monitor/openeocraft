@@ -1,3 +1,8 @@
+new_link <- function(rel, href, ...) {
+  dots <- list(...)
+  c(list(rel = rel, href = href), dots)
+}
+
 load_collections <- function() {
   collections <- list()
   collections_id <- character()
@@ -19,14 +24,13 @@ load_collections <- function() {
             temporal = list(interval = list(list()))
           ),
           links = list(
-            list(
+            new_link(
               rel = "root",
-              href = paste0(get_host(), ":", get_port(), "/collections")
+              href = get_endpoint("/collections")
             ),
-            list(
+            new_link(
               rel = "self",
-              href = paste0(
-                get_host(), ":", get_port(),
+              href = get_endpoint(
                 paste("/collections", collection_id, sep = "/")
               )
             )
@@ -69,10 +73,12 @@ get_collections <- function(collection_id = NULL) {
   if (is.null(collection_id))
     return(list(
       collections = unname(collections),
-      links = list(list(
-        href = paste0(get_host(), ":", get_port(), "/collections"),
-        rel = "self"
-      ))
+      links = list(
+        new_link(
+          rel = "self",
+          href = get_endpoint("/collections")
+        )
+      )
     ))
   stopifnot(collection_id %in% names(collections))
   collections[[collection_id]]

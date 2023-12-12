@@ -3,7 +3,7 @@
 #* Information about the back-end
 #* @get /
 function() {
-  my_endpoint <- "/"
+  # TODO: include this metadata into a config or init function
   list(
     api_version = "1.2.0",
     backend_version = "0.1.0",
@@ -15,8 +15,11 @@ function() {
     production = FALSE,
     endpoints = list_endpoints(),
     links = list(
-      href = paste0(get_host(), ":", get_port(), my_endpoint),
-      rel = "self"
+      # TODO: list other types of links
+      new_link(
+        href = get_endpoint("/"),
+        rel = "self"
+      )
     )
   )
 }

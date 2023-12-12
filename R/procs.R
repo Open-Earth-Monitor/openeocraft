@@ -1,17 +1,16 @@
-#* @openeo save_result
+#* @openeo-process save_result
 function(data, format, options = NULL) {
   list(data = data, format = format)
 }
 
-
-#* @openeo reduce_dimension
+#* @openeo-process reduce_dimension
 function(data, reducer, dimension, context = NULL) {
   reducer_fn <- function(data, context = NULL) {}
   body(reducer_fn) <- substitute(reducer)
   reducer_fn(data, context = context)
 }
 
-#* @openeo load_collection
+#* @openeo-process load_collection
 function(id, spatial_extent = NULL, temporal_extent = NULL,
          bands = NULL, properties = NULL) {
   list(
@@ -26,22 +25,22 @@ function(id, spatial_extent = NULL, temporal_extent = NULL,
   )
 }
 
-#* @openeo multiply
+#* @openeo-process multiply
 function(x, y) {
   x * y
 }
 
-#* @openeo divide
+#* @openeo-process divide
 function(x, y) {
   x / y
 }
 
-#* @openeo subtract
+#* @openeo-process subtract
 function(x, y) {
   x - y
 }
 
-#* @openeo array_element
+#* @openeo-process array_element
 function(data, index = NULL, label = NULL,
                           return_nodata = FALSE) {
   if (!is.null(index))
@@ -51,7 +50,7 @@ function(data, index = NULL, label = NULL,
   data
 }
 
-#* @openeo sum
+#* @openeo-process sum
 function(data, ignore_nodata = TRUE) {
   if (is.list(data) && length(data) > 0) {
     result <- NULL
@@ -68,7 +67,7 @@ function(data, ignore_nodata = TRUE) {
   result
 }
 
-#* @openeo min
+#* @openeo-process min
 function(data, ignore_nodata = TRUE) {
   base::min(data)
 }

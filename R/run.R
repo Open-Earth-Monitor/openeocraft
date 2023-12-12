@@ -47,6 +47,11 @@ get_port <- function() {
   get("port", envir = .openeo, inherits = FALSE)
 }
 
+get_endpoint <- function(path) {
+  # TODO: how to get the schema of the running server?
+  paste0(get_host(), ":", get_port(), path)
+}
+
 load_users <- function(users_file) {
   # TODO: implement secure password file
   users <- list(

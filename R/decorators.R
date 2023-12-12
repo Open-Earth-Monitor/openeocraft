@@ -25,11 +25,11 @@ load_decorators <- function(file, pattern) {
 }
 
 load_openeo_decorators <- function(file) {
-  load_decorators(file, "openeo")
+  load_decorators(file, "openeo-process")
 }
 
 # decorator
-openeo <- function(expr, fn_name = NULL) {
+`openeo-process` <- function(expr, fn_name = NULL) {
   # extract from list
   expr <- expr[[1]]
   # isolate eval
