@@ -7,10 +7,11 @@ run_decorator <- function(decor, src, file, line) {
   error = function(e) {
     stop("Cannot parse code at ", basename(file), "@", line)
   })
-  eval(do.call(call, args = c(list(decor[[1]], list(expr)), decor[-1])))
+  args <- c(list(decor[[1]], list(expr)), decor[-1], list(file = file))
+  eval(do.call(call, args = args))
 }
 
-run_decorators <- function(file, pattern) {
+run_decorators <- function(api, file, pattern) {
   src <- readLines(file)
   pattern <- paste0("^\\s*#\\*\\s+@", pattern, "\\s?")
   lines <- c(which(grepl(pattern, src)), length(src))
@@ -26,26 +27,43 @@ run_decorators <- function(file, pattern) {
 
 run_openeo_decorators <- function(api, file) {
   run_decorators(api, file, "openeo-process")
+  # run_decorators(api, file, "param")
 }
 
 # decorators
+empty_name <- function() {
+  formals(function(x) {})[["x"]]
+}
 
-`openeo-process` <- function(expr, fn_name = NULL) {
+`openeo-process` <- function(expr, ..., file) {
   # extract from list
   expr <- expr[[1]]
-  # isolate eval
-  .eval <- function(expr)
-    eval(expr, envir = environment())
-  # check value
-  value <- .eval(expr)
-  if (!"function" %in% class(value))
-    stop("Cannot define API function on a value of class '",
-         class(value)[[1]], "'. Expecting a `function`.")
-  # anonymous function
-  if ((as.character(expr[[1]]) == "function") && (is.null(fn_name)))
-    stop("Cannot define unnamed API function.")
-  if (is.null(fn_name))
-    fn_name <- as.character(expr[[2]])
-  environment(value) <- get_procs()
-  assign(fn_name, value, envir = get_procs(), inherits = FALSE)
+  fn_name <- as.character(expr[[2]])
+  arg_names <- names(expr[[3]][[2]])
+  arg_defaults <- unname(expr[[3]][[2]])
+  process <- list(
+    id = fn_name,
+    parameters = lapply(seq_along(arg_names), function(i) {
+      if (is.null(arg_defaults[[i]]) || (arg_defaults[[i]] != empty_name())) {
+        return(list(
+          name = arg_names[[i]],
+          default = arg_defaults[[i]],
+          optional = TRUE
+        ))
+      }
+      list(
+        name = arg_names[[i]],
+        optional = FALSE
+      )
+    }))
+  dir <- dirname(path.expand(file))
+  process_file <- file.path(dir, paste0(fn_name, ".json"))
+  if (!file.exists(process_file))
+    jsonlite::write_json(
+      x = process,
+      path = process_file,
+      pretty = TRUE,
+      auto_unbox = TRUE,
+      null = "null"
+    )
 }

@@ -1,26 +1,26 @@
 #* @apiTitle openEO API
 #* @apiVersion 1.2.0
 
-api_version = "1.2.0"
+api_version <- "1.2.0"
 
 #* Information about the back-end
 #* @get /
 function() {
   # TODO: include this metadata into a config or init function
   list(
-    api_version = api_version,
-    backend_version = "0.1.0",
+    id = api$id,
+    title = api$title,
+    description = api$description,
+    backend_version = api$backend_version,
     stac_version = "1.0.0",
     type = "Catalog",
-    id = "sits-openeo",
-    title = "SITS implementation on openEO",
-    description = "This is the implmentation of SITS package on openEO framework.",
+    api_version = api_version,
     production = FALSE,
-    endpoints = list_endpoints(),
+    endpoints = list_endpoints(api),
     links = list(
       # TODO: list other types of links
       new_link(
-        href = get_endpoint("/"),
+        href = get_endpoint(api, "/"),
         rel = "self"
       )
     )
@@ -32,7 +32,7 @@ function() {
 #* @get /collections
 function() {
   # TODO: add format function to build up final object to deliver
-  get_collections()
+  get_collections(api)
 }
 
 #* Full metadata for a specific dataset
@@ -41,7 +41,7 @@ function() {
 #* @get /collections/<collection_id>
 function(collection_id) {
   collection_id <- URLdecode(collection_id)
-  get_collections(collection_id)
+  get_collections(api, collection_id)
 }
 
 #* HTTP Basic authentication
@@ -53,8 +53,15 @@ function() {
 }
 
 #* Process and download data synchronously
+#* @serializer unboxedJSON
 #* @post /result
 function(req, res) {
-  p <- req$body$process
-  run_pgraph(p)
+  p <- req$body
+  run_pgraph(api, p)
+}
+
+#* Lists api processes
+#* @get /processes
+function() {
+  list_processes(api)
 }

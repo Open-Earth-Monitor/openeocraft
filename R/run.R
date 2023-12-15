@@ -1,3 +1,5 @@
+api <- NULL
+
 create_api <- function(id, title, description, backend_version) {
   structure(
     list(
@@ -8,7 +10,7 @@ create_api <- function(id, title, description, backend_version) {
       api_version = api_version
     ),
     class = c(id, "openeo_api"),
-    env = new.env(hash = TRUE, parent = emptyenv())
+    env = new.env(hash = TRUE, parent = parent.frame())
   )
 }
 
@@ -26,10 +28,11 @@ set_attr <- function(api, name, value) {
   api
 }
 
-plumb_file <- function(api, api_file) {
-  plumb <- plumber::plumb(api_file)
+plumb_api <- function(api, envir) {
+  api_file <- system.file("R/api.R", package = "openeocraft")
+  plumb <- plumber::pr(api_file, envir = envir)
   set_attr(api, "plumb", plumb)
-  plumb
+  plumber::pr_run(plumb, host = get_host(api), port = get_port(api))
 }
 
 get_plumb <- function(api) {
@@ -40,8 +43,10 @@ load_processes <- function(api, processes_file) {
   stopifnot(file.exists(processes_file))
   processes <- new.env(parent = emptyenv())
   set_attr(api, "processes", processes)
+  # TODO: split environments
   load_rlang(processes)
-  run_decorators(api, processes_file)
+  eval(parse(processes_file, encoding = "UTF-8"), envir = processes)
+  run_openeo_decorators(api, processes_file)
   api
 }
 
@@ -52,20 +57,22 @@ get_processes <- function(api) {
 load_rlang <- function(processes) {
   reg_fn <- function(...) {
     fn_list <- list(...)
-    for (fn in fn_list)
-      assign(fn, eval(as.name(fn)), envir = processes, inherits = FALSE)
+    for (fn in fn_list) {
+      value <- eval(as.name(fn), envir = environment())
+      assign(fn, value, envir = processes, inherits = FALSE)
+    }
   }
   reg_fn(":::", "::", ":")
   reg_fn("{", "(")
+  reg_fn("=", "<-", "<<-")
   reg_fn("$", "[", "[[")
   reg_fn("*", "+", "-", "/", "%%", "%/%", "%*%")
-  reg_fn("=", "<-", "<<-")
   reg_fn("==", "<", ">", "<=", ">=", "!=")
   reg_fn("&", "&&", "|", "||", "!")
-  reg_fn("if", "for", "while", "next", "continue", "break")
+  reg_fn("if", "for", "while", "repeat", "break", "next")
   reg_fn("function", "return", "body<-")
   reg_fn("substitute", "list", "length", "is.null", "is.list")
-  reg_fn("runif")
+  reg_fn("runif", "eval", "environment", "print", "browser", "parent.frame")
   invisible(NULL)
 }
 
@@ -103,13 +110,7 @@ authenticate_user <- function(api, user, password) {
 }
 
 run_api <- function(api, host, port) {
-  on.exit(
-    rm(list = c("host", "port"), envir = get_env(api), inherits = FALSE),
-    add = TRUE
-  )
-  assign("host", host, envir = get_env(api), inherits = FALSE)
-  assign("port", port, envir = get_env(api), inherits = FALSE)
-  api_file <- system.file("R/api.R", package = "openeocraft")
-  plumb <- plumb_file(api, api_file)
-  plumb$run(host = host, port = port)
+  set_attr(api, "host", host)
+  set_attr(api, "port", port)
+  plumb_api(api, envir = environment())
 }

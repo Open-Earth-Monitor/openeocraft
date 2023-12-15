@@ -100,7 +100,7 @@ pgraph_fn <- function(p, parent = NULL) {
   make_fn(par, body = expr, env = parent.frame())
 }
 
-run_pgraph <- function(p) {
+run_pgraph <- function(api, p) {
   expr <- pgraph_expr(p)
-  eval(expr, envir = get_procs())
+  eval(expr, envir = get_processes(api))
 }

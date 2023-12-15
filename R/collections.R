@@ -3,7 +3,7 @@ new_link <- function(rel, href, ...) {
   c(list(rel = rel, href = href), dots)
 }
 
-load_collections <- function() {
+load_collections <- function(api) {
   collections <- list()
   collections_id <- character()
   for (source in sits:::.sources()) {
@@ -26,11 +26,12 @@ load_collections <- function() {
           links = list(
             new_link(
               rel = "root",
-              href = get_endpoint("/collections")
+              href = get_endpoint(api, "/collections")
             ),
             new_link(
               rel = "self",
               href = get_endpoint(
+                api,
                 paste("/collections", collection_id, sep = "/")
               )
             )
@@ -65,18 +66,18 @@ load_collections <- function() {
     }
   }
   names(collections) <- collections_id
-  assign("collections", collections, envir = .openeo, inherits = FALSE)
+  set_attr(api, "collections", collections)
 }
 
 get_collections <- function(api, collection_id = NULL) {
-  collections <- get("collections", envir = get_env(api), inherits = FALSE)
+  collections <- get_attr(api, "collections")
   if (is.null(collection_id))
     return(list(
       collections = unname(collections),
       links = list(
         new_link(
           rel = "self",
-          href = get_endpoint("/collections")
+          href = get_endpoint(api, "/collections")
         )
       )
     ))

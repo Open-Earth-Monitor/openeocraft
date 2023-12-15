@@ -33,8 +33,8 @@ format_endpoint <- function(x) {
   gsub("<([^>]+)>", "{\\1}", x)
 }
 
-list_endpoints <- function() {
-  plumb <- get_plumb()
+list_endpoints <- function(api) {
+  plumb <- get_plumb(api)
   lapply(plumb$endpoints$`__no-preempt__`, function(x) {
     list(path = format_endpoint(x$path), methods = list(x$verbs))
   })

@@ -1,19 +1,19 @@
 
-#* @openeo-process save_result
-function(data, format, options = NULL) {
+#* @openeo-process
+save_result <- function(data, format, options = NULL) {
   list(data = data, format = format)
 }
 
-#* @openeo-process reduce_dimension
-function(data, reducer, dimension, context = NULL) {
+#* @openeo-process
+reduce_dimension <- function(data, reducer, dimension, context = NULL) {
   reducer_fn <- function(data, context = NULL) {}
   body(reducer_fn) <- substitute(reducer)
   reducer_fn(data, context = context)
 }
 
-#* @openeo-process load_collection
-function(id, spatial_extent = NULL, temporal_extent = NULL,
-         bands = NULL, properties = NULL) {
+#* @openeo-process
+load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
+                            bands = NULL, properties = NULL) {
   list(
     B01 = runif(10),
     B02 = runif(10),
@@ -26,23 +26,23 @@ function(id, spatial_extent = NULL, temporal_extent = NULL,
   )
 }
 
-#* @openeo-process multiply
-function(x, y) {
+#* @openeo-process
+multiply <- function(x, y) {
   x * y
 }
 
-#* @openeo-process divide
-function(x, y) {
+#* @openeo-process
+divide <- function(x, y) {
   x / y
 }
 
-#* @openeo-process subtract
-function(x, y) {
+#* @openeo-process
+subtract <- function(x, y) {
   x - y
 }
 
-#* @openeo-process array_element
-function(data, index = NULL, label = NULL,
+#* @openeo-process
+array_element <- function(data, index = NULL, label = NULL,
                           return_nodata = FALSE) {
   if (!is.null(index))
     return(data[[index]])
@@ -51,15 +51,16 @@ function(data, index = NULL, label = NULL,
   data
 }
 
-#* @openeo-process sum
-function(data, ignore_nodata = TRUE) {
+#* @openeo-process
+sum <- function(data, ignore_nodata = TRUE) {
   if (is.list(data) && length(data) > 0) {
     result <- NULL
     for (value in data) {
       if (is.null(result))
-        result <- value
-      else
-        result <- result + value
+        result <- eval(value, envir = parent.frame())
+      else {
+        result <- result + eval(value, envir = parent.frame())
+      }
     }
   } else if (!is.list(data)) {
     result <- base::sum(result)
@@ -68,7 +69,7 @@ function(data, ignore_nodata = TRUE) {
   result
 }
 
-#* @openeo-process min
-function(data, ignore_nodata = TRUE) {
+#* @openeo-process
+min <- function(data, ignore_nodata = TRUE) {
   base::min(data)
 }
