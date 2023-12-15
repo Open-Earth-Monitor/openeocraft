@@ -1,10 +1,21 @@
-Package: sitsopeneo
-Title: What the Package Does (One Line, Title Case)
+Package: openeocraft
+Title: R package to craft and serve openEO API applications 
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
+    person("Rolf", "Simoes", , "rolf.simoes@opengeohub.org", 
+           role = c("aut", "cre"), 
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    person("Brian", "Pondi", , "brianpondi@gmail.com", 
+           role = c("aut"), 
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+    person("OpenGeoHub Foundation", , , "rolf.simoes@opengeohub.org", 
+           role = c("cph"))
+Description: |
+  Provides a comprehensive R framework for crafting and serving openEO API 
+  applications. The openeocraft package facilitates the creation of RESTful 
+  openEO web services through a friendly and extensible interface. The 
+  package is based on Plumber and is designed for ease of use, scalability, 
+  and flexibility.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

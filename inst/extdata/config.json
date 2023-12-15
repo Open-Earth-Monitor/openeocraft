@@ -4,7 +4,7 @@
   "stac_version": "1.0.0",
   "id": "openeo-sits-R-backend",
   "title": "openeo-sits-R-backend",
-  "description": "This is an OpenEO compliant R backend interfacing with sits package and STAC API",
+  "description": "This is an openEO compliant R backend interfacing with sits package and STAC API",
   "endpoints": {"$ref": "sits-openeo:endpoints"},
   "links": [
     {
