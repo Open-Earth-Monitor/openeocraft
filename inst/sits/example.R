@@ -12,19 +12,11 @@ load_processes(api, processes_file)
 
 catalog_file <- system.file("sits/catalog.json", package = "openeocraft")
 stac_endpoint <- "https://example.com/stac"
-load_collections(api, catalog = catalog_file)
-load_collections(api, stac = stac_endpoint)
-
-
-load_collections(api, function() {})
+load_collections(api, stac_catalog = catalog_file)
+load_collections(api, stac_api = stac_endpoint)
+load_collections(api, data = list(list(...)))
 
 run_api(api, host = "127.0.0.1", port = 8001)
-
-
-
-proc <- jsonlite::read_json(system.file("extdata/example2.json", package = "openeocraft"))
-pgraph_expr(proc)
-eval(pgraph_expr(proc), envir = get_attr(api, "processes"))
 
 
 
