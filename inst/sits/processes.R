@@ -1,4 +1,3 @@
-library(opengeo)  # openeo R server
 
 #* @openeo-process save_result
 function(data, format, options = NULL) {

@@ -34,8 +34,8 @@ format_endpoint <- function(x) {
 }
 
 list_endpoints <- function() {
-  api <- get_api()
-  lapply(api$endpoints$`__no-preempt__`, function(x) {
+  plumb <- get_plumb()
+  lapply(plumb$endpoints$`__no-preempt__`, function(x) {
     list(path = format_endpoint(x$path), methods = list(x$verbs))
   })
 }

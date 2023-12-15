@@ -68,8 +68,8 @@ load_collections <- function() {
   assign("collections", collections, envir = .openeo, inherits = FALSE)
 }
 
-get_collections <- function(collection_id = NULL) {
-  collections <- get("collections", envir = .openeo, inherits = FALSE)
+get_collections <- function(api, collection_id = NULL) {
+  collections <- get("collections", envir = get_env(api), inherits = FALSE)
   if (is.null(collection_id))
     return(list(
       collections = unname(collections),

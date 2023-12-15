@@ -1,11 +1,14 @@
-#* @apiTitle Plumber Example API
+#* @apiTitle openEO API
+#* @apiVersion 1.2.0
+
+api_version = "1.2.0"
 
 #* Information about the back-end
 #* @get /
 function() {
   # TODO: include this metadata into a config or init function
   list(
-    api_version = "1.2.0",
+    api_version = api_version,
     backend_version = "0.1.0",
     stac_version = "1.0.0",
     type = "Catalog",
@@ -28,6 +31,7 @@ function() {
 #* @serializer unboxedJSON
 #* @get /collections
 function() {
+  # TODO: add format function to build up final object to deliver
   get_collections()
 }
 
@@ -43,6 +47,7 @@ function(collection_id) {
 #* HTTP Basic authentication
 #* @get /credentials/basic
 function() {
+  # TODO: implement token generator based on authentication
   token = "b34ba2bdf9ac9ee1"
   list(access_token = token)
 }

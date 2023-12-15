@@ -1,58 +1,88 @@
-create_api <- function(api_file) {
-  api <- plumber::plumb(api_file)
-  assign("api", api, envir = .openeo, inherits = FALSE)
+create_api <- function(id, title, description, backend_version) {
+  structure(
+    list(
+      id = id,
+      title = title,
+      description = description,
+      backend_version = backend_version,
+      api_version = api_version
+    ),
+    class = c(id, "openeo_api"),
+    env = new.env(hash = TRUE, parent = emptyenv())
+  )
+}
+
+get_env <- function(api) {
+  attr(api, "env")
+}
+
+get_attr <- function(api, name) {
+  if (exists(name, envir = get_env(api)))
+    get(name, envir = get_env(api), inherits = FALSE)
+}
+
+set_attr <- function(api, name, value) {
+  assign(name, value, envir = get_env(api), inherits = FALSE)
   api
 }
 
-get_api <- function() {
-  get("api", envir = .openeo, inherits = FALSE)
+plumb_file <- function(api, api_file) {
+  plumb <- plumber::plumb(api_file)
+  set_attr(api, "plumb", plumb)
+  plumb
 }
 
-load_procs <- function(procs_file) {
-  procs <- new.env(parent = emptyenv())
-  assign("procs", procs, envir = .openeo, inherits = FALSE)
-  load_rlang(procs)
-  load_openeo_decorators(procs_file)
+get_plumb <- function(api) {
+  get_attr(api, "plumb")
 }
 
-get_procs <- function() {
-  get("procs", envir = .openeo, inherits = FALSE)
+load_processes <- function(api, processes_file) {
+  stopifnot(file.exists(processes_file))
+  processes <- new.env(parent = emptyenv())
+  set_attr(api, "processes", processes)
+  load_rlang(processes)
+  run_decorators(api, processes_file)
+  api
 }
 
-load_rlang <- function(env) {
+get_processes <- function(api) {
+  get_attr(api, "processes")
+}
+
+load_rlang <- function(processes) {
   reg_fn <- function(...) {
     fn_list <- list(...)
     for (fn in fn_list)
-      assign(fn, eval(as.name(fn)), envir = env, inherits = FALSE)
+      assign(fn, eval(as.name(fn)), envir = processes, inherits = FALSE)
   }
-  reg_fn(":::", "::")
+  reg_fn(":::", "::", ":")
   reg_fn("{", "(")
   reg_fn("$", "[", "[[")
-  reg_fn("*", "+", "-", "/")
-  reg_fn("=", "<-")
+  reg_fn("*", "+", "-", "/", "%%", "%/%", "%*%")
+  reg_fn("=", "<-", "<<-")
   reg_fn("==", "<", ">", "<=", ">=", "!=")
   reg_fn("&", "&&", "|", "||", "!")
-  reg_fn("if", "for")
+  reg_fn("if", "for", "while", "next", "continue", "break")
   reg_fn("function", "return", "body<-")
   reg_fn("substitute", "list", "length", "is.null", "is.list")
   reg_fn("runif")
   invisible(NULL)
 }
 
-get_host <- function() {
-  get("host", envir = .openeo, inherits = FALSE)
+get_host <- function(api) {
+  get_attr(api, "host")
 }
 
-get_port <- function() {
-  get("port", envir = .openeo, inherits = FALSE)
+get_port <- function(api) {
+  get_attr(api, "port")
 }
 
-get_endpoint <- function(path) {
+get_endpoint <- function(api, path) {
   # TODO: how to get the schema of the running server?
-  paste0(get_host(), ":", get_port(), path)
+  paste0(get_host(api), ":", get_port(api), path)
 }
 
-load_users <- function(users_file) {
+load_users <- function(api, users_file) {
   # TODO: implement secure password file
   users <- list(
     rolf = list(
@@ -62,24 +92,24 @@ load_users <- function(users_file) {
       password = "123456"
     )
   )
-  assign("users", users, envir = .openeo, inherits = FALSE)
+  set_attr(api, "users", users)
+  api
 }
 
-authenticate_user <- function(user, password) {
+authenticate_user <- function(api, user, password) {
   # TODO: implement user authentication
-  users <- get("users", envir = .openeo, inherits = FALSE)
-  stopifnot(user %in% names(users))
-  stopifnot(password == users[[user]]$password)
+  users <- get_attr(api, "users")
+  stopifnot(user %in% names(users) || password == users[[user]]$password)
 }
 
-run <- function(host, port, users_file = NULL) {
-  assign("host", host, envir = .openeo, inherits = FALSE)
-  assign("port", port, envir = .openeo, inherits = FALSE)
-  load_users(users_file)
-  load_collections()
-  procs_file <- system.file("R/procs.R", package = "sitsopeneo")
-  api_file <- system.file("R/api.R", package = "sitsopeneo")
-  load_procs(procs_file)
-  api <- create_api(api_file)
-  api$run(host = host, port = port)
+run_api <- function(api, host, port) {
+  on.exit(
+    rm(list = c("host", "port"), envir = get_env(api), inherits = FALSE),
+    add = TRUE
+  )
+  assign("host", host, envir = get_env(api), inherits = FALSE)
+  assign("port", port, envir = get_env(api), inherits = FALSE)
+  api_file <- system.file("R/api.R", package = "openeocraft")
+  plumb <- plumb_file(api, api_file)
+  plumb$run(host = host, port = port)
 }
