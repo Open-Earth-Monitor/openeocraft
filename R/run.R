@@ -28,10 +28,10 @@ set_attr <- function(api, name, value) {
   api
 }
 
-plumb_api <- function(api, envir) {
+start_api <- function(api, envir) {
   api_file <- system.file("R/api.R", package = "openeocraft")
   plumb <- plumber::pr(api_file, envir = envir)
-  set_attr(api, "plumb", plumb)
+  set_plumb(api, plumb)
   plumber::pr_run(plumb, host = get_host(api), port = get_port(api))
 }
 
@@ -39,54 +39,86 @@ get_plumb <- function(api) {
   get_attr(api, "plumb")
 }
 
+set_plumb <- function(api, plumb) {
+  set_attr(api, "plumb", plumb)
+}
+
 load_processes <- function(api, processes_file) {
   stopifnot(file.exists(processes_file))
-  processes <- new.env(parent = emptyenv())
-  set_attr(api, "processes", processes)
+  namespace <- new.env(parent = emptyenv())
+  set_attr(api, "namespace", namespace)
   # TODO: split environments
-  load_rlang(processes)
-  eval(parse(processes_file, encoding = "UTF-8"), envir = processes)
-  run_openeo_decorators(api, processes_file)
+  load_rlang(api)
+  eval(parse(processes_file, encoding = "UTF-8"), envir = namespace)
+  set_attr(api, "processes", list())
+  process_decorators(api, processes_file, decorator = "openeo-process")
   api
 }
 
-get_processes <- function(api) {
-  get_attr(api, "processes")
+get_namespace <- function(api) {
+  get_attr(api, "namespace")
 }
 
-load_rlang <- function(processes) {
-  reg_fn <- function(...) {
+set_namespace <- function(api, namespace) {
+  set_attr(api, "namespace", namespace)
+}
+
+get_processes <- function(api) {
+  processes <- get_attr(api, "processes")
+  processes_list <- list(
+    processes = unname(processes),
+    links = list(
+      new_link(
+        rel = "self",
+        href = get_endpoint(api, "/processes")
+      )
+    )
+  )
+  processes_list
+}
+
+add_process <- function(api, process) {
+  processes <- get_attr(api, "processes")
+  processes[[process$id]] <- process
+  set_attr(api, "processes", processes)
+}
+
+load_rlang <- function(api) {
+  export_fn <- function(...) {
     fn_list <- list(...)
     for (fn in fn_list) {
       value <- eval(as.name(fn), envir = environment())
-      assign(fn, value, envir = processes, inherits = FALSE)
+      assign(fn, value, envir = get_namespace(api), inherits = FALSE)
     }
+    invisible(NULL)
   }
-  reg_fn(":::", "::", ":")
-  reg_fn("{", "(")
-  reg_fn("=", "<-", "<<-")
-  reg_fn("$", "[", "[[")
-  reg_fn("*", "+", "-", "/", "%%", "%/%", "%*%")
-  reg_fn("==", "<", ">", "<=", ">=", "!=")
-  reg_fn("&", "&&", "|", "||", "!")
-  reg_fn("if", "for", "while", "repeat", "break", "next")
-  reg_fn("function", "return", "body<-")
-  reg_fn("substitute", "list", "length", "is.null", "is.list")
-  reg_fn("runif", "eval", "environment", "print", "browser", "parent.frame")
-  invisible(NULL)
+  export_fn(":::", "::", ":")
+  export_fn("{", "(")
+  export_fn("=", "<-", "<<-")
+  export_fn("$", "[", "[[")
+  export_fn("*", "+", "-", "/", "%%", "%/%", "%*%")
+  export_fn("==", "<", ">", "<=", ">=", "!=")
+  export_fn("&", "&&", "|", "||", "!")
+  export_fn("if", "for", "while", "repeat", "break", "next")
+  export_fn("function", "return", "body<-")
+  export_fn("substitute", "list", "length", "is.null", "is.list")
+  export_fn("runif", "eval", "environment", "print", "browser", "parent.frame")
+}
+
+get_scheme <- function(api) {
+  get("scheme", envir = get_env(api), inherits = FALSE)
 }
 
 get_host <- function(api) {
-  get_attr(api, "host")
+  get("host", envir = get_env(api), inherits = FALSE)
 }
 
 get_port <- function(api) {
-  get_attr(api, "port")
+  get("port", envir = get_env(api), inherits = FALSE)
 }
 
 get_endpoint <- function(api, path) {
-  # TODO: how to get the schema of the running server?
-  paste0(get_host(api), ":", get_port(api), path)
+  paste0(get_scheme(api), "://", get_host(api), ":", get_port(api), path)
 }
 
 load_users <- function(api, users_file) {
@@ -110,7 +142,9 @@ authenticate_user <- function(api, user, password) {
 }
 
 run_api <- function(api, host, port) {
-  set_attr(api, "host", host)
+  stopifnot(grepl("^.+://", host))
+  set_attr(api, "scheme", gsub("://.*$", "", host))
+  set_attr(api, "host", gsub("^.+://", "", host))
   set_attr(api, "port", port)
-  plumb_api(api, envir = environment())
+  start_api(api, envir = environment())
 }

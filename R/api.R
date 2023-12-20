@@ -3,6 +3,23 @@
 
 api_version <- "1.2.0"
 
+
+#* Information about the back-end
+#* @serializer unboxedJSON
+#* @get /.well-known/openeo
+function() {
+  # TODO: include this metadata into a config or init function
+  list(
+    versions = list(
+      list(
+        url = get_endpoint(api, "/"),
+        production = FALSE,
+        api_version = api_version
+      )
+    )
+  )
+}
+
 #* Information about the back-end
 #* @get /
 function() {
@@ -53,15 +70,28 @@ function() {
 }
 
 #* Process and download data synchronously
-#* @serializer unboxedJSON
 #* @post /result
 function(req, res) {
   p <- req$body
-  run_pgraph(api, p)
+  result <- run_pgraph(api, p)
+  if (!"format" %in% names(result)) {
+    res$status <- 200
+    res$body <- list()
+    res$contentType <- "application/json"
+  } else {
+    # TODO serialize according to format of the save_result process graph
+    result # list(data=..., format=...)
+    switch(result$format,
+           "GTiff" = {},
+           "RDS" = {},
+           stop("Format '", result$format, "' is not supported.")
+    )
+  }
 }
 
 #* Lists api processes
+#* @serializer unboxedJSON
 #* @get /processes
 function() {
-  list_processes(api)
+  get_processes(api)
 }

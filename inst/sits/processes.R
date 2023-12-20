@@ -1,8 +1,16 @@
+# TODO allow many files processes definition
+#* @openeo-import math.R
+#* @openeo-import data.R
 
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
-  list(data = data, format = format)
+  return(list(data = data, format = format))
+  saveRDS(list(data = data, format = format), "result.rds")
+  TRUE
 }
+
+# this is a constant
+my_constant <- 10
 
 #* @openeo-process
 reduce_dimension <- function(data, reducer, dimension, context = NULL) {
@@ -51,7 +59,20 @@ array_element <- function(data, index = NULL, label = NULL,
   data
 }
 
-#* @openeo-process
+# TODO: implement extended annotations
+#* @openeo-process sum
+#*
+#* This is the title
+#*
+#* This is the first line of the description
+#* This is the second line of the description
+#*
+#* This is the third line of the description and the
+#* previous line is a blank line.
+#*
+#* @param data string
+#* @param ignore_nodata logical
+#* @return data_cube
 sum <- function(data, ignore_nodata = TRUE) {
   if (is.list(data) && length(data) > 0) {
     result <- NULL
