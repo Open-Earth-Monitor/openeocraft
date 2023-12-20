@@ -74,6 +74,7 @@ function() {
 function(req, res) {
   p <- req$body
   result <- run_pgraph(api, p)
+  # TODO Have to create a result_class to test the result?
   if (!"format" %in% names(result)) {
     res$status <- 200
     res$body <- list()
