@@ -75,19 +75,37 @@ function(req, res) {
   p <- req$body
   result <- run_pgraph(api, p)
   # TODO Have to create a result_class to test the result?
-  if (!"format" %in% names(result)) {
-    res$status <- 200
-    res$body <- list()
-    res$contentType <- "application/json"
-  } else {
-    # TODO serialize according to format of the save_result process graph
-    result # list(data=..., format=...)
-    switch(result$format,
-           "GTiff" = {},
-           "RDS" = {},
-           stop("Format '", result$format, "' is not supported.")
-    )
-  }
+  if (!"format" %in% names(result))
+    return(serialize_json_response(res, result))
+  # TODO serialize according to format of the save_result process graph
+  result # list(data=..., format=...)
+  plumber::pr_set_serializer(api, plumber::serializer_tiff())
+  switch(result$format,
+         "GTiff" = {},
+         "RDS" = {},
+         stop("Format '", result$format, "' is not supported.")
+  )
+}
+
+serialize_json_response <- function(res, data) {
+  res$status <- 200
+  res$body <- jsonlite::toJSON(data)
+  res$contentType <- "application/json"
+  res
+}
+
+serialize_gtiff_response <- function(res, file) {
+  res$status <- 200
+  res$body <- readBin(file(file, open = "b"))
+  res$contentType <- "image/tiff; application=geotiff"
+  res
+}
+
+serialize_rds_response <- function(res, file) {
+  res$status <- 200
+  res$body <- readBin(file(file, open = "b"))
+  res$contentType <- "application/octet-stream"
+  res
 }
 
 #* Lists api processes
