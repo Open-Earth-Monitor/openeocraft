@@ -29,6 +29,15 @@ set_attr <- function(api, name, value) {
 }
 
 start_api <- function(api, envir) {
+  # register serialize function
+  plumber::register_serializer("serialize_result", function() {
+    function(val, req, res, errorHandler) {
+      fn <- get_serializer_fn(val)
+      fn(val$data, req, res, errorHandler)
+    }
+  })
+  # process api file
+  # TODO: should this be a function parameter?
   api_file <- system.file("R/api.R", package = "openeocraft")
   plumb <- plumber::pr(api_file, envir = envir)
   set_plumb(api, plumb)
@@ -100,10 +109,7 @@ load_rlang <- function(api) {
   export_fn("==", "<", ">", "<=", ">=", "!=")
   export_fn("&", "&&", "|", "||", "!")
   export_fn("if", "for", "while", "repeat", "break", "next")
-  export_fn("function", "return", "body<-")
-  export_fn("substitute", "list", "length", "is.null", "is.list")
-  export_fn("runif", "eval", "environment", "print", "browser", "parent.frame")
-  export_fn("structure", "c", "tolower", "paste0")
+  export_fn("function", "return")
 }
 
 get_scheme <- function(api) {

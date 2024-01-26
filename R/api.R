@@ -69,13 +69,6 @@ function() {
   list(access_token = token)
 }
 
-plumber::register_serializer("serialize_result", function() {
-  function(val, req, res, errorHandler) {
-    fn <- get_serializer_fn(val)
-    fn(val$data, req, res, errorHandler)
-  }
-})
-
 #* Process and download data synchronously
 #* @serializer serialize_result
 #* @post /result
