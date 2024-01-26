@@ -101,7 +101,6 @@ pgraph_fn <- function(p, parent = NULL) {
 }
 
 run_pgraph <- function(api, p) {
-  saveRDS(p, "~/process_graph.rds")
   expr <- pgraph_expr(p)
   eval(expr, envir = get_namespace(api))
 }
