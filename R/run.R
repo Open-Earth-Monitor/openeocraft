@@ -103,6 +103,7 @@ load_rlang <- function(api) {
   export_fn("function", "return", "body<-")
   export_fn("substitute", "list", "length", "is.null", "is.list")
   export_fn("runif", "eval", "environment", "print", "browser", "parent.frame")
+  export_fn("structure", "c", "tolower", "paste0")
 }
 
 get_scheme <- function(api) {

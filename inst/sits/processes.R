@@ -4,9 +4,10 @@
 
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
-  return(list(data = data, format = format))
-  saveRDS(list(data = data, format = format), "result.rds")
-  # TRUE <-- this is not true
+  structure(
+    list(data = data, format = format, options = options),
+    class = c(paste0("openeo_", tolower(format)), "list")
+  )
 }
 
 # this is a constant
