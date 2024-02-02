@@ -5,7 +5,7 @@ Authors@R:
     person("Rolf", "Simoes", , "rolf.simoes@opengeohub.org", 
            role = c("aut", "cre"), 
            comment = c(ORCID = "YOUR-ORCID-ID"))
-    person("Brian", "Pondi", , "brianpondi@gmail.com", 
+    person("Brian", "Pondi", , "brian.pondi@uni-muenster.de", 
            role = c("aut"), 
            comment = c(ORCID = "YOUR-ORCID-ID"))
     person("OpenGeoHub Foundation", , , "rolf.simoes@opengeohub.org", 
