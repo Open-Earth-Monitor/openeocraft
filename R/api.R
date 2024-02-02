@@ -3,7 +3,6 @@
 
 api_version <- "1.2.0"
 
-
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
@@ -63,7 +62,10 @@ function(collection_id) {
 
 #* HTTP Basic authentication
 #* @get /credentials/basic
-function() {
+function(req, res) {
+  auth <- gsub("Basic ", "",req$HTTP_AUTHORIZATION)
+  auth <- rawToChar(base64decode(auth))
+  # print(auth) # "rolf:123456"
   # TODO: implement token generator based on authentication
   token = "b34ba2bdf9ac9ee1"
   list(access_token = token)

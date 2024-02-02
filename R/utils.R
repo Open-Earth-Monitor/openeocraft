@@ -1,6 +1,7 @@
 #' @import plumber
 #' @import sits
 #' @importFrom jsonlite read_json
+#' @importFrom base64enc base64decode
 NULL
 
 as_name <- function(x) {
