@@ -2,14 +2,14 @@ Package: openeocraft
 Title: R package to craft and serve openEO API applications 
 Version: 0.2.0
 Authors@R: 
-    person("Rolf", "Simoes", , "rolf.simoes@opengeohub.org", 
+    c(person("Rolf", "Simoes", , "rolf.simoes@opengeohub.org", 
            role = c("aut", "cre"), 
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           comment = c(ORCID = "YOUR-ORCID-ID")),
     person("Brian", "Pondi", , "brian.pondi@uni-muenster.de", 
            role = c("aut"), 
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           comment = c(ORCID = "YOUR-ORCID-ID")),
     person("OpenGeoHub Foundation", , , "rolf.simoes@opengeohub.org", 
-           role = c("cph"))
+           role = c("cph")))
 Description: |
   Provides a comprehensive R framework for crafting and serving openEO API 
   applications. The openeocraft package facilitates the creation of RESTful 

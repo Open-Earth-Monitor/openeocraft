@@ -10,28 +10,76 @@ save_result <- function(data, format, options = NULL) {
   )
 }
 
-# this is a constant
-my_constant <- 10
-
 #* @openeo-process
 reduce_dimension <- function(data, reducer, dimension, context = NULL) {
   reducer_fn <- function(data, context = NULL) {}
   base::body(reducer_fn) <- base::substitute(reducer)
-  reducer_fn(data, context = context)
+  data$reduce_dimension <- dimension
+  reducer_fn(data = data, context = context)
 }
 
 #* @openeo-process
 load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
                             bands = NULL, properties = NULL) {
-  base::list(
-    B01 = stats::runif(10),
-    B02 = stats::runif(10),
-    B03 = stats::runif(10),
-    B04 = stats::runif(10),
-    B05 = stats::runif(10),
-    B06 = stats::runif(10),
-    B07 = stats::runif(10),
-    B08 = stats::runif(10)
+
+  mock_img <- function(bands, size, origin, res, ...) {
+    data <- base::data.frame(
+      x = base::rep(
+        base::rep(
+          base::seq(from = origin[[1]], by = res[[1]], length.out = size[[1]]),
+          each = size[[2]]
+        ),
+        times = base::length(bands)
+      ),
+      y = base::rep(
+        base::rep(
+          base::seq(from = origin[[2]], by = res[[2]], length.out = size[[2]]),
+          times = size[[1]]
+        ),
+        times = base::length(bands)
+      ),
+      bands = base::rep(bands, each = size[[1]] * size[[2]])
+    )
+    extra <- base::as.data.frame(base::list(...))
+    if (base::nrow(extra))
+      data <- base::cbind(data, extra)
+    data$values <- stats::runif(size[[1]] * size[[2]] * base::length(bands))
+    data
+  }
+
+  spatial_extent <- base::c(
+    west = -45.0,
+    east = -45.0 * 10 * 0.009,
+    south = -10.0 * 10 * -0.009,
+    north = -10.0
+  )
+  temporal_extent <- base::c(
+    t0 = "2020-01-01",
+    t1 = "2021-01-01"
+  )
+  bands <- base::c("B02", "B04", "B08")
+
+  stars::st_as_stars(
+    base::rbind(
+      mock_img(
+        bands = bands,
+        size = base::c(10, 10),
+        origin = base::c(-45.0, -10.0),
+        res = base::c(0.009, 0.009),
+        t = "2020-01-01"
+      ),
+      mock_img(
+        bands = base::c("b1", "b2", "b3"),
+        size = base::c(10, 10),
+        origin = base::c(-45.0, -10.0),
+        res = base::c(0.009, 0.009),
+        t = "2021-01-01"
+      )
+    ),
+    dims = 1:4,
+    xy = 1:2,
+    y_decreasing = TRUE,
+    coords = 1:4
   )
 }
 
@@ -80,23 +128,12 @@ array_element <- function(data, index = NULL, label = NULL,
 #* @param ignore_nodata logical
 #* @return data_cube
 sum <- function(data, ignore_nodata = TRUE) {
-  if (base::is.list(data) && base::length(data) > 0) {
-    result <- NULL
-    for (value in data) {
-      if (base::is.null(result))
-        result <- base::eval(value, envir = base::parent.frame())
-      else {
-        result <- result + base::eval(value, envir = base::parent.frame())
-      }
-    }
-  } else if (!base::is.list(data)) {
-    result <- base::sum(result)
-  } else
-    result <- data
-  result
+  dimension <- data$reduce_dimension
+  stars::st_apply(data, dimension, \(x) base::sum(x, na.rm = TRUE))
 }
 
 #* @openeo-process
 min <- function(data, ignore_nodata = TRUE) {
-  base::min(data)
+  dimension <- data$reduce_dimension
+  stars::st_apply(data, dimension, \(x) base::min(x, na.rm = TRUE))
 }
