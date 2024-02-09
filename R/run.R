@@ -1,6 +1,6 @@
-api <- NULL
-
-create_api <- function(id, title, description, backend_version) {
+#' @export
+create_api <- function(id, title, description, backend_version, api_version) {
+  plumb_reg_serializers()
   structure(
     list(
       id = id,
@@ -9,7 +9,7 @@ create_api <- function(id, title, description, backend_version) {
       backend_version = backend_version,
       api_version = api_version
     ),
-    class = c(id, "openeo_api"),
+    class = c(id, "openeo_api"), # TODO: choose a better class name!
     env = new.env(hash = TRUE, parent = parent.frame())
   )
 }
@@ -28,30 +28,11 @@ set_attr <- function(api, name, value) {
   api
 }
 
-start_api <- function(api, envir) {
-  # register serialize function
-  plumber::register_serializer("serialize_result", function() {
-    function(val, req, res, errorHandler) {
-      fn <- get_serializer_fn(val)
-      fn(val$data, req, res, errorHandler)
-    }
-  })
-  # process api file
-  # TODO: should this be a function parameter?
-  api_file <- system.file("R/api.R", package = "openeocraft")
-  plumb <- plumber::pr(api_file, envir = envir)
-  set_plumb(api, plumb)
-  plumber::pr_run(plumb, host = get_host(api), port = get_port(api))
+get_endpoints <- function(api) {
+  get_attr(api, "endpoints")
 }
 
-get_plumb <- function(api) {
-  get_attr(api, "plumb")
-}
-
-set_plumb <- function(api, plumb) {
-  set_attr(api, "plumb", plumb)
-}
-
+#' @export
 load_processes <- function(api, processes_file) {
   stopifnot(file.exists(processes_file))
   namespace <- new.env(parent = emptyenv())
@@ -72,20 +53,6 @@ set_namespace <- function(api, namespace) {
   set_attr(api, "namespace", namespace)
 }
 
-get_processes <- function(api) {
-  processes <- get_attr(api, "processes")
-  processes_list <- list(
-    processes = unname(processes),
-    links = list(
-      new_link(
-        rel = "self",
-        href = get_endpoint(api, "/processes")
-      )
-    )
-  )
-  processes_list
-}
-
 add_process <- function(api, process) {
   processes <- get_attr(api, "processes")
   processes[[process$id]] <- process
@@ -103,29 +70,13 @@ load_rlang <- function(api) {
   }
   export_fn(":::", "::", ":")
   export_fn("{", "(")
-  export_fn("=", "<-", "<<-")
+  export_fn("=", "<-", "<<-", "$<-", "[<-", "[[<-")
   export_fn("$", "[", "[[")
   export_fn("*", "+", "-", "/", "%%", "%/%", "%*%")
   export_fn("==", "<", ">", "<=", ">=", "!=")
   export_fn("&", "&&", "|", "||", "!")
   export_fn("if", "for", "while", "repeat", "break", "next")
   export_fn("function", "return")
-}
-
-get_scheme <- function(api) {
-  get("scheme", envir = get_env(api), inherits = FALSE)
-}
-
-get_host <- function(api) {
-  get("host", envir = get_env(api), inherits = FALSE)
-}
-
-get_port <- function(api) {
-  get("port", envir = get_env(api), inherits = FALSE)
-}
-
-get_endpoint <- function(api, path) {
-  paste0(get_scheme(api), "://", get_host(api), ":", get_port(api), path)
 }
 
 load_users <- function(api, users_file) {
@@ -146,12 +97,4 @@ authenticate_user <- function(api, user, password) {
   # TODO: implement user authentication
   users <- get_attr(api, "users")
   stopifnot(user %in% names(users) || password == users[[user]]$password)
-}
-
-run_api <- function(api, host, port) {
-  stopifnot(grepl("^.+://", host))
-  set_attr(api, "scheme", gsub("://.*$", "", host))
-  set_attr(api, "host", gsub("^.+://", "", host))
-  set_attr(api, "port", port)
-  start_api(api, envir = environment())
 }

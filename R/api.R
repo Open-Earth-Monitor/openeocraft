@@ -1,28 +1,38 @@
-#* @apiTitle openEO API
-#* @apiVersion 1.2.0
+#' @export
+api_reg_endpoints <- function(api, pr) {
+  endpoints <- lapply(pr$endpoints$`__no-preempt__`, function(x) {
+    list(path = format_endpoint(x$path), methods = list(x$verbs))
+  })
+  set_attr(api, "endpoints", endpoints)
+}
 
-api_version <- "1.2.0"
-
-#* Information about the back-end
-#* @serializer unboxedJSON
-#* @get /.well-known/openeo
-function() {
-  # TODO: include this metadata into a config or init function
+#' @export
+api_wellknown <- function(api, req, res) {
+  host <- get_host(api, req)
   list(
     versions = list(
       list(
-        url = get_endpoint(api, "/"),
+        url = get_link(host, "/"),
         production = FALSE,
-        api_version = api_version
+        api_version = api$api_version
       )
     )
   )
 }
 
-#* Information about the back-end
-#* @get /
-function() {
-  # TODO: include this metadata into a config or init function
+#' @export
+api_credential <- function(api, req, res) {
+  auth <- gsub("Basic ", "",req$HTTP_AUTHORIZATION)
+  auth <- rawToChar(base64enc::base64decode(auth))
+  # print(auth) # "rolf:123456"
+  # TODO: implement token generator based on authentication
+  token = "b34ba2bdf9ac9ee1"
+  list(access_token = token)
+}
+
+#' @export
+api_landing_page <- function(api, req, res) {
+  host <- get_host(api, req)
   list(
     id = api$id,
     title = api$title,
@@ -30,60 +40,49 @@ function() {
     backend_version = api$backend_version,
     stac_version = "1.0.0",
     type = "Catalog",
-    api_version = api_version,
+    api_version = api$api_version,
     production = FALSE,
-    endpoints = list_endpoints(api),
+    endpoints = get_endpoints(api),
     links = list(
       # TODO: list other types of links
       new_link(
-        href = get_endpoint(api, "/"),
+        href = get_link(host, "/"),
         rel = "self"
       )
     )
   )
 }
 
-#* Basic metadata for all datasets
-#* @serializer unboxedJSON
-#* @get /collections
-function() {
-  # TODO: add format function to build up final object to deliver
-  get_collections(api)
+#' @export
+api_processes <- function(api, req, res) {
+  host <- get_host(api, req)
+  processes <- get_attr(api, "processes")
+  processes_list <- list(
+    processes = unname(processes),
+    links = list(
+      new_link(
+        rel = "self",
+        href = get_link(host, "/processes")
+      )
+    )
+  )
+  processes_list
 }
 
-#* Full metadata for a specific dataset
-#* @param collection_id Collection identifier
-#* @serializer unboxedJSON
-#* @get /collections/<collection_id>
-function(collection_id) {
-  collection_id <- URLdecode(collection_id)
-  get_collections(api, collection_id)
+#' @export
+api_collections <- function(api, req, res) {
+  get_collections(api, req, res)
 }
 
-#* HTTP Basic authentication
-#* @get /credentials/basic
-function(req, res) {
-  auth <- gsub("Basic ", "",req$HTTP_AUTHORIZATION)
-  auth <- rawToChar(base64decode(auth))
-  # print(auth) # "rolf:123456"
-  # TODO: implement token generator based on authentication
-  token = "b34ba2bdf9ac9ee1"
-  list(access_token = token)
+#' @export
+api_collection <- function(api, req, res, collection_id) {
+  get_collections(api, req, res, collection_id)
 }
 
-#* Process and download data synchronously
-#* @serializer serialize_result
-#* @post /result
-function(req, res) {
+#' @export
+api_result <- function(api, req, res) {
   p <- req$body
   if ("process" %in% names(p))
     p <- p$process
   run_pgraph(api, p)
-}
-
-#* Lists api processes
-#* @serializer unboxedJSON
-#* @get /processes
-function() {
-  get_processes(api)
 }
