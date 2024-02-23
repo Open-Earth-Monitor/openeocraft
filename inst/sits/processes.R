@@ -12,16 +12,24 @@ save_result <- function(data, format, options = NULL) {
 
 #* @openeo-process
 reduce_dimension <- function(data, reducer, dimension, context = NULL) {
-  reducer_fn <- function(data, context = NULL) {}
+  reducer_fn <- function(data, context) {}
   base::body(reducer_fn) <- base::substitute(reducer)
-  data$reduce_dimension <- dimension
-  reducer_fn(data = data, context = context)
+  if (base::is.character(dimension))
+    dimension <- base::match(dimension, base::dimnames(data))
+  dims <- base::setdiff(base::seq_along(base::dimnames(data)), dimension)
+  dimnames <- stars::st_dimensions(data)[[dimension]]$values
+  stars::st_apply(data, dims, \(x) {
+    base::names(x) <- dimnames
+    reducer_fn(x, context = context)
+  })
 }
 
 #* @openeo-process
-load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
-                            bands = NULL, properties = NULL) {
-
+load_collection <- function(id,
+                            spatial_extent = NULL,
+                            temporal_extent = NULL,
+                            bands = NULL,
+                            properties = NULL) {
   mock_img <- function(bands, size, origin, res, ...) {
     data <- base::data.frame(
       x = base::rep(
@@ -69,7 +77,7 @@ load_collection <- function(id, spatial_extent = NULL, temporal_extent = NULL,
         t = "2020-01-01"
       ),
       mock_img(
-        bands = base::c("b1", "b2", "b3"),
+        bands = bands,
         size = base::c(10, 10),
         origin = base::c(-45.0, -10.0),
         res = base::c(0.009, 0.009),
@@ -128,12 +136,10 @@ array_element <- function(data, index = NULL, label = NULL,
 #* @param ignore_nodata logical
 #* @return data_cube
 sum <- function(data, ignore_nodata = TRUE) {
-  dimension <- data$reduce_dimension
-  stars::st_apply(data, dimension, \(x) base::sum(x, na.rm = TRUE))
+  base::sum(base::unlist(data), na.rm = ignore_nodata)
 }
 
 #* @openeo-process
 min <- function(data, ignore_nodata = TRUE) {
-  dimension <- data$reduce_dimension
-  stars::st_apply(data, dimension, \(x) base::min(x, na.rm = TRUE))
+  base::min(base::unlist(data), na.rm = ignore_nodata)
 }

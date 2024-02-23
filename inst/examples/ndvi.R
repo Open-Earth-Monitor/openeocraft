@@ -43,5 +43,7 @@ x <- p$save_result(
 )
 
 compute_result(x, output_file = "~/ndvi.rds")
+
 result <- readRDS("~/ndvi.rds")
 result
+plot(result)
