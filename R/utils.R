@@ -22,7 +22,7 @@ make_fn <- function(params, body = NULL, env = parent.frame()) {
 
 param <- function(name, default = NULL) {
   par <- alist(x = )
-  if (!is.null(default))
+  if (!missing(default))
     par <- list(x = default)
   names(par) <- name
   par
