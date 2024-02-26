@@ -77,6 +77,7 @@ load_rlang <- function(api) {
   export_fn("&", "&&", "|", "||", "!")
   export_fn("if", "for", "while", "repeat", "break", "next")
   export_fn("function", "return")
+  export_fn("c", "list")
 }
 
 load_users <- function(api, users_file) {
