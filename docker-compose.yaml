@@ -1,0 +1,12 @@
+version: "3.3"
+
+services:
+  openeocraft:
+    build: .
+    environment:
+      - TZ=Etc/UTC
+      - DEBIAN_FRONTEND=noninteractive
+    container_name: openeocraft
+    ports:
+      - "8000:8000"
+    restart: always
