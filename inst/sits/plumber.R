@@ -80,3 +80,88 @@ function(req, res) {
 function(pr) {
   api_reg_endpoints(api, pr)
 }
+
+#* List all batch jobs
+#* @get /jobs
+function(req, res) {
+  api_jobs(api, req, res)
+}
+
+#* Create a new batch job
+#* @post /jobs
+function(req, res) {
+  api_jobs(api, req, res)
+}
+
+#* Modify a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @patch /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Full metadata for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Delete a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @delete /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Get an estimate for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/estimate
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  # TO DO - implement estimate - Back-ends can decide to either calculate the duration, the costs or both.
+}
+
+#* Logs for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/logs
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  # TO DO - implement logs - Back-ends can log any information that may be relevant for a user at any stage (status) of the batch job.
+}
+
+#* List batch job results
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  # TO DO - Lists signed URLs pointing to the processed files, usually after the batch job has finished. Back-ends may also point to intermediate results after the job has stopped due to an error or if the partial parameter has been set.
+}
+
+#* Start processing a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @post /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  # TO DO - Adds a batch job to the processing queue to compute the results.
+}
+
+#* Cancel processing a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @delete /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  # TO DO - Cancels all related computations for this job at the back-end. It will stop generating additional costs for processing.
+}
+

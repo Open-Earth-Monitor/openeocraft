@@ -86,3 +86,9 @@ api_result <- function(api, req, res) {
     p <- p$process
   run_pgraph(api, p)
 }
+
+
+#' @export
+api_jobs <- function(api, req, res, job_id = NULL) {
+  #TO DO
+}
