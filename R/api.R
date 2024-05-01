@@ -86,3 +86,49 @@ api_result <- function(api, req, res) {
     p <- p$process
   run_pgraph(api, p)
 }
+
+
+#' @export
+api_jobs <- function(api, req, res, job_id = NULL, subroute = NULL) {
+  # Handling requests that involve a specific job
+  if (!is.null(job_id)) {
+    if (is.null(subroute)) {
+      switch(req$REQUEST_METHOD,
+             "GET" = return(job_info(job_id)),
+             "PATCH" = return(job_update(job_id, req$body)),
+             "DELETE" = return(job_delete(job_id)),
+             stop("Unsupported method"))
+    } else {
+      # Subroutes like /estimate, /logs, /results
+      switch(subroute,
+             "estimate" = {
+               if (req$REQUEST_METHOD == "GET") {
+                 return(job_estimate(job_id))
+               } else {
+                 stop("Unsupported method for estimate")
+               }
+             },
+             "logs" = {
+               if (req$REQUEST_METHOD == "GET") {
+                 return(job_logs(job_id))
+               } else {
+                 stop("Unsupported method for logs")
+               }
+             },
+             "results" = {
+               switch(req$REQUEST_METHOD,
+                      "GET" = return(job_get_results(job_id)),
+                      "POST" = return(job_start(job_id)),
+                      "DELETE" = return(job_delete(job_id)),
+                      stop("Unsupported method for results"))
+             },
+             stop("Invalid subroute"))
+    }
+  } else {
+    # Handling requests that do not specify a job_id
+    switch(req$REQUEST_METHOD,
+           "GET" = return(jobs_list_all()),
+           "POST" = return(job_create(req$body)),
+           stop("Unsupported method"))
+  }
+}
