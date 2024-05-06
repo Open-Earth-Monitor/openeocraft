@@ -4,10 +4,9 @@
 #'
 
 
-#' @export
 jobs_list <- list()
 
-#' @export
+
 workspace_path <- "../workspace/jobs/users"
 
 # list of named lists, each containing job details
@@ -36,13 +35,6 @@ job_save <- function(job_id) {
   # TODO: Implement function
 }
 
-#' Read job
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_read <- function(job_id) {
-  # TODO: Implement function
-}
 
 #' Delete job
 #'
@@ -108,12 +100,28 @@ job_start <- function(job_id) {
   # TODO: Implement function
 }
 
-#' Get job information
+#' Get job information/metadata
 #'
 #' @param job_id The identifier for the job
 #' @export
 job_info <- function(job_id) {
-  # TODO: Implement function
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs_list))) {
+    return(list(message = "Job not found", code = 404))
+  }
+
+  # Retrieve the job from the jobs_list
+  job <- jobs_list[[job_id]]
+
+  # Return all metadata for the job
+  return(list(
+    id = job$id,
+    status = job$status,
+    process = job$process,
+    created = job$created,
+    title = job$title,
+    description = job$description
+  ))
 }
 
 #' Update job
