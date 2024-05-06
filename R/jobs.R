@@ -3,37 +3,35 @@
 #' @importFrom ids random_id
 #'
 
-
+# list of named lists, each containing job details
 jobs_list <- list()
 
-
+# workspace path for storing job data
 workspace_path <- "../workspace/jobs/users"
 
-# list of named lists, each containing job details
 
 #' Save job result
 #'
 #' @param job_id The identifier for the job
 #' @export
-job_save_result <- function(job_id) {
-  # TODO: Implement function
+job_save_result <- function(job_id, result) {
+  results_path <- file.path(workspace_path, job_id, "results")
+
+  # Create the results folder if it doesn't exist
+  if (!dir.exists(results_path)) {
+    dir.create(results_path, recursive = TRUE)
+  }
+
+  # Generate a unique file name for the result
+  result_filename <- paste0("result_", Sys.time(), ".bin")
+  result_file_path <- file.path(results_path, result_filename)
+
+  # Save the result to the file
+  writeBin(result, result_file_path)
+
+  return(list(message = "Result saved", result_filename = result_filename))
 }
 
-#' Access job API
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_api <- function(job_id) {
-  # TODO: Implement function
-}
-
-#' Save job
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_save <- function(job_id) {
-  # TODO: Implement function
-}
 
 
 #' Delete job
@@ -195,17 +193,20 @@ job_logs <- function(job_id) {
   }
 }
 
-# Retrieve results or URLs for job results
+# Retrieve results for job results
 #' @param job_id The identifier for the job
 #' @export
 job_get_results <- function(job_id) {
   results_path <- file.path(workspace_path, job_id, "results")
   if (dir.exists(results_path)) {
     files <- list.files(results_path, full.names = TRUE)
-    return(files)
+    results <- lapply(files, function(file) {
+      # Read the binary data from the file
+      result <- readBin(file, what = "raw", n = file.info(file)$size)
+      return(result)
+    })
+    return(results)
   } else {
     return(list(message = "No results found"))
   }
 }
-
-
