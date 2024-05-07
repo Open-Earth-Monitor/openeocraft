@@ -9,52 +9,13 @@ jobs_list <- list()
 # workspace path for storing job data
 workspace_path <- "../workspace/jobs/users"
 
-
-#' Save job result
+#' Get job API parameters
 #'
 #' @param job_id The identifier for the job
 #' @export
-job_save_result <- function(job_id, result) {
-  results_path <- file.path(workspace_path, job_id, "results")
+job_api_params <- function(job_id) {
+  # TODO: Implement function
 
-  # Create the results folder if it doesn't exist
-  if (!dir.exists(results_path)) {
-    dir.create(results_path, recursive = TRUE)
-  }
-
-  # Generate a unique file name for the result
-  result_filename <- paste0("result_", Sys.time(), ".bin")
-  result_file_path <- file.path(results_path, result_filename)
-
-  # Save the result to the file
-  writeBin(result, result_file_path)
-
-  return(list(message = "Result saved", result_filename = result_filename))
-}
-
-
-
-#' Delete job
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_delete <- function(job_id) {
-  # Check if the job_id exists in the jobs_list
-  if (!(job_id %in% names(jobs_list))) {
-    return(list(message = "Job not found", code = 404))
-  }
-
-  # Remove the job from the jobs_list
-  removed_job <- jobs_list[[job_id]]
-  remove(jobs_list[[job_id]])
-
-  # Delete the folder associated with the job_id
-  job_folder_path <- file.path(workspace_path, job_id)
-  if (file.exists(job_folder_path)) {
-    unlink(job_folder_path, recursive = TRUE)
-  }
-
-  return(list(message = "Job deleted", code = 200, deleted_job = removed_job))
 }
 
 #' Create job
@@ -81,22 +42,78 @@ job_create <- function(req) {
   return(list(id = job$id, message = "Job created", code = 201))
 }
 
-#' Get job API parameters
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_api_params <- function(job_id) {
-  # TODO: Implement function
-
+# job start helper functions, TO DO : test, refactor, and move to separate file
+get_job_details <- function(job_id) {
+  job <- job_info(job_id)
+  if (!is.list(job) || !exists("job")) {
+    return(NULL)
+  }
+  return(job)
 }
 
-#' Start job
+valid_job_details <- function(job) {
+  api <- job_api_params(job)
+  p <- job$process
+  return(!is.null(api) && !is.null(p))
+}
+
+update_job_status <- function(job_id, status) {
+  jobs_list[[job_id]]$status <- status
+}
+
+error_response <- function(message, code) {
+  list(message = message, code = code)
+}
+
+success_response <- function(message, code) {
+  list(message = message, code = code)
+}
+
+process_job_async <- function(job_id, job) {
+  callr::r_bg(function() {
+    update_job_status(job_id, "running")
+    result <- run_pgraph(job$api, job$process)
+
+    if (is.null(result)) {
+      update_job_status(job_id, "failed")
+      return(error_response("Error running process graph", 500))
+    }
+
+    if (is.null(job_save_result(job_id, result))) {
+      update_job_status(job_id, "failed")
+      return(error_response("Error saving result", 500))
+    }
+
+    update_job_status(job_id, "finished")
+    return(success_response("Job finished and result saved", 200))
+  })
+}
+
+#' Start a job asynchronously
 #'
-#' @param job_id The identifier for the job
+#' This function starts a job based on the job_id provided. It checks for job validity,
+#' updates job statuses, and processes the job asynchronously.
+#'
+#' @param job_id The identifier for the job.
+#' @return A list with a message and a status code.
 #' @export
 job_start <- function(job_id) {
-  # TODO: Implement function
+  job <- get_job_details(job_id)
+  if (is.null(job)) {
+    return(error_response("Job not found", 404))
+  }
+
+  if (!valid_job_details(job)) {
+    update_job_status(job_id, "failed")
+    return(error_response("Job details incomplete", 400))
+  }
+
+  update_job_status(job_id, "queued")
+  process_job_async(job_id, job)
+
+  return(success_response("Job started and running in the background", 200))
 }
+
 
 #' Get job information/metadata
 #'
@@ -152,6 +169,53 @@ job_update <- function(job_id, body) {
     jobs_list[[job_id]] <- job
 
     return(list(id = job$id, message = "Job updated", code = 200))
+}
+
+
+#' Delete job
+#'
+#' @param job_id The identifier for the job
+#' @export
+job_delete <- function(job_id) {
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs_list))) {
+    return(list(message = "Job not found", code = 404))
+  }
+
+  # Remove the job from the jobs_list
+  removed_job <- jobs_list[[job_id]]
+  remove(jobs_list[[job_id]])
+
+  # Delete the folder associated with the job_id
+  job_folder_path <- file.path(workspace_path, job_id)
+  if (file.exists(job_folder_path)) {
+    unlink(job_folder_path, recursive = TRUE)
+  }
+
+  return(list(message = "Job deleted", code = 200, deleted_job = removed_job))
+}
+
+
+#' Save job result
+#'
+#' @param job_id The identifier for the job
+#' @export
+job_save_result <- function(job_id, result) {
+  results_path <- file.path(workspace_path, job_id, "results")
+
+  # Create the results folder if it doesn't exist
+  if (!dir.exists(results_path)) {
+    dir.create(results_path, recursive = TRUE)
+  }
+
+  # Generate a unique file name for the result
+  result_filename <- paste0("result_", Sys.time(), ".bin")
+  result_file_path <- file.path(results_path, result_filename)
+
+  # Save the result to the file
+  writeBin(result, result_file_path)
+
+  return(list(message = "Result saved", result_filename = result_filename))
 }
 
 #' List all jobs
