@@ -69,7 +69,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
 function(req, res) {
-  doc_wellknown(api, req, res)
+  doc_wellknown(api, req)
 }
 
 #* HTTP Basic authentication
@@ -82,13 +82,13 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /conformance
 function(req, res) {
-  doc_conformance(api, req, res)
+  doc_conformance(api, req)
 }
 
 #* Information about the back-end
 #* @get /
 function(req, res) {
-  doc_landing_page(api, req, res)
+  doc_landing_page(api, req)
 }
 
 #* Basic metadata for all datasets
@@ -111,7 +111,7 @@ function(req, res, collection_id) {
 #* @serializer unboxedJSON
 #* @get /processes
 function(req, res) {
-  doc_processes(api, req, res)
+  doc_processes(api, req)
 }
 
 #* Process and download data synchronously
@@ -119,4 +119,88 @@ function(req, res) {
 #* @post /result
 function(req, res) {
   api_result(api, req, res)
+}
+
+#* List all batch jobs
+#* @get /jobs
+function(req, res) {
+  api_jobs(api, req, res)
+}
+
+#* Create a new batch job
+#* @post /jobs
+function(req, res) {
+  api_jobs(api, req, res)
+}
+
+#* Modify a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @patch /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Full metadata for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Delete a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @delete /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Get an estimate for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/estimate
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "estimate")
+}
+
+#* Logs for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/logs
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "logs")
+}
+
+#* List batch job results
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "results")
+}
+
+#* Start processing a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @post /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "results")
+}
+
+#* Cancel processing a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @delete /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "results")
 }

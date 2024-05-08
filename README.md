@@ -16,7 +16,7 @@ git clone https://github.com/Open-Earth-Monitor/openeocraft.git
 then you can change to that directory
 
 ```bash
-cd openeosits
+cd openeocraft
 ```
 
 Run it :

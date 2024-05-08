@@ -26,4 +26,6 @@ Imports:
     plumber,
     sits,
     jsonlite,
-    base64enc
+    base64enc,
+    callr,
+    ids

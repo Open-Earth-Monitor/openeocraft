@@ -163,6 +163,8 @@ api_setup_plumber <- function(api,
       setup_plumber_docs(api, pr, docs_endpoint, spec_endpoint)
   }
 }
+
+#' @rdname api_handling
 #' @export
 api_credential <- function(api, req, res) {
   auth <- gsub("Basic ", "",req$HTTP_AUTHORIZATION)
@@ -176,12 +178,60 @@ api_credential <- function(api, req, res) {
   token = "b34ba2bdf9ac9ee1"
   list(access_token = token)
 }
+
+#' Manage API Jobs
+#'
+#' Handles the creation, updating, fetching, and deletion of jobs based on the request method and parameters.
+#'
+#' @param api An object representing the API.
+#' @param req The request object, indicating the method and potential body for creating or updating jobs.
+#' @param res The response object.
+#' @param job_id Optional; a string identifier for the job if specific job actions are required.
+#' @param subroute Optional; specifies a particular job action such as 'estimate', 'logs', or 'results'.
+#' @return Depending on the request, this might return job details, creation confirmation, or the results of a specific job.
 #' @export
-api_result <- function(api, req, res) {
-  p <- req$body
-  if ("process" %in% names(p))
-    p <- p$process
-  run_pgraph(api, p)
+api_jobs <- function(api, req, res, job_id = NULL, subroute = NULL) {
+  # Handling requests that involve a specific job
+  if (!is.null(job_id)) {
+    if (is.null(subroute)) {
+      switch(req$REQUEST_METHOD,
+             "GET" = return(job_info(job_id)),
+             "PATCH" = return(job_update(job_id, req$body)),
+             "DELETE" = return(job_delete(job_id)),
+             stop("Unsupported method"))
+    } else {
+      # Subroutes like /estimate, /logs, /results
+      switch(subroute,
+             "estimate" = {
+               if (req$REQUEST_METHOD == "GET") {
+                 return(job_estimate(job_id))
+               } else {
+                 stop("Unsupported method for estimate")
+               }
+             },
+             "logs" = {
+               if (req$REQUEST_METHOD == "GET") {
+                 return(job_logs(job_id))
+               } else {
+                 stop("Unsupported method for logs")
+               }
+             },
+             "results" = {
+               switch(req$REQUEST_METHOD,
+                      "GET" = return(job_get_results(job_id)),
+                      "POST" = return(job_start(job_id)),
+                      "DELETE" = return(job_delete(job_id)),
+                      stop("Unsupported method for results"))
+             },
+             stop("Invalid subroute"))
+    }
+  } else {
+    # Handling requests that do not specify a job_id
+    switch(req$REQUEST_METHOD,
+           "GET" = return(jobs_list_all()),
+           "POST" = return(job_create(req$body)),
+           stop("Unsupported method"))
+  }
 }
 .api_wellknown <- function(api) {
   req <- fake_req()
