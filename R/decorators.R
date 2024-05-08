@@ -60,7 +60,8 @@ empty_name <- function() {
           name = arg_names[[i]],
           optional = FALSE
         )
-      }))
+      })
+    )
     jsonlite::write_json(
       x = process,
       path = process_file,
