@@ -80,3 +80,88 @@ function(req, res) {
 function(pr) {
   api_reg_endpoints(api, pr)
 }
+
+#* List all batch jobs
+#* @get /jobs
+function(req, res) {
+  api_jobs(api, req, res)
+}
+
+#* Create a new batch job
+#* @post /jobs
+function(req, res) {
+  api_jobs(api, req, res)
+}
+
+#* Modify a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @patch /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Full metadata for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Delete a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @delete /jobs/<job_id>
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id)
+}
+
+#* Get an estimate for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/estimate
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "estimate")
+}
+
+#* Logs for a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/logs
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "logs")
+}
+
+#* List batch job results
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "results")
+}
+
+#* Start processing a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @post /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "results")
+}
+
+#* Cancel processing a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @delete /jobs/<job_id>/results
+function(req, res, job_id) {
+  job_id <- URLdecode(job_id)
+  api_jobs(api, req, res, job_id, subroute = "results")
+}
+

@@ -12,7 +12,7 @@ RUN apt-get install -y libfreetype-dev
 # install necessary packages
 RUN R -e "install.packages('devtools')"
 
-RUN Rscript -e "install.packages(c('plumber', 'sf', 'rstac','sits', 'stars', 'jsonlite', 'base64enc'))"
+RUN Rscript -e "install.packages(c('plumber', 'sf', 'rstac','sits', 'stars', 'jsonlite', 'base64enc', 'ids', 'callr'))"
 
 # create directories
 RUN mkdir -p /opt/dockerfiles/ && mkdir -p /var/openeo/workspace/ && mkdir -p /var/openeo/workspace/data/
