@@ -204,14 +204,14 @@ api_serializer <- function(x, res) {
 }
 #' @export
 api_serializer.default <- function(x, res) {
-  res$setHeader("Content-Type", result$format)
-  res$body <- result$data
+  res$setHeader("Content-Type", x$format)
+  res$body <- x$data
   res
 }
 #' @export
 api_serializer.openeo_gtiff <- function(x, res) {
-  res$setHeader("Content-Type", result$format)
-  res$body <- readBin(result$data, n = file.info(result$data)$size)
+  res$setHeader("Content-Type", x$format)
+  res$body <- readBin(x$data, n = file.info(x$data)$size)
   res
 }
 
