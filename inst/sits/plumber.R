@@ -26,7 +26,7 @@ stac_api <- openstac::create_stac(
 )
 
 # Set API database
-stac_api <- openstac::set_db(stac_api, driver = "local", file = "openlandmap.rds")
+# stac_api <- openstac::set_db(stac_api, driver = "local", file = "openlandmap.rds")
 
 # Create openEO API object
 api <- create_openeo_v1(
@@ -38,6 +38,10 @@ api <- create_openeo_v1(
   conforms_to = NULL,
   production = FALSE
 )
+
+set_credentials(api, file = "~/openeo-credentials.rds")
+new_credential(api, user = "rolf", password = "123456")
+new_credential(api, user = "brian", password = "123456")
 
 # Load processes
 processes_file <- system.file("sits/processes.R", package = "openeocraft")
@@ -52,10 +56,7 @@ function(pr) {
     handle_errors = TRUE,
     spec_endpoint = "/api",
     docs_endpoint = "/docs",
-    wellknown_versions = list(
-      new_wellknown_version(
-      )
-    )
+    wellknown_versions = list()
   )
 }
 
@@ -115,7 +116,6 @@ function(req, res) {
 }
 
 #* Process and download data synchronously
-#* @serializer serialize_result
 #* @post /result
 function(req, res) {
   api_result(api, req, res)

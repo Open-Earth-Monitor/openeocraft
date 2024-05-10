@@ -6,7 +6,7 @@
 save_result <- function(data, format, options = NULL) {
   base::structure(
     base::list(data = data, format = format, options = options),
-    class = base::c(base::paste0("openeo_", base::tolower(format)), "list")
+    class = base::c(base::paste0("openeo_", base::tolower(format)))
   )
 }
 

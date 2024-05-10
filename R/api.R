@@ -178,6 +178,27 @@ api_credential <- function(api, req, res) {
   token = "b34ba2bdf9ac9ee1"
   list(access_token = token)
 }
+#' @rdname api_handling
+#' @export
+api_result <- function(api, req, res) {
+  result <- run_pgraph(api, req$body)
+  api_serializer(result, res)
+}
+api_serializer <- function(x, res) {
+  UseMethod("x")
+}
+#' @export
+api_serializer.default <- function(x, res) {
+  res$setHeader("Content-Type", result$format)
+  res$body <- result$data
+  res
+}
+#' @export
+api_serializer.openeo_gtiff <- function(x, res) {
+  res$setHeader("Content-Type", result$format)
+  res$body <- readBin(result$data, n = file.info(result$data)$size)
+  res
+}
 
 #' Manage API Jobs
 #'

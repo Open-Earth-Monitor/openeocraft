@@ -213,3 +213,20 @@ setup_plumber_docs <- function(api, pr, docs_endpoint, spec_endpoint) {
     tag = "API"
   )
 }
+
+#' @export
+new_credential <- function(api, user, password) {
+  file <- api_attr(api, "credentials")
+  stopifnot(!is.null(file) || file.exists(file))
+  credentials <- readRDS(file)
+  credentials[[user]] <- list(user = user, password = password)
+  saveRDS(credentials, file)
+}
+
+#' @export
+set_credentials <- function(api, file) {
+  if (!file.exists(file))
+    saveRDS(list(), file)
+  api_attr(api, "credentials") <- file
+  invisible(api)
+}

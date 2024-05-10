@@ -5,6 +5,8 @@
 \alias{create_api}
 \alias{create_openeo_v1}
 \alias{api_setup_plumber}
+\alias{api_credential}
+\alias{api_result}
 \title{Handle API requests}
 \usage{
 create_api(
@@ -41,6 +43,10 @@ api_setup_plumber(
   docs_endpoint = "/docs",
   wellknown_versions = list()
 )
+
+api_credential(api, req, res)
+
+api_result(api, req, res)
 }
 \arguments{
 \item{api_class}{A character string specifying the custom S3 class
