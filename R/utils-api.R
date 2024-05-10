@@ -102,6 +102,11 @@ api_stopifnot <- function(expr, status, ...) {
 }
 #' @rdname api_helpers
 #' @export
+api_success <- function(status, ...) {
+  list(code = status, message = paste0(...))
+}
+#' @rdname api_helpers
+#' @export
 get_host <- function(api, req) {
   host <- api_attr(api, "api_base_url")
   if (!is.null(host))
@@ -219,14 +224,46 @@ new_credential <- function(api, user, password) {
   file <- api_attr(api, "credentials")
   stopifnot(!is.null(file) || file.exists(file))
   credentials <- readRDS(file)
-  credentials[[user]] <- list(user = user, password = password)
+  credentials$users[[user]] <- list(user = user, password = password)
   saveRDS(credentials, file)
 }
 
 #' @export
 set_credentials <- function(api, file) {
   if (!file.exists(file))
-    saveRDS(list(), file)
+    saveRDS(list(users = list(), tokens = list()), file)
   api_attr(api, "credentials") <- file
   invisible(api)
+}
+
+new_token <- function(credentials, user, valid_days = 30) {
+  token <- ids::random_id()
+  expiry <- Sys.time() + valid_days * 60 * 60 * 24
+  credentials$users[[user]]$token <- token
+  credentials$users[[user]]$expiry <- expiry
+  credentials$tokens[[token]] <- user
+  credentials
+}
+
+token_user <- function(api, token) {
+  file <- api_attr(api, "credentials")
+  stopifnot(!is.null(file) || file.exists(file))
+  credentials <- readRDS(file)
+  if (!token %in% names(credentials$tokens)) {
+    api_stop(401, "Invalid token")
+  }
+  user <- credentials$tokens[[token]]
+  user
+}
+
+user_workspace <- function(api, user) {
+  if (!dir.exists(api$work_dir)) {
+    dir.create(api$work_dir)
+    dir.create(file.path(api$work_dir, "workspace"))
+  }
+  workspace_dir <- file.path(api$work_dir, "workspace", user)
+  if (!dir.exists(workspace_dir)) {
+    dir.create(workspace_dir)
+  }
+  workspace_dir
 }

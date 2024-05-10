@@ -35,6 +35,7 @@ api <- create_openeo_v1(
   description = "This is an openEO compliant R backend for sits package.",
   backend_version = "0.2.0",
   stac_api = stac_api,
+  work_dir = "~/openeo-tests",
   conforms_to = NULL,
   production = FALSE
 )
@@ -122,42 +123,56 @@ function(req, res) {
 }
 
 #* List all batch jobs
+#* @serializer unboxedJSON
 #* @get /jobs
 function(req, res) {
-  api_jobs(api, req, res)
+  token <- req$header$token
+  user <- token_user(api, token)
+  jobs_list_all(api, user)
+}
+
+#* List all batch jobs
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id:str>
+function(req, res, job_id) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  job_id <- URLdecode(job_id)
+  job_info(api, user, job_id)
 }
 
 #* Create a new batch job
+#* @serializer unboxedJSON
 #* @post /jobs
 function(req, res) {
-  api_jobs(api, req, res)
+  token <- req$header$token
+  user <- token_user(api, token)
+  job <- req$body
+  job_create(api, token, job)
 }
 
-#* Modify a batch job
+#* Create a new batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
-#* @patch /jobs/<job_id>
+#* @delete /jobs/<job_id:str>
 function(req, res, job_id) {
+  token <- req$header$token
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id)
+  job_delete(api, user, job_id)
 }
 
-#* Full metadata for a batch job
+#* Create a new batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
-#* @get /jobs/<job_id>
+#* @patch /jobs/<job_id:str>
 function(req, res, job_id) {
+  token <- req$header$token
+  user <- token_user(token)
+  job <- req$body
   job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id)
-}
-
-#* Delete a batch job
-#* @param job_id job identifier
-#* @serializer unboxedJSON
-#* @delete /jobs/<job_id>
-function(req, res, job_id) {
-  job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id)
+  job_update(api, user, job_id, job)
 }
 
 #* Get an estimate for a batch job
@@ -165,17 +180,21 @@ function(req, res, job_id) {
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/estimate
 function(req, res, job_id) {
+  token <- req$header$token
+  user <- token_user(token)
   job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id, subroute = "estimate")
+  job_estimate(api, user, job_id)
 }
 
 #* Logs for a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/logs
-function(req, res, job_id) {
+function(req, res, job_id, offset, level, limit) {
+  token <- req$header$token
+  user <- token_user(token)
   job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id, subroute = "logs")
+  job_logs(api, user, job_id, offset, level, limit)
 }
 
 #* List batch job results
@@ -184,6 +203,7 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/results
 function(req, res, job_id) {
   job_id <- URLdecode(job_id)
+  # Must return either an STAC collection or STAC items (stored as RDS files in results.rds )
   api_jobs(api, req, res, job_id, subroute = "results")
 }
 
