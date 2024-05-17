@@ -17,6 +17,7 @@ create_api(
   backend_version,
   api_version,
   stac_api,
+  work_dir,
   conforms_to,
   production,
   ...
@@ -28,6 +29,7 @@ create_openeo_v1(
   description,
   backend_version,
   stac_api,
+  work_dir,
   conforms_to = NULL,
   production = FALSE,
   ...

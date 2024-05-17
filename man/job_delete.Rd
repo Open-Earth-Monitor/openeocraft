@@ -4,7 +4,7 @@
 \alias{job_delete}
 \title{Delete job}
 \usage{
-job_delete(job_id)
+job_delete(api, user, job_id)
 }
 \arguments{
 \item{job_id}{The identifier for the job}

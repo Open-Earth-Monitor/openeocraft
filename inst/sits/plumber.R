@@ -131,7 +131,7 @@ function(req, res) {
   jobs_list_all(api, user)
 }
 
-#* List all batch jobs
+#* Get batch job metadata
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
@@ -152,7 +152,7 @@ function(req, res) {
   job_create(api, token, job)
 }
 
-#* Create a new batch job
+#* Delete a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @delete /jobs/<job_id:str>
@@ -163,7 +163,7 @@ function(req, res, job_id) {
   job_delete(api, user, job_id)
 }
 
-#* Create a new batch job
+#* Update a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @patch /jobs/<job_id:str>
@@ -197,30 +197,9 @@ function(req, res, job_id, offset, level, limit) {
   job_logs(api, user, job_id, offset, level, limit)
 }
 
-#* List batch job results
-#* @param job_id job identifier
+#* List supported file formats
 #* @serializer unboxedJSON
-#* @get /jobs/<job_id>/results
-function(req, res, job_id) {
-  job_id <- URLdecode(job_id)
-  # Must return either an STAC collection or STAC items (stored as RDS files in results.rds )
-  api_jobs(api, req, res, job_id, subroute = "results")
-}
-
-#* Start processing a batch job
-#* @param job_id job identifier
-#* @serializer unboxedJSON
-#* @post /jobs/<job_id>/results
-function(req, res, job_id) {
-  job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id, subroute = "results")
-}
-
-#* Cancel processing a batch job
-#* @param job_id job identifier
-#* @serializer unboxedJSON
-#* @delete /jobs/<job_id>/results
-function(req, res, job_id) {
-  job_id <- URLdecode(job_id)
-  api_jobs(api, req, res, job_id, subroute = "results")
+#* @get /file_formats
+function(req, res) {
+  file_formats()
 }

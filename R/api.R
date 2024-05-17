@@ -113,6 +113,7 @@ create_api <- function(api_class,
     env = new.env(hash = TRUE, parent = parent.frame())
   )
 }
+
 #' @rdname api_handling
 #' @export
 create_openeo_v1 <- function(id,
@@ -142,6 +143,7 @@ create_openeo_v1 <- function(id,
     production = production, ...
   )
 }
+
 #' @rdname api_handling
 #' @export
 api_setup_plumber <- function(api,
@@ -193,21 +195,25 @@ api_credential <- function(api, req, res) {
   }
   list(access_token = credentials$users[[user]]$token)
 }
+
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
   result <- run_pgraph(api, req$body)
   api_serializer(result, res)
 }
+
 api_serializer <- function(x, res) {
   UseMethod("x")
 }
+
 #' @export
 api_serializer.default <- function(x, res) {
   res$setHeader("Content-Type", result$format)
   res$body <- result$data
   res
 }
+
 #' @export
 api_serializer.openeo_gtiff <- function(x, res) {
   res$setHeader("Content-Type", result$format)
@@ -215,75 +221,97 @@ api_serializer.openeo_gtiff <- function(x, res) {
   res
 }
 
-#' Manage API Jobs
-#'
-#' Handles the creation, updating, fetching, and deletion of jobs based on the request method and parameters.
-#'
-#' @param api An object representing the API.
-#' @param req The request object, indicating the method and potential body for creating or updating jobs.
-#' @param res The response object.
-#' @param job_id Optional; a string identifier for the job if specific job actions are required.
-#' @param subroute Optional; specifies a particular job action such as 'estimate', 'logs', or 'results'.
-#' @return Depending on the request, this might return job details, creation confirmation, or the results of a specific job.
-#' @export
-api_jobs <- function(api, req, res, job_id = NULL, subroute = NULL) {
-  # Handling requests that involve a specific job
-  if (!is.null(job_id)) {
-    if (is.null(subroute)) {
-      switch(req$REQUEST_METHOD,
-             "GET" = return(job_info(job_id)),
-             "PATCH" = return(job_update(job_id, req$body)),
-             "DELETE" = return(job_delete(job_id)),
-             stop("Unsupported method"))
-    } else {
-      # Subroutes like /estimate, /logs, /results
-      switch(subroute,
-             "estimate" = {
-               if (req$REQUEST_METHOD == "GET") {
-                 return(job_estimate(job_id))
-               } else {
-                 stop("Unsupported method for estimate")
-               }
-             },
-             "logs" = {
-               if (req$REQUEST_METHOD == "GET") {
-                 return(job_logs(job_id))
-               } else {
-                 stop("Unsupported method for logs")
-               }
-             },
-             "results" = {
-               switch(req$REQUEST_METHOD,
-                      "GET" = return(job_get_results(job_id)),
-                      "POST" = return(job_start(job_id)),
-                      "DELETE" = return(job_delete(job_id)),
-                      stop("Unsupported method for results"))
-             },
-             stop("Invalid subroute"))
-    }
-  } else {
-    # Handling requests that do not specify a job_id
-    switch(req$REQUEST_METHOD,
-           "GET" = return(jobs_list_all()),
-           "POST" = return(job_create(req$body)),
-           stop("Unsupported method"))
-  }
-}
+
 .api_wellknown <- function(api) {
   req <- fake_req()
   doc_wellknown(api, req)
 }
+
 .api_landing_page <- function(api) {
   req <- fake_req()
   doc_landing_page(api, req)
 }
+
 .api_conformance <- function(api) {
   req <- fake_req()
   doc_conformance(api, req)
 }
+
 .api_processes <- function(api) {
   req <- fake_req()
   doc_processes(api, req)
+}
+
+#' Get Supported File Formats
+#'
+#' This function returns a list of supported input and output file formats
+#' for GIS data. Each format includes details such as title, description,
+#' GIS data types, and parameters.
+#'
+#' @return A list containing two elements:
+#' \describe{
+#'   \item{input}{A list of supported input formats.}
+#'   \item{output}{A list of supported output formats.}
+#' }
+#' @export
+file_formats <- function() {
+  # Define the output formats
+  outputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Export to GeoTiff.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    ),
+    NetCDF = list(
+      title = "Network Common Data Form",
+      description = "Export to NetCDF.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "NetCDF"
+        )
+      )
+    ),
+    RDS = list(
+      title = "R Data Serialization",
+      description = "Export to RDS.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "RDS"
+        )
+      )
+    )
+  )
+
+  # Define the input formats
+  inputFormats <- list(
+    ImageCollection = list(
+      title = "ImageCollection",
+      description = "Import from image collection",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "image collection formats"
+        )
+      )
+    )
+  )
+
+  # return the list of supported formats
+  list(
+    input = inputFormats,
+    output = outputFormats
+  )
 }
 
 # TODO:

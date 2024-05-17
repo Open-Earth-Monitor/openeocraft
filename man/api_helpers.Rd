@@ -6,6 +6,7 @@
 \alias{api_error_handler}
 \alias{api_stop}
 \alias{api_stopifnot}
+\alias{api_success}
 \alias{get_host}
 \alias{get_path}
 \alias{get_method}
@@ -18,6 +19,8 @@ api_error_handler(req, res, err)
 api_stop(status, ...)
 
 api_stopifnot(expr, status, ...)
+
+api_success(status, ...)
 
 get_host(api, req)
 
