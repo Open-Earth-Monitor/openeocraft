@@ -46,6 +46,11 @@ arg_switch <- function(x, ...) {
   switch(arg_type(x), ..., stop("Not supported argument type."))
 }
 
+list_expr <- function(args, env) {
+  args <- pnode_args(args, env = env)
+  as.call(c(as.name("list"), args))
+}
+
 starting_pnode <- function(p) {
   for (node in p$process_graph)
     if (pgraph_result(node))
@@ -57,7 +62,7 @@ pnode_args <- function(args, env) {
     arg_switch(
       arg,
       null = , character = , numeric = , logical = arg,
-      array = , object = pnode_args(arg, env = env),
+      array = , object = list_expr(arg, env = env),
       result_reference = {
         node <- get(arg$from_node, envir = env, inherits = FALSE)
         pnode_expr(node, env = env)
@@ -101,6 +106,8 @@ pgraph_fn <- function(p, parent = NULL) {
 }
 
 run_pgraph <- function(api, p) {
+  if ("process" %in% names(p))
+    p <- p$process
   expr <- pgraph_expr(p)
   eval(expr, envir = get_namespace(api))
 }

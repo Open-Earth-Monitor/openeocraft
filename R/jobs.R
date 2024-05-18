@@ -3,90 +3,114 @@
 #' @importFrom ids random_id
 #'
 
+
+# user_workspace(api, user) -> work_dir / <user>
+# work_dir / <user> / jobs.rds
+# work_dir / <user> / <job_id> /
+# work_dir / <user> / files /
+
 # list of named lists, each containing job details
-jobs_list <- list()
+jobs_read_rds <- function(api, user) {
+  file <- file.path(user_workspace(api, user), "jobs.rds")
+  if (!file.exists(file)) {
+    return(list())
+  }
+  jobs <- readRDS(file)
+  jobs
+}
 
-# workspace path for storing job data
-workspace_path <- "../workspace/jobs/users"
+jobs_save_rds <- function(api, user, jobs) {
+  file <- file.path(user_workspace(api, user), "jobs.rds")
+  tryCatch(saveRDS(jobs, file), error = function(e) {
+    api_stop(500, "Could not save the jobs file")
+  })
+  invisible(NULL)
+}
 
-#' Get job API parameters
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_api_params <- function(job_id) {
-  # TODO: Implement function
+job_del_dir <- function(api, user, job_id) {
+  job_dir <- file.path(user_workspace(api, user), "jobs", job_id)
+  if (unlink(job_dir, recursive = TRUE) != 0) {
+    api_stop(500, "Could not delete the job ", job_id)
+  }
+}
 
+job_upd_status <- function(api, user, job_id, status) {
+  jobs <- jobs_read_rds(api, user)
+  job <- jobs[[job_id]]
+  job$status <- status
+  jobs[[job_id]] <- job
+  jobs_save_rds(api, user, jobs)
+}
+
+logs_read_rds <- function(api, user, job_id) {
+  file <- file.path(user_workspace(api, user), job_id, "logs.rds")
+  if (!file.exists(file)) {
+    return(list())
+  }
+  logs <- readRDS(file)
+  logs
+}
+logs_save_rds <- function(api, user, job_id, logs) {
+  file <- file.path(user_workspace(api, user), job_id, "logs.rds")
+  tryCatch(saveRDS(logs, file), error = function(e) NULL)
+  invisible(NULL)
+}
+
+# TODO: include all possible fields in here. Required parameters
+#   must come before the `...` (ellipsis) parameter; optional parameters
+#   comes after
+log_append <- function(api, user, job_id, message, ...) {
+  logs <- logs_read_rds(api, user, job_id)
+  logs[[length(logs) + 1]] <- list(message = message, ...)
+  logs_save_rds(api, user, job_id, jobs)
 }
 
 #' Create job
 #'
 #' @param req the request body containing job details
 #' @export
-job_create <- function(req) {
-  if (is.na(req$id)) {
-    req$id = ids::random_id(bytes = 6)
-  }
-  else {
-    req$id = req$id
-  }
+job_create <- function(api, user, job) {
+  # TODO: create job_check
+  #job_check(api, job)
 
+  job_id <- ids::random_id()
+  # TODO: review the fields of a job
   job <- list(
-    id = req$id,
+    id = job_id,
     status = "created",
-    process = req$process,
+    process = job$process,
     created = Sys.time(),
-    title = req$title,
-    description = req$description
+    title = job$title,
+    description = job$description
   )
-  jobs_list[[req$id]] <- job
-  return(list(id = job$id, message = "Job created", code = 201))
+  jobs <- jobs_read_rds(api, user)
+  jobs[[job_id]] <- job
+  jobs_save_rds(api, user, jobs)
+
+  list(id = job_id, message = "Job created", code = 201)
 }
 
-# job start helper functions, TO DO : test, refactor, and move to separate file
-get_job_details <- function(job_id) {
-  job <- job_info(job_id)
-  if (!is.list(job) || !exists("job")) {
-    return(NULL)
-  }
-  return(job)
-}
+process_job_async <- function(api, user, job_id) {
+  proc <- callr::r_bg(function(api, user, job_id) {
+    jobs <- jobs_read_rds(api, user)
+    job <- jobs[[job_id]]
+    job_upd_status(api, user, job_id, "running")
 
-valid_job_details <- function(job) {
-  api <- job_api_params(job)
-  p <- job$process
-  return(!is.null(api) && !is.null(p))
-}
-
-update_job_status <- function(job_id, status) {
-  jobs_list[[job_id]]$status <- status
-}
-
-error_response <- function(message, code) {
-  list(message = message, code = code)
-}
-
-success_response <- function(message, code) {
-  list(message = message, code = code)
-}
-
-process_job_async <- function(job_id, job) {
-  callr::r_bg(function() {
-    update_job_status(job_id, "running")
-    result <- run_pgraph(job$api, job$process)
+    result <- tryCatch(run_pgraph(api, job$process), error = function(e) {
+      job_upd_status(api, user, job_id, "failed")
+      # TODO: log this
+      stop(e)
+    })
 
     if (is.null(result)) {
-      update_job_status(job_id, "failed")
-      return(error_response("Error running process graph", 500))
+      job_upd_status(api, user, job_id, "failed")
+      # TODO: log this
+      stop("Error running process graph")
     }
 
-    if (is.null(job_save_result(job_id, result))) {
-      update_job_status(job_id, "failed")
-      return(error_response("Error saving result", 500))
-    }
-
-    update_job_status(job_id, "finished")
-    return(success_response("Job finished and result saved", 200))
-  })
+    job_upd_status(api, user, job_id, "finished")
+  }, args = list(api, user, job_id))
+  proc
 }
 
 #' Start a job asynchronously
@@ -97,46 +121,45 @@ process_job_async <- function(job_id, job) {
 #' @param job_id The identifier for the job.
 #' @return A list with a message and a status code.
 #' @export
-job_start <- function(job_id) {
-  job <- get_job_details(job_id)
-  if (is.null(job)) {
-    return(error_response("Job not found", 404))
+job_start <- function(api, user, job_id) {
+
+  jobs <- jobs_read_rds(api, user)
+
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404, "Job not found")
   }
 
-  if (!valid_job_details(job)) {
-    update_job_status(job_id, "failed")
-    return(error_response("Job details incomplete", 400))
-  }
+  # TODO: implement queue: check for maximum number of workers
+  # procs <- procs_read_rds()
+  # procs_alive(procs) -> manage process not alive
+  # define in the api how many workers to start?
+  # length(procs)
+  # length(procs) >= workers (per user?) --> wait
+  proc <- process_job_async(api, user, job_id)
+  # TODO: Try to save `proc` inside procs.rds so that we can interact with the
+  # process
 
-  update_job_status(job_id, "queued")
-  process_job_async(job_id, job)
-
-  return(success_response("Job started and running in the background", 200))
+  api_success(200, "Job started and running in the background")
 }
-
 
 #' Get job information/metadata
 #'
 #' @param job_id The identifier for the job
 #' @export
-job_info <- function(job_id) {
+job_info <- function(api, user, job_id) {
+  jobs <- jobs_read_rds(api, user)
+
   # Check if the job_id exists in the jobs_list
-  if (!(job_id %in% names(jobs_list))) {
-    return(list(message = "Job not found", code = 404))
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404, "Job not found")
   }
 
   # Retrieve the job from the jobs_list
-  job <- jobs_list[[job_id]]
+  job <- jobs[[job_id]]
 
   # Return all metadata for the job
-  return(list(
-    id = job$id,
-    status = job$status,
-    process = job$process,
-    created = job$created,
-    title = job$title,
-    description = job$description
-  ))
+  job
 }
 
 #' Update job
@@ -144,31 +167,32 @@ job_info <- function(job_id) {
 #' @param job_id The identifier for the job
 #' @param body The request body containing updates
 #' @export
-job_update <- function(job_id, body) {
-    if (!(job_id %in% names(jobs_list))) {
-      return(list(message = "Job not found", code = 404))
-    }
+job_update <- function(api, user, job_id, job) {
+  # TODO: implement job_check partial parameter that does the check
+  #   job fields independently.
+  #job_check(job, partial = TRUE)
 
-    job <- jobs_list[[job_id]]
+  jobs <- jobs_read_rds(api, user)
 
-    # Update job details based on the provided body
-    if (!is.null(body$process)) {
-      job$process <- body$process
-    }
-    if (!is.null(body$title)) {
-      job$title <- body$title
-    }
-    if (!is.null(body$description)) {
-      job$description <- body$description
-    }
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404, "Job not found")
+  }
 
-    job$status <- "updated"
-    job$updated <- Sys.time()
+  # Retrieve the job from the jobs_list
+  current_job <- jobs[[job_id]]
 
-    # Update the job in the jobs_list
-    jobs_list[[job_id]] <- job
+  # Update job details based on the provided body
+  job <- utils::modifyList(current_job, job)
 
-    return(list(id = job$id, message = "Job updated", code = 200))
+  job$status <- "updated"
+  job$updated <- Sys.time()
+
+  # Update the job in the jobs_list
+  jobs[[job_id]] <- job
+  jobs_save_rds(api, user, jobs)
+
+  list(id = job_id, message = "Job updated", code = 200)
 }
 
 
@@ -176,69 +200,67 @@ job_update <- function(job_id, body) {
 #'
 #' @param job_id The identifier for the job
 #' @export
-job_delete <- function(job_id) {
+job_delete <- function(api, user, job_id) {
+  jobs <- jobs_read_rds(api, user)
+
   # Check if the job_id exists in the jobs_list
-  if (!(job_id %in% names(jobs_list))) {
-    return(list(message = "Job not found", code = 404))
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404, "Job not found")
   }
 
   # Remove the job from the jobs_list
-  removed_job <- jobs_list[[job_id]]
-  remove(jobs_list[[job_id]])
+  removed_job <- jobs[[job_id]]
+  jobs[[job_id]] <- NULL
+  jobs_save_rds(api, user, jobs)
 
   # Delete the folder associated with the job_id
-  job_folder_path <- file.path(workspace_path, job_id)
-  if (file.exists(job_folder_path)) {
-    unlink(job_folder_path, recursive = TRUE)
-  }
+  job_del_dir(api, user, job_id)
 
-  return(list(message = "Job deleted", code = 200, deleted_job = removed_job))
+  list(message = "Job deleted", code = 200, deleted_job = removed_job)
 }
-
-
-#' Save job result
-#'
-#' @param job_id The identifier for the job
-#' @export
-job_save_result <- function(job_id, result) {
-  results_path <- file.path(workspace_path, job_id, "results")
-
-  # Create the results folder if it doesn't exist
-  if (!dir.exists(results_path)) {
-    dir.create(results_path, recursive = TRUE)
-  }
-
-  # Generate a unique file name for the result
-  result_filename <- paste0("result_", Sys.time(), ".bin")
-  result_file_path <- file.path(results_path, result_filename)
-
-  # Save the result to the file
-  writeBin(result, result_file_path)
-
-  return(list(message = "Result saved", result_filename = result_filename))
-}
+#
+#
+# #' Save job result
+# #'
+# #' @param job_id The identifier for the job
+# #' @export
+# job_save_result <- function(job_id, result) {
+#   results_path <- file.path(workspace_path, job_id, "results")
+#
+#   # Create the results folder if it doesn't exist
+#   if (!dir.exists(results_path)) {
+#     dir.create(results_path, recursive = TRUE)
+#   }
+#
+#   # Generate a unique file name for the result
+#   result_filename <- paste0("result_", Sys.time(), ".bin")
+#   result_file_path <- file.path(results_path, result_filename)
+#
+#   # Save the result to the file
+#   writeBin(result, result_file_path)
+#
+#   return(list(message = "Result saved", result_filename = result_filename))
+# }
 
 #' List all jobs
 #'
 #' @export
-jobs_list_all <- function() {
-  if (length(jobs_list) == 0) {
-    return(list(message = "No jobs found", code = 404))
-  } else {
-    job_info <- lapply(jobs_list, function(job) {
-      job <- c(job$id, job$status, job$process, job$created, job$title, job$description)
-      names(job) <- c("id", "status", "process", "created", "title", "description")
-      return(job)
-    })
-    return(job_info)
-  }
+jobs_list_all <- function(api, user) {
+  jobs <- list(
+    jobs = lapply(jobs_read_rds(api, user), \(job) {
+      job[c("id", "status", "created")]
+    }),
+    # TODO: populate this link with some function like we do in other endpoints
+    links = list()
+  )
+  jobs
 }
 
 
 # Get an estimate for a job
 #' @param job_id The identifier for the job
 #' @export
-job_estimate <- function(job_id) {
+job_estimate <- function(api, user, job_id) {
   # This would likely call a function to calculate cost or duration based on job details
   # calculate_estimate(job_id) not implemented as depends on the cloud provider the software is running on
   return(list(message = "The cost estimates will depends on the cloud provider the software is running on"))
@@ -247,14 +269,16 @@ job_estimate <- function(job_id) {
 # Retrieve logs for a job
 #' @param job_id The identifier for the job
 #' @export
-job_logs <- function(job_id) {
-  logs_path <- file.path(workspace_path, job_id, "logs.txt")
-  if (file.exists(logs_path)) {
-    logs <- readLines(logs_path)
-    return(logs)
-  } else {
-    return(list(message = "No logs found"))
-  }
+job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) {
+  offset <- as.integer(offset)
+  if (is.na(offset)) offset <- 0
+  api_stopifnot(level %in% c("error", "warning", "info", "debug"), 400,
+                "level must be one of 'error', 'warning', 'info', 'debug'")
+  limit <- as.integer(limit)
+  api_stopifnot(limit >= 1, 400, "limit parameter must be >= 1")
+  logs <- logs_read_rds(api, user, job_id)
+  # TODO: populate links from an function
+  list(level = level, logs = logs, links = list())
 }
 
 # Retrieve results for job results

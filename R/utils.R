@@ -22,7 +22,7 @@ make_fn <- function(params, body = NULL, env = parent.frame()) {
 
 param <- function(name, default = NULL) {
   par <- alist(x = )
-  if (!is.null(default))
+  if (!missing(default))
     par <- list(x = default)
   names(par) <- name
   par
@@ -45,13 +45,6 @@ placeholders <- function(x, schema = "openeo") {
 }
 
 #' @export
-get_host <- function(api, req) {
-  if ("HTTP_HOST" %in% names(req))
-    return(paste0(req$rook.url_scheme, "://", req$HTTP_HOST))
-  paste0(req$rook.url_scheme, "://", req$SERVER_NAME, req$SERVER_PORT)
-}
-
-#' @export
 get_method <- function(req) {
   req$REQUEST_METHOD
 }
@@ -69,4 +62,26 @@ get_link <- function(host, ...) {
   query <- paste(names(params), unname(params), sep = "=", collapse = "&")
   if (query != "") href <- paste0(href, "?", query)
   href
+}
+
+get_pages <- function(items, limit) {
+  ceiling(items$numberMatched / limit)
+}
+is_absolute_url <- function(url) {
+  grepl("^.+://.+$", url)
+}
+
+fake_req <- function(path = "/", body = list()) {
+  req <- list(
+    REQUEST_METHOD = "GET",
+    HTTP_ACCESS_CONTROL_REQUEST_HEADERS = "*",
+    HTTP_HOST = "0.0.0.0",
+    SERVER_NAME = "0.0.0.0",
+    SERVER_PORT = "8080",
+    PATH_INFO = "",
+    HTTP_AUTHORIZATION = "123456789",
+    rook.url_cheme = "http",
+    body = body
+  )
+  req
 }

@@ -1,8 +1,3 @@
-new_link <- function(rel, href, ...) {
-  dots <- list(...)
-  c(list(rel = rel, href = href), dots)
-}
-
 #' @export
 load_collections <- function(api, collections = NULL, stac_api = NULL,
                              catalog_file = NULL) {
