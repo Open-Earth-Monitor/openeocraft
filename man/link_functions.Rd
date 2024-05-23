@@ -4,11 +4,14 @@
 \alias{link_functions}
 \alias{add_link}
 \alias{update_link}
+\alias{delete_link}
 \title{Link helper functions}
 \usage{
 add_link(doc, rel, href, ...)
 
 update_link(doc, rel, href, ...)
+
+delete_link(doc, rel, ...)
 }
 \arguments{
 \item{doc}{The document to which the link will be added.}

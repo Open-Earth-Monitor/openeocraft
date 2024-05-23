@@ -235,7 +235,6 @@ set_credentials <- function(api, file) {
   api_attr(api, "credentials") <- file
   invisible(api)
 }
-
 new_token <- function(credentials, user, valid_days = 30) {
   token <- ids::random_id()
   expiry <- Sys.time() + valid_days * 60 * 60 * 24
@@ -244,7 +243,7 @@ new_token <- function(credentials, user, valid_days = 30) {
   credentials$tokens[[token]] <- user
   credentials
 }
-
+#' @export
 token_user <- function(api, token) {
   file <- api_attr(api, "credentials")
   stopifnot(!is.null(file) || file.exists(file))
@@ -253,9 +252,11 @@ token_user <- function(api, token) {
     api_stop(401, "Invalid token")
   }
   user <- credentials$tokens[[token]]
+  if (Sys.time() > credentials$users[[user]]$expiry) {
+    api_stop(401, "Token expired")
+  }
   user
 }
-
 user_workspace <- function(api, user) {
   if (!dir.exists(api$work_dir)) {
     dir.create(api$work_dir)

@@ -81,7 +81,8 @@ function(req, res) {
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
   collection_id <- URLdecode(collection_id)
-  openstac::api_collection(api$stac_api, req, res, collection_id)
+  doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
+  delete_link(doc, rel = "item")
 }
 
 #* Lists api processes
@@ -144,7 +145,7 @@ function(req, res, job_id) {
 #* @patch /jobs/<job_id:str>
 function(req, res, job_id) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job <- req$body
   job_id <- URLdecode(job_id)
   job_update(api, user, job_id, job)
@@ -156,7 +157,7 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/estimate
 function(req, res, job_id) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_estimate(api, user, job_id)
 }
@@ -167,7 +168,7 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/logs
 function(req, res, job_id, offset, level, limit) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_logs(api, user, job_id, offset, level, limit)
 }
