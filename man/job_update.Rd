@@ -4,7 +4,7 @@
 \alias{job_update}
 \title{Update job}
 \usage{
-job_update(job_id, body)
+job_update(api, user, job_id, job)
 }
 \arguments{
 \item{job_id}{The identifier for the job}

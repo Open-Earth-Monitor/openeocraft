@@ -26,7 +26,8 @@ stac_api <- openstac::create_stac(
 )
 
 # Set API database
-# stac_api <- openstac::set_db(stac_api, driver = "local", file = "openlandmap.rds")
+file <- system.file("sits/sits.rds", package = "openeocraft")
+stac_api <- openstac::set_db(stac_api, driver = "local", file = file)
 
 # Create openEO API object
 api <- create_openeo_v1(

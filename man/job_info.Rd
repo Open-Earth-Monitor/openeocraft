@@ -4,7 +4,7 @@
 \alias{job_info}
 \title{Get job information/metadata}
 \usage{
-job_info(job_id)
+job_info(api, user, job_id)
 }
 \arguments{
 \item{job_id}{The identifier for the job}

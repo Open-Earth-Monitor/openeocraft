@@ -4,7 +4,7 @@
 \alias{jobs_list_all}
 \title{List all jobs}
 \usage{
-jobs_list_all()
+jobs_list_all(api, user)
 }
 \description{
 List all jobs

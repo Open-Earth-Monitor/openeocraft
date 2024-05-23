@@ -4,7 +4,7 @@
 \alias{job_start}
 \title{Start a job asynchronously}
 \usage{
-job_start(job_id)
+job_start(api, user, job_id)
 }
 \arguments{
 \item{job_id}{The identifier for the job.}
