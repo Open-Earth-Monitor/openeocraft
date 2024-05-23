@@ -49,30 +49,10 @@ new_credential(api, user = "brian", password = "123456")
 processes_file <- system.file("sits/processes.R", package = "openeocraft")
 load_processes(api, processes_file)
 
-#* Setup plumber router
-#* @plumber
-function(pr) {
-  api_setup_plumber(
-    api = api,
-    pr = pr,
-    handle_errors = TRUE,
-    spec_endpoint = "/api",
-    docs_endpoint = "/docs",
-    wellknown_versions = list()
-  )
-}
-
 #* Enable Cross-origin Resource Sharing
 #* @filter cors
 function(req, res) {
   api_cors_handler(req, res, origin = "*", methods = "*")
-}
-
-#* Information about the back-end
-#* @serializer unboxedJSON
-#* @get /.well-known/openeo
-function(req, res) {
-  doc_wellknown(api, req)
 }
 
 #* HTTP Basic authentication
@@ -86,12 +66,6 @@ function(req, res) {
 #* @get /conformance
 function(req, res) {
   doc_conformance(api, req)
-}
-
-#* Information about the back-end
-#* @get /
-function(req, res) {
-  doc_landing_page(api, req)
 }
 
 #* Basic metadata for all datasets
@@ -198,3 +172,34 @@ function(req, res, job_id, offset, level, limit) {
   job_logs(api, user, job_id, offset, level, limit)
 }
 
+# NOTE:
+#  this must be placed after endpoints to be shown in
+#  the land page, so that endpoints can be mapped properly
+#  endpoints registered after this setup will not be listed.
+
+#* Setup plumber router
+#* @plumber
+function(pr) {
+  api_setup_plumber(
+    api = api,
+    pr = pr,
+    handle_errors = TRUE,
+    spec_endpoint = "/api",
+    docs_endpoint = "/docs",
+    wellknown_versions = list()
+  )
+}
+
+#* Information about the back-end
+#* @serializer unboxedJSON
+#* @get /
+function(req, res) {
+  doc_landing_page(api, req)
+}
+
+#* Information about the back-end
+#* @serializer unboxedJSON
+#* @get /.well-known/openeo
+function(req, res) {
+  doc_wellknown(api, req)
+}
