@@ -94,6 +94,7 @@ create_api <- function(api_class,
                        backend_version,
                        api_version,
                        stac_api,
+                       work_dir,
                        conforms_to,
                        production, ...) {
   structure(
@@ -104,6 +105,7 @@ create_api <- function(api_class,
       backend_version = backend_version,
       api_version = api_version,
       stac_api = stac_api,
+      work_dir = work_dir,
       conforms_to = unique(as.list(conforms_to)),
       production = production, ...
     ),
@@ -118,6 +120,7 @@ create_openeo_v1 <- function(id,
                              description,
                              backend_version,
                              stac_api,
+                             work_dir,
                              conforms_to = NULL,
                              production = FALSE, ...) {
   # A list of all conformance classes specified in a standard that the
@@ -134,6 +137,7 @@ create_openeo_v1 <- function(id,
     backend_version = backend_version,
     api_version = "1.2.0",
     stac_api = stac_api,
+    work_dir = work_dir,
     conforms_to = c(openeo_v1_conforms_to, as.list(conforms_to)),
     production = production, ...
   )
@@ -171,12 +175,44 @@ api_credential <- function(api, req, res) {
   auth <- rawToChar(base64enc::base64decode(auth))
   auth <- strsplit(auth, ":")[[1]]
   user <- auth[[1]]
-  passwd <- auth[[2]]
-  if (user == "rolf" && passwd == "123456") {
+  password <- auth[[2]]
+  file <- api_attr(api, "credentials")
+  credentials <- readRDS(file)
+  if (!user %in% names(credentials) || credentials[[user]]$password != password) {
+    api_stop(403, "User or password does not match")
   }
-  # TODO: implement token generator based on authentication
-  token = "b34ba2bdf9ac9ee1"
-  list(access_token = token)
+  # user is logged
+  if (!"token" %in% names(credentials[[user]])) {
+    credentials <- new_token(credentials, user, 30)
+    saveRDS(credentials, file)
+  } else if (credentials[[user]]$expiry > Sys.time()) {
+    old_token <- credentials$users[[user]]$token
+    credentials$tokens[[old_token]] <- NULL
+    credentials <- new_token(credentials, user, 30)
+    saveRDS(credentials, file)
+  }
+  list(access_token = credentials$users[[user]]$token)
+}
+#' @rdname api_handling
+#' @export
+api_result <- function(api, req, res) {
+  result <- run_pgraph(api, req$body)
+  api_serializer(result, res)
+}
+api_serializer <- function(x, res) {
+  UseMethod("x")
+}
+#' @export
+api_serializer.default <- function(x, res) {
+  res$setHeader("Content-Type", x$format)
+  res$body <- x$data
+  res
+}
+#' @export
+api_serializer.openeo_gtiff <- function(x, res) {
+  res$setHeader("Content-Type", x$format)
+  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res
 }
 
 #' Manage API Jobs

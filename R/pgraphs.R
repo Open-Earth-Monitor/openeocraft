@@ -106,6 +106,8 @@ pgraph_fn <- function(p, parent = NULL) {
 }
 
 run_pgraph <- function(api, p) {
+  if ("process" %in% names(p))
+    p <- p$process
   expr <- pgraph_expr(p)
   eval(expr, envir = get_namespace(api))
 }
