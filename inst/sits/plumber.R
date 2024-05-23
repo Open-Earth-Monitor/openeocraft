@@ -107,7 +107,7 @@ function(req, res) {
   jobs_list_all(api, user)
 }
 
-#* List all batch jobs
+#* Get batch job metadata
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
@@ -128,7 +128,7 @@ function(req, res) {
   job_create(api, token, job)
 }
 
-#* Create a new batch job
+#* Delete a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @delete /jobs/<job_id:str>
@@ -139,7 +139,7 @@ function(req, res, job_id) {
   job_delete(api, user, job_id)
 }
 
-#* Create a new batch job
+#* Update a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @patch /jobs/<job_id:str>
@@ -171,6 +171,13 @@ function(req, res, job_id, offset, level, limit) {
   user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_logs(api, user, job_id, offset, level, limit)
+}
+
+#* List supported file formats
+#* @serializer unboxedJSON
+#* @get /file_formats
+function(req, res) {
+  file_formats()
 }
 
 # NOTE:
