@@ -83,5 +83,11 @@ links_landing_page.openeo_v1 <- function(doc, api, req) {
     href = make_url(host, "/collections"),
     type = "application/json"
   )
+  doc <- update_link(
+    doc = doc,
+    rel = "version-history",
+    href = make_url(host, "/.well-known/openeo"),
+    type = "application/json"
+  )
   doc
 }

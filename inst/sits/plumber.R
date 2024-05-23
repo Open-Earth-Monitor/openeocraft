@@ -26,7 +26,8 @@ stac_api <- openstac::create_stac(
 )
 
 # Set API database
-# stac_api <- openstac::set_db(stac_api, driver = "local", file = "openlandmap.rds")
+file <- system.file("sits/sits.rds", package = "openeocraft")
+stac_api <- openstac::set_db(stac_api, driver = "local", file = file)
 
 # Create openEO API object
 api <- create_openeo_v1(
@@ -48,30 +49,10 @@ new_credential(api, user = "brian", password = "123456")
 processes_file <- system.file("sits/processes.R", package = "openeocraft")
 load_processes(api, processes_file)
 
-#* Setup plumber router
-#* @plumber
-function(pr) {
-  api_setup_plumber(
-    api = api,
-    pr = pr,
-    handle_errors = TRUE,
-    spec_endpoint = "/api",
-    docs_endpoint = "/docs",
-    wellknown_versions = list()
-  )
-}
-
 #* Enable Cross-origin Resource Sharing
 #* @filter cors
 function(req, res) {
   api_cors_handler(req, res, origin = "*", methods = "*")
-}
-
-#* Information about the back-end
-#* @serializer unboxedJSON
-#* @get /.well-known/openeo
-function(req, res) {
-  doc_wellknown(api, req)
 }
 
 #* HTTP Basic authentication
@@ -87,12 +68,6 @@ function(req, res) {
   doc_conformance(api, req)
 }
 
-#* Information about the back-end
-#* @get /
-function(req, res) {
-  doc_landing_page(api, req)
-}
-
 #* Basic metadata for all datasets
 #* @serializer unboxedJSON
 #* @get /collections
@@ -106,7 +81,8 @@ function(req, res) {
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
   collection_id <- URLdecode(collection_id)
-  openstac::api_collection(api$stac_api, req, res, collection_id)
+  doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
+  delete_link(doc, rel = "item")
 }
 
 #* Lists api processes
@@ -169,7 +145,7 @@ function(req, res, job_id) {
 #* @patch /jobs/<job_id:str>
 function(req, res, job_id) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job <- req$body
   job_id <- URLdecode(job_id)
   job_update(api, user, job_id, job)
@@ -181,7 +157,7 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/estimate
 function(req, res, job_id) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_estimate(api, user, job_id)
 }
@@ -192,7 +168,7 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/logs
 function(req, res, job_id, offset, level, limit) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_logs(api, user, job_id, offset, level, limit)
 }
@@ -202,4 +178,36 @@ function(req, res, job_id, offset, level, limit) {
 #* @get /file_formats
 function(req, res) {
   file_formats()
+}
+
+# NOTE:
+#  this must be placed after endpoints to be shown in
+#  the land page, so that endpoints can be mapped properly
+#  endpoints registered after this setup will not be listed.
+
+#* Setup plumber router
+#* @plumber
+function(pr) {
+  api_setup_plumber(
+    api = api,
+    pr = pr,
+    handle_errors = TRUE,
+    spec_endpoint = "/api",
+    docs_endpoint = "/docs",
+    wellknown_versions = list()
+  )
+}
+
+#* Information about the back-end
+#* @serializer unboxedJSON
+#* @get /
+function(req, res) {
+  doc_landing_page(api, req)
+}
+
+#* Information about the back-end
+#* @serializer unboxedJSON
+#* @get /.well-known/openeo
+function(req, res) {
+  doc_wellknown(api, req)
 }
