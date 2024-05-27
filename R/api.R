@@ -207,16 +207,24 @@ api_serializer <- function(x, res) {
   UseMethod("x")
 }
 
+
 #' @export
-api_serializer.default <- function(x, res) {
-  res$setHeader("Content-Type", x$format)
-  res$body <- x$data
+api_serializer.openeo_gtiff <- function(x, res) {
+  res$setHeader("Content-Type", "image/tiff")
+  res$body <- readBin(x$data, n = file.info(x$data)$size)
   res
 }
 
 #' @export
-api_serializer.openeo_gtiff <- function(x, res) {
-  res$setHeader("Content-Type", x$format)
+api_serializer.openeo_netcdf <- function(x, res) {
+  res$setHeader("Content-Type", "application/octet-stream")
+  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res
+}
+
+#' @export
+api_serializer.openeo_rds <- function(x, res) {
+  res$setHeader("Content-Type", "application/rds")
   res$body <- readBin(x$data, n = file.info(x$data)$size)
   res
 }
@@ -294,14 +302,14 @@ file_formats <- function() {
 
   # Define the input formats
   inputFormats <- list(
-    ImageCollection = list(
-      title = "ImageCollection",
-      description = "Import from image collection",
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
       gis_data_types = list("raster"),
       parameters = list(
         format = list(
           type = "string",
-          description = "image collection formats"
+          description = "GeoTiff"
         )
       )
     )

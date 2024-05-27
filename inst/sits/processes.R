@@ -4,9 +4,16 @@
 
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
+  format <- base::tolower(format)
+  supported_formats <- file_formats()
+  outputFormats <- supported_formats$output
+  if (!(format %in% names(outputFormats))) {
+    stop(paste("Format", format, "is not supported."))
+  }
+
   base::structure(
     base::list(data = data, format = format, options = options),
-    class = base::c(base::paste0("openeo_", base::tolower(format)))
+    class = base::c(base::paste0("openeo_", format))
   )
 }
 
