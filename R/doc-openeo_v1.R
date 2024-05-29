@@ -28,11 +28,11 @@ doc_landing_page.openeo_v1 <- function(api, req) {
     title = api$title,
     description = api$description,
     backend_version = api$backend_version,
-    stac_version = api$stac_api$stac_version,
+    stac_version = api$stac_api$get("stac_version"),
     api_version = api$api_version,
     production = api$production,
     endpoints = get_endpoints(api),
-    conformsTo = doc_conformance(api, req)
+    conformsTo = api$conforms_to
   )
   doc <- links_landing_page(doc, api, req)
   doc
@@ -40,11 +40,11 @@ doc_landing_page.openeo_v1 <- function(api, req) {
 #' @rdname doc_handling
 #' @export
 doc_processes.openeo_v1 <- function(api, req) {
-  processes <- api_attr(api, "processes")
-  processes_list <- list(
-    processes = unname(processes)
+  procs <- api_attr(api, "processes")
+  procs <- list(
+    processes = unname(procs)
   )
-  processes_list
+  procs
 }
 #' @rdname doc_handling
 #' @export

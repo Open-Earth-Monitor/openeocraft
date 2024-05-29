@@ -8,11 +8,11 @@
 # Load libraries
 library(openeocraft)
 library(plumber)
-library(promises)
-library(future)
+#library(promises)
+#library(future)
 
 # Set number of processes to serve the API
-future::plan(future::multisession(workers = 2))
+#future::plan(future::multisession(workers = 2))
 
 # Create an STAC server API object
 stac_api <- openstac::create_stac(
@@ -65,14 +65,14 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /conformance
 function(req, res) {
-  doc_conformance(api, req)
+  api_conformance(api, req)
 }
 
 #* Basic metadata for all datasets
 #* @serializer unboxedJSON
 #* @get /collections
 function(req, res) {
-  openstac::api_collections(api$stac_api, req, res)
+  openstac::api_collections(api$stac_api, req)
 }
 
 #* Full metadata for a specific dataset
@@ -80,8 +80,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
-  collection_id <- URLdecode(collection_id)
-  doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
+  doc <- openstac::api_collection(api$stac_api, collection_id, req)
   delete_link(doc, rel = "item")
 }
 
@@ -89,7 +88,7 @@ function(req, res, collection_id) {
 #* @serializer unboxedJSON
 #* @get /processes
 function(req, res) {
-  doc_processes(api, req)
+  api_processes(api, req, check_auth = FALSE)
 }
 
 #* Process and download data synchronously
@@ -102,9 +101,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /jobs
 function(req, res) {
-  token <- req$header$token
-  user <- token_user(api, token)
-  jobs_list_all(api, user)
+  api_jobs_list(api, req)
 }
 
 #* Get batch job metadata
@@ -114,18 +111,18 @@ function(req, res) {
 function(req, res, job_id) {
   token <- req$header$token
   user <- token_user(api, token)
-  job_id <- URLdecode(job_id)
   job_info(api, user, job_id)
 }
 
 #* Create a new batch job
+#* @parser json list(auto_unbox = TRUE)
 #* @serializer unboxedJSON
 #* @post /jobs
 function(req, res) {
   token <- req$header$token
   user <- token_user(api, token)
   job <- req$body
-  job_create(api, token, job)
+  job_create(api, user, job)
 }
 
 #* Delete a batch job
@@ -135,7 +132,6 @@ function(req, res) {
 function(req, res, job_id) {
   token <- req$header$token
   user <- token_user(api, token)
-  job_id <- URLdecode(job_id)
   job_delete(api, user, job_id)
 }
 
@@ -147,8 +143,27 @@ function(req, res, job_id) {
   token <- req$header$token
   user <- token_user(api, token)
   job <- req$body
-  job_id <- URLdecode(job_id)
   job_update(api, user, job_id, job)
+}
+
+#* Start a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @post /jobs/<job_id:str>/results
+function(req, res, job_id) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  job_start(api, user, job_id)
+}
+
+#* Start a batch job
+#* @param job_id job identifier
+#* @serializer unboxedJSON
+#* @get /jobs/<job_id:str>/results
+function(req, res, job_id) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  job_get_results(api, user, job_id)
 }
 
 #* Get an estimate for a batch job
@@ -169,7 +184,6 @@ function(req, res, job_id) {
 function(req, res, job_id, offset, level, limit) {
   token <- req$header$token
   user <- token_user(api, token)
-  job_id <- URLdecode(job_id)
   job_logs(api, user, job_id, offset, level, limit)
 }
 
