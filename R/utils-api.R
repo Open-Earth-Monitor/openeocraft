@@ -257,12 +257,15 @@ token_user <- function(api, token) {
   }
   user
 }
+api_workdir <- function(api) {
+  api$work_dir
+}
 user_workspace <- function(api, user) {
-  if (!dir.exists(api$work_dir)) {
-    dir.create(api$work_dir)
-    dir.create(file.path(api$work_dir, "workspace"))
+  if (!dir.exists(api_workdir(api))) {
+    dir.create(api_workdir(api))
+    dir.create(file.path(api_workdir(api), "workspace"))
   }
-  workspace_dir <- file.path(api$work_dir, "workspace", user)
+  workspace_dir <- file.path(api_workdir(api), "workspace", user)
   if (!dir.exists(workspace_dir)) {
     dir.create(workspace_dir)
   }

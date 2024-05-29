@@ -178,14 +178,18 @@ api_credential <- function(api, req, res) {
   password <- auth[[2]]
   file <- api_attr(api, "credentials")
   credentials <- readRDS(file)
-  if (!user %in% names(credentials) || credentials[[user]]$password != password) {
+  print(user)
+  print(password)
+  print(credentials)
+  if (!user %in% names(credentials$users) ||
+      credentials$users[[user]]$password != password) {
     api_stop(403, "User or password does not match")
   }
   # user is logged
-  if (!"token" %in% names(credentials[[user]])) {
+  if (!"token" %in% names(credentials$users[[user]])) {
     credentials <- new_token(credentials, user, 30)
     saveRDS(credentials, file)
-  } else if (credentials[[user]]$expiry > Sys.time()) {
+  } else if (credentials$users[[user]]$expiry > Sys.time()) {
     old_token <- credentials$users[[user]]$token
     credentials$tokens[[old_token]] <- NULL
     credentials <- new_token(credentials, user, 30)
@@ -196,94 +200,51 @@ api_credential <- function(api, req, res) {
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
-  result <- run_pgraph(api, req$body)
+  token <- req$header$token
+  token_user(api, token)
+  pg <- req$body
+  result <- run_pgraph(api, pg)
   api_serializer(result, res)
 }
 api_serializer <- function(x, res) {
-  UseMethod("x")
+  UseMethod("api_serializer", x)
 }
 #' @export
-api_serializer.default <- function(x, res) {
-  res$setHeader("Content-Type", x$format)
+api_serializer.openeo_json <- function(x, res) {
+  res$setHeader("Content-Type", "application/json")
   res$body <- x$data
   res
 }
 #' @export
 api_serializer.openeo_gtiff <- function(x, res) {
-  res$setHeader("Content-Type", x$format)
+  res$setHeader("Content-Type", "image/tiff")
   res$body <- readBin(x$data, n = file.info(x$data)$size)
   res
 }
-
-#' Manage API Jobs
-#'
-#' Handles the creation, updating, fetching, and deletion of jobs based on the request method and parameters.
-#'
-#' @param api An object representing the API.
-#' @param req The request object, indicating the method and potential body for creating or updating jobs.
-#' @param res The response object.
-#' @param job_id Optional; a string identifier for the job if specific job actions are required.
-#' @param subroute Optional; specifies a particular job action such as 'estimate', 'logs', or 'results'.
-#' @return Depending on the request, this might return job details, creation confirmation, or the results of a specific job.
 #' @export
-api_jobs <- function(api, req, res, job_id = NULL, subroute = NULL) {
-  # Handling requests that involve a specific job
-  if (!is.null(job_id)) {
-    if (is.null(subroute)) {
-      switch(req$REQUEST_METHOD,
-             "GET" = return(job_info(job_id)),
-             "PATCH" = return(job_update(job_id, req$body)),
-             "DELETE" = return(job_delete(job_id)),
-             stop("Unsupported method"))
-    } else {
-      # Subroutes like /estimate, /logs, /results
-      switch(subroute,
-             "estimate" = {
-               if (req$REQUEST_METHOD == "GET") {
-                 return(job_estimate(job_id))
-               } else {
-                 stop("Unsupported method for estimate")
-               }
-             },
-             "logs" = {
-               if (req$REQUEST_METHOD == "GET") {
-                 return(job_logs(job_id))
-               } else {
-                 stop("Unsupported method for logs")
-               }
-             },
-             "results" = {
-               switch(req$REQUEST_METHOD,
-                      "GET" = return(job_get_results(job_id)),
-                      "POST" = return(job_start(job_id)),
-                      "DELETE" = return(job_delete(job_id)),
-                      stop("Unsupported method for results"))
-             },
-             stop("Invalid subroute"))
-    }
-  } else {
-    # Handling requests that do not specify a job_id
-    switch(req$REQUEST_METHOD,
-           "GET" = return(jobs_list_all()),
-           "POST" = return(job_create(req$body)),
-           stop("Unsupported method"))
-  }
-}
-.api_wellknown <- function(api) {
-  req <- fake_req()
+api_wellknown <- function(api, req) {
   doc_wellknown(api, req)
 }
-.api_landing_page <- function(api) {
-  req <- fake_req()
+#' @export
+api_landing_page <- function(api, req) {
   doc_landing_page(api, req)
 }
-.api_conformance <- function(api) {
-  req <- fake_req()
+#' @export
+api_conformance <- function(api, req) {
   doc_conformance(api, req)
 }
-.api_processes <- function(api) {
-  req <- fake_req()
+#' @export
+api_processes <- function(api, req, check_auth = FALSE) {
+  if (check_auth) {
+    token <- req$header$token
+    token_user(api, token)
+  }
   doc_processes(api, req)
+}
+api_jobs_list <- function(api, req) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  job_list_all(api, user)
 }
 
 # TODO:
