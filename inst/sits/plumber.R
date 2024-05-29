@@ -81,7 +81,8 @@ function(req, res) {
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
   collection_id <- URLdecode(collection_id)
-  openstac::api_collection(api$stac_api, req, res, collection_id)
+  doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
+  delete_link(doc, rel = "item")
 }
 
 #* Lists api processes
@@ -106,7 +107,7 @@ function(req, res) {
   jobs_list_all(api, user)
 }
 
-#* List all batch jobs
+#* Get batch job metadata
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
@@ -127,7 +128,7 @@ function(req, res) {
   job_create(api, token, job)
 }
 
-#* Create a new batch job
+#* Delete a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @delete /jobs/<job_id:str>
@@ -138,13 +139,13 @@ function(req, res, job_id) {
   job_delete(api, user, job_id)
 }
 
-#* Create a new batch job
+#* Update a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @patch /jobs/<job_id:str>
 function(req, res, job_id) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job <- req$body
   job_id <- URLdecode(job_id)
   job_update(api, user, job_id, job)
@@ -156,7 +157,7 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/estimate
 function(req, res, job_id) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_estimate(api, user, job_id)
 }
@@ -167,9 +168,16 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/logs
 function(req, res, job_id, offset, level, limit) {
   token <- req$header$token
-  user <- token_user(token)
+  user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_logs(api, user, job_id, offset, level, limit)
+}
+
+#* List supported file formats
+#* @serializer unboxedJSON
+#* @get /file_formats
+function(req, res) {
+  file_formats()
 }
 
 # NOTE:
