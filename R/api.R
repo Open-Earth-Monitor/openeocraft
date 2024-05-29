@@ -113,6 +113,7 @@ create_api <- function(api_class,
     env = new.env(hash = TRUE, parent = parent.frame())
   )
 }
+
 #' @rdname api_handling
 #' @export
 create_openeo_v1 <- function(id,
@@ -142,6 +143,7 @@ create_openeo_v1 <- function(id,
     production = production, ...
   )
 }
+
 #' @rdname api_handling
 #' @export
 api_setup_plumber <- function(api,
@@ -197,6 +199,7 @@ api_credential <- function(api, req, res) {
   }
   list(access_token = credentials$users[[user]]$token)
 }
+
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
@@ -206,6 +209,7 @@ api_result <- function(api, req, res) {
   result <- run_pgraph(api, pg)
   api_serializer(result, res)
 }
+
 api_serializer <- function(x, res) {
   UseMethod("api_serializer", x)
 }
@@ -218,6 +222,19 @@ api_serializer.openeo_json <- function(x, res) {
 #' @export
 api_serializer.openeo_gtiff <- function(x, res) {
   res$setHeader("Content-Type", "image/tiff")
+  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res
+}
+#' @export
+api_serializer.openeo_netcdf <- function(x, res) {
+  res$setHeader("Content-Type", "application/octet-stream")
+  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res
+}
+
+#' @export
+api_serializer.openeo_rds <- function(x, res) {
+  res$setHeader("Content-Type", "application/rds")
   res$body <- readBin(x$data, n = file.info(x$data)$size)
   res
 }
@@ -241,10 +258,83 @@ api_processes <- function(api, req, check_auth = FALSE) {
   }
   doc_processes(api, req)
 }
+#' @export
 api_jobs_list <- function(api, req) {
   token <- req$header$token
   user <- token_user(api, token)
   job_list_all(api, user)
+}
+
+#' Get Supported File Formats
+#'
+#' This function returns a list of supported input and output file formats
+#' for GIS data. Each format includes details such as title, description,
+#' GIS data types, and parameters.
+#'
+#' @return A list containing two elements:
+#' \describe{
+#'   \item{input}{A list of supported input formats.}
+#'   \item{output}{A list of supported output formats.}
+#' }
+#' @export
+file_formats <- function() {
+  # Define the output formats
+  outputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Export to GeoTiff.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    ),
+    NetCDF = list(
+      title = "Network Common Data Form",
+      description = "Export to NetCDF.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "NetCDF"
+        )
+      )
+    ),
+    RDS = list(
+      title = "R Data Serialization",
+      description = "Export to RDS.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "RDS"
+        )
+      )
+    )
+  )
+
+  # Define the input formats
+  inputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    )
+  )
+
+  # return the list of supported formats
+  list(
+    input = inputFormats,
+    output = outputFormats
+  )
 }
 
 # TODO:

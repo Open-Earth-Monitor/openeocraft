@@ -104,7 +104,7 @@ function(req, res) {
   api_jobs_list(api, req)
 }
 
-#* Get a job
+#* Get batch job metadata
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
@@ -185,6 +185,13 @@ function(req, res, job_id, offset, level, limit) {
   token <- req$header$token
   user <- token_user(api, token)
   job_logs(api, user, job_id, offset, level, limit)
+}
+
+#* List supported file formats
+#* @serializer unboxedJSON
+#* @get /file_formats
+function(req, res) {
+  file_formats()
 }
 
 # NOTE:
