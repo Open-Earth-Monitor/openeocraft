@@ -5,14 +5,21 @@
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
   format <- base::tolower(format)
-  supported_formats <- file_formats()
+  supported_formats <- openeocraft::file_formats()
   outputFormats <- supported_formats$output
-  if (!(format %in% names(outputFormats))) {
-    stop(paste("Format", format, "is not supported."))
+  if (!(format %in% base::tolower(base::names(outputFormats)))) {
+    stop(base::paste("Format", format, "is not supported."))
   }
-
+  work_dir <- openeocraft::api_user_workspace()
+  filename <- base::paste0("result", openeocraft::format_ext(format))
+  filename <- base::file.path(work_dir, filename)
+  if (format == "rds") {
+    base::saveRDS(data, filename)
+  } else {
+    stars::write_stars(data, filename)
+  }
   base::structure(
-    base::list(data = data, format = format, options = options),
+    base::list(data = filename, format = format, options = options),
     class = base::c(base::paste0("openeo_", format))
   )
 }

@@ -3,6 +3,7 @@ library(openeo)
 con <- connect("http://127.0.0.1:8000")
 p <- processes()
 login("rolf", "123456")
+
 list_collections()
 
 x <- p$save_result(
@@ -39,11 +40,16 @@ x <- p$save_result(
       )
     }
   ),
-  format = "rds"
+  format = "RDS"
 )
 
 compute_result(x, output_file = "~/ndvi.rds")
 
+# library(terra)
+# result <- terra::rast("~/ndvi.tif")
+# plot(result)
+
+library(stars)
 result <- readRDS("~/ndvi.rds")
 result
 plot(result)

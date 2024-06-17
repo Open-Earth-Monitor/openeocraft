@@ -203,10 +203,10 @@ api_credential <- function(api, req, res) {
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
-  token <- req$header$token
-  token_user(api, token)
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  user <- token_user(api, token)
   pg <- req$body
-  result <- run_pgraph(api, pg)
+  result <- run_pgraph(api, user, pg)
   api_serializer(result, res)
 }
 
@@ -222,20 +222,20 @@ api_serializer.openeo_json <- function(x, res) {
 #' @export
 api_serializer.openeo_gtiff <- function(x, res) {
   res$setHeader("Content-Type", "image/tiff")
-  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
 #' @export
 api_serializer.openeo_netcdf <- function(x, res) {
   res$setHeader("Content-Type", "application/octet-stream")
-  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
 
 #' @export
 api_serializer.openeo_rds <- function(x, res) {
   res$setHeader("Content-Type", "application/rds")
-  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
 #' @export
@@ -263,6 +263,13 @@ api_jobs_list <- function(api, req) {
   token <- req$header$token
   user <- token_user(api, token)
   job_list_all(api, user)
+}
+#' @export
+api_user_workspace <- function() {
+  env <- parent.frame(2)
+  api_stopifnot(exists("api", env) && exists("user", env), status = 500,
+                "api and user objects not defined in the evaluation scope")
+  user_workspace(env$api, env$user)
 }
 
 #' Get Supported File Formats
@@ -312,6 +319,17 @@ file_formats <- function() {
           description = "RDS"
         )
       )
+    ),
+    JSON = list(
+      title = "JSON Data Serialization",
+      description = "Export to JSON.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "JSON"
+        )
+      )
     )
   )
 
@@ -334,6 +352,16 @@ file_formats <- function() {
   list(
     input = inputFormats,
     output = outputFormats
+  )
+}
+
+#' @export
+format_ext <- function(format) {
+  switch(format,
+    gtiff = ".tif",
+    netcdf = ".nc",
+    rds = ".rds",
+    json = ".json"
   )
 }
 
