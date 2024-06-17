@@ -224,7 +224,13 @@ new_credential <- function(api, user, password) {
   file <- api_attr(api, "credentials")
   stopifnot(!is.null(file) || file.exists(file))
   credentials <- readRDS(file)
-  credentials$users[[user]] <- list(user = user, password = password)
+  current_value <- list()
+  if (user %in% names(credentials$users))
+    current_value <- credentials$users[[user]]
+  credentials$users[[user]] <- utils::modifyList(
+    x = current_value,
+    val = list(user = user, password = password)
+  )
   saveRDS(credentials, file)
 }
 

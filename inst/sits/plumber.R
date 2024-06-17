@@ -65,6 +65,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /conformance
 function(req, res) {
+  print("conformance")
   api_conformance(api, req)
 }
 
@@ -72,6 +73,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /collections
 function(req, res) {
+  print("collections")
   openstac::api_collections(api$stac_api, req)
 }
 
@@ -80,6 +82,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
+  print("collections/<col_id>")
   doc <- openstac::api_collection(api$stac_api, collection_id, req)
   delete_link(doc, rel = "item")
 }
@@ -88,12 +91,14 @@ function(req, res, collection_id) {
 #* @serializer unboxedJSON
 #* @get /processes
 function(req, res) {
+  print("processes")
   api_processes(api, req, check_auth = FALSE)
 }
 
 #* Process and download data synchronously
 #* @post /result
 function(req, res) {
+  print("result")
   api_result(api, req, res)
 }
 
@@ -191,6 +196,7 @@ function(req, res, job_id, offset, level, limit) {
 #* @serializer unboxedJSON
 #* @get /file_formats
 function(req, res) {
+  print("file_formats")
   file_formats()
 }
 
