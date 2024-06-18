@@ -224,7 +224,13 @@ new_credential <- function(api, user, password) {
   file <- api_attr(api, "credentials")
   stopifnot(!is.null(file) || file.exists(file))
   credentials <- readRDS(file)
-  credentials$users[[user]] <- list(user = user, password = password)
+  current_value <- list()
+  if (user %in% names(credentials$users))
+    current_value <- credentials$users[[user]]
+  credentials$users[[user]] <- utils::modifyList(
+    x = current_value,
+    val = list(user = user, password = password)
+  )
   saveRDS(credentials, file)
 }
 
@@ -257,12 +263,15 @@ token_user <- function(api, token) {
   }
   user
 }
+api_workdir <- function(api) {
+  api$work_dir
+}
 user_workspace <- function(api, user) {
-  if (!dir.exists(api$work_dir)) {
-    dir.create(api$work_dir)
-    dir.create(file.path(api$work_dir, "workspace"))
+  if (!dir.exists(api_workdir(api))) {
+    dir.create(api_workdir(api))
+    dir.create(file.path(api_workdir(api), "workspace"))
   }
-  workspace_dir <- file.path(api$work_dir, "workspace", user)
+  workspace_dir <- file.path(api_workdir(api), "workspace", user)
   if (!dir.exists(workspace_dir)) {
     dir.create(workspace_dir)
   }

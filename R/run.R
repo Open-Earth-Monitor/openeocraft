@@ -45,6 +45,6 @@ load_rlang <- function(api) {
   export_fn("&", "&&", "|", "||", "!")
   export_fn("if", "for", "while", "repeat", "break", "next")
   export_fn("function", "return")
-  export_fn("c", "list")
+  export_fn("c", "list", "stop")
   invisible(NULL)
 }

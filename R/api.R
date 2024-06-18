@@ -180,14 +180,18 @@ api_credential <- function(api, req, res) {
   password <- auth[[2]]
   file <- api_attr(api, "credentials")
   credentials <- readRDS(file)
-  if (!user %in% names(credentials) || credentials[[user]]$password != password) {
+  print(user)
+  print(password)
+  print(credentials)
+  if (!user %in% names(credentials$users) ||
+      credentials$users[[user]]$password != password) {
     api_stop(403, "User or password does not match")
   }
   # user is logged
-  if (!"token" %in% names(credentials[[user]])) {
+  if (!"token" %in% names(credentials$users[[user]])) {
     credentials <- new_token(credentials, user, 30)
     saveRDS(credentials, file)
-  } else if (credentials[[user]]$expiry > Sys.time()) {
+  } else if (credentials$users[[user]]$expiry > Sys.time()) {
     old_token <- credentials$users[[user]]$token
     credentials$tokens[[old_token]] <- NULL
     credentials <- new_token(credentials, user, 30)
@@ -199,47 +203,73 @@ api_credential <- function(api, req, res) {
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
-  result <- run_pgraph(api, req$body)
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  user <- token_user(api, token)
+  pg <- req$body
+  result <- run_pgraph(api, user, pg)
   api_serializer(result, res)
 }
 
 api_serializer <- function(x, res) {
-  UseMethod("x")
+  UseMethod("api_serializer", x)
 }
-
 #' @export
-api_serializer.default <- function(x, res) {
-  res$setHeader("Content-Type", x$format)
+api_serializer.openeo_json <- function(x, res) {
+  res$setHeader("Content-Type", "application/json")
   res$body <- x$data
   res
 }
-
 #' @export
 api_serializer.openeo_gtiff <- function(x, res) {
-  res$setHeader("Content-Type", x$format)
-  res$body <- readBin(x$data, n = file.info(x$data)$size)
+  res$setHeader("Content-Type", "image/tiff")
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
+  res
+}
+#' @export
+api_serializer.openeo_netcdf <- function(x, res) {
+  res$setHeader("Content-Type", "application/octet-stream")
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
 
-
-.api_wellknown <- function(api) {
-  req <- fake_req()
+#' @export
+api_serializer.openeo_rds <- function(x, res) {
+  res$setHeader("Content-Type", "application/rds")
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
+  res
+}
+#' @export
+api_wellknown <- function(api, req) {
   doc_wellknown(api, req)
 }
-
-.api_landing_page <- function(api) {
-  req <- fake_req()
+#' @export
+api_landing_page <- function(api, req) {
   doc_landing_page(api, req)
 }
-
-.api_conformance <- function(api) {
-  req <- fake_req()
+#' @export
+api_conformance <- function(api, req) {
   doc_conformance(api, req)
 }
-
-.api_processes <- function(api) {
-  req <- fake_req()
+#' @export
+api_processes <- function(api, req, check_auth = FALSE) {
+  if (check_auth) {
+    token <- req$header$token
+    token_user(api, token)
+  }
   doc_processes(api, req)
+}
+#' @export
+api_jobs_list <- function(api, req) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  job_list_all(api, user)
+}
+#' @export
+api_user_workspace <- function() {
+  env <- parent.frame(2)
+  api_stopifnot(exists("api", env) && exists("user", env), status = 500,
+                "api and user objects not defined in the evaluation scope")
+  user_workspace(env$api, env$user)
 }
 
 #' Get Supported File Formats
@@ -289,19 +319,30 @@ file_formats <- function() {
           description = "RDS"
         )
       )
+    ),
+    JSON = list(
+      title = "JSON Data Serialization",
+      description = "Export to JSON.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "JSON"
+        )
+      )
     )
   )
 
   # Define the input formats
   inputFormats <- list(
-    ImageCollection = list(
-      title = "ImageCollection",
-      description = "Import from image collection",
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
       gis_data_types = list("raster"),
       parameters = list(
         format = list(
           type = "string",
-          description = "image collection formats"
+          description = "GeoTiff"
         )
       )
     )
@@ -311,6 +352,16 @@ file_formats <- function() {
   list(
     input = inputFormats,
     output = outputFormats
+  )
+}
+
+#' @export
+format_ext <- function(format) {
+  switch(format,
+    gtiff = ".tif",
+    netcdf = ".nc",
+    rds = ".rds",
+    json = ".json"
   )
 }
 
