@@ -9,6 +9,9 @@
 # work_dir / <user> / <job_id> /
 # work_dir / <user> / files /
 
+.job_status_error <- "error"
+.job_status_finished <- "finished"
+
 # list of named lists, each containing job details
 job_read_rds <- function(api, user) {
   file <- file.path(user_workspace(api, user), "jobs.rds")
@@ -83,9 +86,25 @@ logs_save_rds <- function(api, user, job_id, logs) {
 # TODO: include all possible fields in here. Required parameters
 #   must come before the `...` (ellipsis) parameter; optional parameters
 #   comes after
-log_append <- function(api, user, job_id, message, ...) {
+log_append <- function(api, user, job_id, code, level, message, ...) {
+  # TODO: log this
+  # - solution to `path` field:
+  # - introduce 'markers' into processes` function so that
+  #   using the traceback mechanism we can distinguish
+  #   functions that are processes from internal R functions.
+  #   Then we can use this to create a openEO traceback to
+  #   store in `path` field.
+  # - solution to `usage` field:
+  #   create `usage_*()` API to generate metrics to be included in
+  #   `usage` field.
   logs <- logs_read_rds(api, user, job_id)
-  logs[[length(logs) + 1]] <- list(message = message, ...)
+  logs[[length(logs) + 1]] <- list(
+    id = job_id,
+    code = code,
+    level = level,
+    message = message,
+    time = Sys.time(), ...
+  )
   logs_save_rds(api, user, job_id, logs)
 }
 
@@ -95,19 +114,26 @@ log_append <- function(api, user, job_id, message, ...) {
 #' @export
 job_create <- function(api, user, job) {
   # TODO: create job_check
-  #job_check(api, job)
+  #job_prepare(api, user, job)
+  # - fill defaults
+  # - check consistency of the provided fields
+  # - also check plan
 
   job_id <- ids::random_id()
-  # TODO: review the fields of a job
   job <- list(
     id = job_id,
-    status = "created",
-    process = job$process,
-    created = Sys.time(),
     title = job$title,
-    description = job$description
+    description = job$description,
+    process = job$process,
+    status = "created",
+    created = Sys.time(),
+    plan = job$plan,
+    budget = job$budget,
+    log_level = job$log_level,
+    links = list()
   )
   # TODO: how to avoid concurrency issues on reading/writing?
+  # use some specific package? e.g. filelock, sqllite?, mongodb?
   jobs <- job_read_rds(api, user)
   jobs[[job_id]] <- job
   job_save_rds(api, user, jobs)
@@ -121,19 +147,33 @@ process_job_async <- function(api, user, job_id) {
     jobs <- job_read_rds(api, user)
     job <- jobs[[job_id]]
     job_upd_status(api, user, job_id, "running")
-
-    result <- tryCatch(run_pgraph(api, job$process), error = function(e) {
-      job_upd_status(api, user, job_id, "failed")
-      # TODO: log this
-      stop(e)
-    })
-
+    result <- tryCatch(
+      run_pgraph(api, job$process),
+      # TODO: add more information of errors:
+      # - traceback
+      # - implement proc_stop() function that store more details like
+      #   code?
+      # - implement proc_warning() function to update logs for warning
+      error = function(e) {
+        code <- 100
+        if ("code" %in% names(e)) {
+          code <- e$code
+        }
+        job_upd_status(api, user, job_id, .job_status_error)
+        log_append(api, user, job_id, code, "error", e$message, ...)
+      }
+    )
     if (is.null(result)) {
-      job_upd_status(api, user, job_id, "failed")
-      # TODO: log this
-      stop("Error running process graph")
+      job_upd_status(api, user, job_id, .job_status_error)
+      log_append(
+        api = api,
+        user = user,
+        job_id = job_id,
+        code = 100,
+        level = "error",
+        message = "Error running process graph", ...
+      )
     }
-
     job_upd_status(api, user, job_id, "finished")
   }, args = list(api, user, job_id))
   proc
@@ -277,33 +317,45 @@ job_estimate <- function(api, user, job_id) {
 #' @param job_id The identifier for the job
 #' @export
 job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) {
-  # TODO: test logs
+  level_list <- c("error", "warning", "info", "debug")
   job_id <- URLdecode(job_id)
   offset <- as.integer(offset)
   if (is.na(offset)) offset <- 0
-  api_stopifnot(level %in% c("error", "warning", "info", "debug"), 400,
-                "level must be one of 'error', 'warning', 'info', 'debug'")
+  api_stopifnot(level %in% level_list, 400, "level must be one of ",
+                paste0("'", level_list, "'", collapse = ", "))
   limit <- as.integer(limit)
   api_stopifnot(limit >= 1, 400, "limit parameter must be >= 1")
   logs <- logs_read_rds(api, user, job_id)
-  # TODO: populate links from an function
-  list(level = level, logs = logs, links = list())
+  levels <- vapply(logs, \(log) log$level, character(1))
+  selection <- match(levels, level_list) <= match(level, level_list)
+  list(level = level, logs = logs[selection], links = list())
 }
 
 # Retrieve results for job results
 #' @param job_id The identifier for the job
 #' @export
 job_get_results <- function(api, user, job_id) {
-  results_path <- file.path(workspace_path, job_id, "results")
-  if (dir.exists(results_path)) {
-    files <- list.files(results_path, full.names = TRUE)
-    results <- lapply(files, function(file) {
-      # Read the binary data from the file
-      result <- readBin(file, what = "raw", n = file.info(file)$size)
-      return(result)
-    })
-    return(results)
-  } else {
-    return(list(message = "No results found"))
+  jobs <- job_read_rds(api, user)
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404, "Job not found")
   }
+  job <- jobs[[job_id]]
+  if (job$status == .job_status_error) {
+    api_stop(424, "Job returned an error")
+  }
+  # TODO: generate STAC collection and STAC items as default result
+  #   mechanism. Question: how can we generate this on-the-fly?
+  #   Some metadata (e.g. bbox, crs) comes from the file(s) and other
+  #   from job metadata.
+  results_path <- file.path(user_workspace(api, user), "results")
+  if (!dir.exists(results_path))
+    api_stop(404, "No results found")
+  files <- list.files(results_path, full.names = TRUE)
+  results <- lapply(files, function(file) {
+    # Read the binary data from the file
+    result <- readBin(file, what = "raw", n = file.info(file)$size)
+    return(result)
+  })
+  return(results)
 }
