@@ -10,11 +10,7 @@ save_result <- function(data, format, options = NULL) {
   if (!(format %in% base::tolower(base::names(outputFormats)))) {
     stop(base::paste("Format", format, "is not supported."))
   }
-<<<<<<< HEAD
   work_dir <- openeocraft::user_workspace()
-=======
-  work_dir <- openeocraft::api_user_workspace()
->>>>>>> origin/dev-sync
   filename <- base::paste0("result", openeocraft::format_ext(format))
   filename <- base::file.path(work_dir, filename)
   if (format == "rds") {
