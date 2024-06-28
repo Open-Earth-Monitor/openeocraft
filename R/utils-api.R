@@ -266,7 +266,7 @@ token_user <- function(api, token) {
 api_workdir <- function(api) {
   api$work_dir
 }
-user_workspace <- function(api, user) {
+api_user_workspace <- function(api, user) {
   if (!dir.exists(api_workdir(api))) {
     dir.create(api_workdir(api))
     dir.create(file.path(api_workdir(api), "workspace"))
@@ -277,3 +277,103 @@ user_workspace <- function(api, user) {
   }
   workspace_dir
 }
+#' @export
+user_workspace <- function() {
+  env <- parent.frame(2)
+  api_stopifnot(exists("api", env) && exists("user", env), status = 500,
+                "api and user objects not defined in the evaluation scope")
+  user_workspace(env$api, env$user)
+}
+
+#' Get Supported File Formats
+#'
+#' This function returns a list of supported input and output file formats
+#' for GIS data. Each format includes details such as title, description,
+#' GIS data types, and parameters.
+#'
+#' @return A list containing two elements:
+#' \describe{
+#'   \item{input}{A list of supported input formats.}
+#'   \item{output}{A list of supported output formats.}
+#' }
+#' @export
+file_formats <- function() {
+  # Define the output formats
+  outputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Export to GeoTiff.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    ),
+    NetCDF = list(
+      title = "Network Common Data Form",
+      description = "Export to NetCDF.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "NetCDF"
+        )
+      )
+    ),
+    RDS = list(
+      title = "R Data Serialization",
+      description = "Export to RDS.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "RDS"
+        )
+      )
+    ),
+    JSON = list(
+      title = "JSON Data Serialization",
+      description = "Export to JSON.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "JSON"
+        )
+      )
+    )
+  )
+
+  # Define the input formats
+  inputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    )
+  )
+
+  # return the list of supported formats
+  list(
+    input = inputFormats,
+    output = outputFormats
+  )
+}
+#' @export
+format_ext <- function(format) {
+  switch(format,
+         gtiff = ".tif",
+         netcdf = ".nc",
+         rds = ".rds",
+         json = ".json"
+  )
+}
+

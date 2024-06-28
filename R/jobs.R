@@ -1,10 +1,9 @@
 #' @import jsonlite
 #' @import callr
 #' @importFrom ids random_id
-#'
 
 
-# user_workspace(api, user) -> work_dir / <user>
+# api_user_workspace(api, user) -> work_dir / <user>
 # work_dir / <user> / jobs.rds
 # work_dir / <user> / <job_id> /
 # work_dir / <user> / files /
@@ -14,7 +13,7 @@
 
 # list of named lists, each containing job details
 job_read_rds <- function(api, user) {
-  file <- file.path(user_workspace(api, user), "jobs.rds")
+  file <- file.path(api_user_workspace(api, user), "jobs.rds")
   if (!file.exists(file)) {
     return(list())
   }
@@ -23,7 +22,7 @@ job_read_rds <- function(api, user) {
 }
 
 job_save_rds <- function(api, user, jobs) {
-  file <- file.path(user_workspace(api, user), "jobs.rds")
+  file <- file.path(api_user_workspace(api, user), "jobs.rds")
   tryCatch(saveRDS(jobs, file), error = function(e) {
     api_stop(500, "Could not save the jobs file")
   })
@@ -31,14 +30,14 @@ job_save_rds <- function(api, user, jobs) {
 }
 
 job_new_dir <- function(api, user, job_id) {
-  job_dir <- file.path(user_workspace(api, user), "jobs", job_id)
+  job_dir <- file.path(api_user_workspace(api, user), "jobs", job_id)
   dir.create(job_dir, recursive = TRUE)
   api_stopifnot(dir.exists(job_dir), 500, "Could not create the job ",
                 job_id, "'s folder")
 }
 
 job_del_dir <- function(api, user, job_id) {
-  job_dir <- file.path(user_workspace(api, user), "jobs", job_id)
+  job_dir <- file.path(api_user_workspace(api, user), "jobs", job_id)
   unlink(job_dir, recursive = TRUE)
   api_stopifnot(!dir.exists(job_dir), 500, "Could not delete the job ",
                 job_id, "'s folder")
@@ -70,7 +69,7 @@ job_upd_status <- function(api, user, job_id, status) {
 }
 
 logs_read_rds <- function(api, user, job_id) {
-  file <- file.path(user_workspace(api, user), job_id, "logs.rds")
+  file <- file.path(api_user_workspace(api, user), job_id, "logs.rds")
   if (!file.exists(file)) {
     return(list())
   }
@@ -78,7 +77,7 @@ logs_read_rds <- function(api, user, job_id) {
   logs
 }
 logs_save_rds <- function(api, user, job_id, logs) {
-  file <- file.path(user_workspace(api, user), job_id, "logs.rds")
+  file <- file.path(api_user_workspace(api, user), job_id, "logs.rds")
   tryCatch(saveRDS(logs, file), error = function(e) NULL)
   invisible(NULL)
 }
@@ -305,7 +304,6 @@ job_list_all <- function(api, user) {
 
 
 # Get an estimate for a job
-#' @param job_id The identifier for the job
 #' @export
 job_estimate <- function(api, user, job_id) {
   # This would likely call a function to calculate cost or duration based on job details
@@ -314,7 +312,6 @@ job_estimate <- function(api, user, job_id) {
 }
 
 # Retrieve logs for a job
-#' @param job_id The identifier for the job
 #' @export
 job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) {
   level_list <- c("error", "warning", "info", "debug")
@@ -332,7 +329,6 @@ job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) 
 }
 
 # Retrieve results for job results
-#' @param job_id The identifier for the job
 #' @export
 job_get_results <- function(api, user, job_id) {
   jobs <- job_read_rds(api, user)
@@ -348,7 +344,7 @@ job_get_results <- function(api, user, job_id) {
   #   mechanism. Question: how can we generate this on-the-fly?
   #   Some metadata (e.g. bbox, crs) comes from the file(s) and other
   #   from job metadata.
-  results_path <- file.path(user_workspace(api, user), "results")
+  results_path <- file.path(api_user_workspace(api, user), "results")
   if (!dir.exists(results_path))
     api_stop(404, "No results found")
   files <- list.files(results_path, full.names = TRUE)

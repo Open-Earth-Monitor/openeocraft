@@ -19,6 +19,12 @@
 #'
 #' \item `api_spec`: Generates the OpenAPI specification for the API server.
 #'
+#' \item `api_landing_page`: Creates document as a response to
+#'   `/` endpoint.
+#'
+#' \item `api_conformance`: Creates document as a response to
+#'   `/conformance` endpoint.
+#'
 #' }
 #'
 #' @param api_class A character string specifying the custom S3 class
@@ -113,7 +119,6 @@ create_api <- function(api_class,
     env = new.env(hash = TRUE, parent = parent.frame())
   )
 }
-
 #' @rdname api_handling
 #' @export
 create_openeo_v1 <- function(id,
@@ -143,7 +148,6 @@ create_openeo_v1 <- function(id,
     production = production, ...
   )
 }
-
 #' @rdname api_handling
 #' @export
 api_setup_plumber <- function(api,
@@ -169,200 +173,40 @@ api_setup_plumber <- function(api,
       setup_plumber_docs(api, pr, docs_endpoint, spec_endpoint)
   }
 }
-
 #' @rdname api_handling
 #' @export
 api_credential <- function(api, req, res) {
-  auth <- gsub("Basic ", "",req$HTTP_AUTHORIZATION)
-  auth <- rawToChar(base64enc::base64decode(auth))
-  auth <- strsplit(auth, ":")[[1]]
-  user <- auth[[1]]
-  password <- auth[[2]]
-  file <- api_attr(api, "credentials")
-  credentials <- readRDS(file)
-  print(user)
-  print(password)
-  print(credentials)
-  if (!user %in% names(credentials$users) ||
-      credentials$users[[user]]$password != password) {
-    api_stop(403, "User or password does not match")
-  }
-  # user is logged
-  if (!"token" %in% names(credentials$users[[user]])) {
-    credentials <- new_token(credentials, user, 30)
-    saveRDS(credentials, file)
-  } else if (credentials$users[[user]]$expiry > Sys.time()) {
-    old_token <- credentials$users[[user]]$token
-    credentials$tokens[[old_token]] <- NULL
-    credentials <- new_token(credentials, user, 30)
-    saveRDS(credentials, file)
-  }
-  list(access_token = credentials$users[[user]]$token)
+  UseMethod("api_credential", api)
 }
-
+#' @rdname api_handling
+#' @export
+api_wellknown <- function(api, req) {
+  UseMethod("api_wellknown", api)
+}
+#' @rdname api_handling
+#' @export
+api_landing_page <- function(api, req) {
+  UseMethod("api_landing_page", api)
+}
+#' @rdname api_handling
+#' @export
+api_conformance <- function(api, req) {
+  UseMethod("api_conformance", api)
+}
+#' @rdname api_handling
+#' @export
+api_processes <- function(api, req, check_auth = FALSE) {
+  UseMethod("api_processes", api)
+}
+#' @rdname api_handling
+#' @export
+api_jobs_list <- function(api, req) {
+  UseMethod("api_jobs_list", api)
+}
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
-  pg <- req$body
-  result <- run_pgraph(api, user, pg)
-  api_serializer(result, res)
-}
-
-api_serializer <- function(x, res) {
-  UseMethod("api_serializer", x)
-}
-#' @export
-api_serializer.openeo_json <- function(x, res) {
-  res$setHeader("Content-Type", "application/json")
-  res$body <- x$data
-  res
-}
-#' @export
-api_serializer.openeo_gtiff <- function(x, res) {
-  res$setHeader("Content-Type", "image/tiff")
-  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
-  res
-}
-#' @export
-api_serializer.openeo_netcdf <- function(x, res) {
-  res$setHeader("Content-Type", "application/octet-stream")
-  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
-  res
-}
-
-#' @export
-api_serializer.openeo_rds <- function(x, res) {
-  res$setHeader("Content-Type", "application/rds")
-  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
-  res
-}
-#' @export
-api_wellknown <- function(api, req) {
-  doc_wellknown(api, req)
-}
-#' @export
-api_landing_page <- function(api, req) {
-  doc_landing_page(api, req)
-}
-#' @export
-api_conformance <- function(api, req) {
-  doc_conformance(api, req)
-}
-#' @export
-api_processes <- function(api, req, check_auth = FALSE) {
-  if (check_auth) {
-    token <- req$header$token
-    token_user(api, token)
-  }
-  doc_processes(api, req)
-}
-#' @export
-api_jobs_list <- function(api, req) {
-  token <- req$header$token
-  user <- token_user(api, token)
-  job_list_all(api, user)
-}
-#' @export
-api_user_workspace <- function() {
-  env <- parent.frame(2)
-  api_stopifnot(exists("api", env) && exists("user", env), status = 500,
-                "api and user objects not defined in the evaluation scope")
-  user_workspace(env$api, env$user)
-}
-
-#' Get Supported File Formats
-#'
-#' This function returns a list of supported input and output file formats
-#' for GIS data. Each format includes details such as title, description,
-#' GIS data types, and parameters.
-#'
-#' @return A list containing two elements:
-#' \describe{
-#'   \item{input}{A list of supported input formats.}
-#'   \item{output}{A list of supported output formats.}
-#' }
-#' @export
-file_formats <- function() {
-  # Define the output formats
-  outputFormats <- list(
-    GTiff = list(
-      title = "GeoTiff",
-      description = "Export to GeoTiff.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "GeoTiff"
-        )
-      )
-    ),
-    NetCDF = list(
-      title = "Network Common Data Form",
-      description = "Export to NetCDF.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "NetCDF"
-        )
-      )
-    ),
-    RDS = list(
-      title = "R Data Serialization",
-      description = "Export to RDS.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "RDS"
-        )
-      )
-    ),
-    JSON = list(
-      title = "JSON Data Serialization",
-      description = "Export to JSON.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "JSON"
-        )
-      )
-    )
-  )
-
-  # Define the input formats
-  inputFormats <- list(
-    GTiff = list(
-      title = "GeoTiff",
-      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "GeoTiff"
-        )
-      )
-    )
-  )
-
-  # return the list of supported formats
-  list(
-    input = inputFormats,
-    output = outputFormats
-  )
-}
-
-#' @export
-format_ext <- function(format) {
-  switch(format,
-    gtiff = ".tif",
-    netcdf = ".nc",
-    rds = ".rds",
-    json = ".json"
-  )
+  UseMethod("api_result", api)
 }
 
 # TODO:

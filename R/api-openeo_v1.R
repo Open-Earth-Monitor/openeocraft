@@ -1,6 +1,33 @@
-#' @rdname doc_handling
 #' @export
-doc_wellknown.openeo_v1 <- function(api, req) {
+api_credential.openeo_v1 <- function(api, req, res) {
+  auth <- gsub("Basic ", "",req$HTTP_AUTHORIZATION)
+  auth <- rawToChar(base64enc::base64decode(auth))
+  auth <- strsplit(auth, ":")[[1]]
+  user <- auth[[1]]
+  password <- auth[[2]]
+  file <- api_attr(api, "credentials")
+  credentials <- readRDS(file)
+  print(user)
+  print(password)
+  print(credentials)
+  if (!user %in% names(credentials$users) ||
+      credentials$users[[user]]$password != password) {
+    api_stop(403, "User or password does not match")
+  }
+  # user is logged
+  if (!"token" %in% names(credentials$users[[user]])) {
+    credentials <- new_token(credentials, user, 30)
+    saveRDS(credentials, file)
+  } else if (credentials$users[[user]]$expiry > Sys.time()) {
+    old_token <- credentials$users[[user]]$token
+    credentials$tokens[[old_token]] <- NULL
+    credentials <- new_token(credentials, user, 30)
+    saveRDS(credentials, file)
+  }
+  list(access_token = credentials$users[[user]]$token)
+}
+#' @export
+api_wellknown.openeo_v1 <- function(api, req) {
   host <- get_host(api, req)
   doc <- update_wellknown_version(
     doc = list(),
@@ -18,9 +45,8 @@ doc_wellknown.openeo_v1 <- function(api, req) {
   }
   doc
 }
-#' @rdname doc_handling
 #' @export
-doc_landing_page.openeo_v1 <- function(api, req) {
+api_landing_page.openeo_v1 <- function(api, req) {
   # TODO: support to billing key
   doc <- list(
     type = "Catalog",
@@ -34,27 +60,6 @@ doc_landing_page.openeo_v1 <- function(api, req) {
     endpoints = get_endpoints(api),
     conformsTo = api$conforms_to
   )
-  doc <- links_landing_page(doc, api, req)
-  doc
-}
-#' @rdname doc_handling
-#' @export
-doc_processes.openeo_v1 <- function(api, req) {
-  procs <- api_attr(api, "processes")
-  procs <- list(
-    processes = unname(procs)
-  )
-  procs
-}
-#' @rdname doc_handling
-#' @export
-doc_conformance.openeo_v1 <- function(api, req) {
-  doc <- list(conformsTo = api$conforms_to)
-  doc
-}
-#' @keywords internal
-#' @export
-links_landing_page.openeo_v1 <- function(doc, api, req) {
   # TODO:
   # It is highly RECOMMENDED to provide links with the following rel (relation) types:
   #   - version-history: A link back to the Well-Known URL (including /.well-known/openeo, see the corresponding endpoint for details) to allow clients to work on the most recent version.
@@ -91,3 +96,36 @@ links_landing_page.openeo_v1 <- function(doc, api, req) {
   )
   doc
 }
+#' @export
+api_conformance.openeo_v1 <- function(api, req) {
+  doc <- list(conformsTo = api$conforms_to)
+  doc
+}
+#' @export
+api_processes.openeo_v1 <- function(api, req, check_auth = FALSE) {
+  if (check_auth) {
+    token <- req$header$token
+    token_user(api, token)
+  }
+  procs <- api_attr(api, "processes")
+  procs <- list(
+    processes = unname(procs)
+  )
+  procs
+}
+#' @export
+api_jobs_list.openeo_v1 <- function(api, req) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  job_list_all(api, user)
+}
+#' @rdname api_handling
+#' @export
+api_result.openeo_v1 <- function(api, req, res) {
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  user <- token_user(api, token)
+  pg <- req$body
+  result <- run_pgraph(api, user, pg)
+  data_serializer(result, res)
+}
+
