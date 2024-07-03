@@ -222,12 +222,12 @@ function(pr) {
 #* @serializer unboxedJSON
 #* @get /
 function(req, res) {
-  doc_landing_page(api, req)
+  api_landing_page(api, req)
 }
 
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
 function(req, res) {
-  doc_wellknown(api, req)
+  api_wellknown(api, req)
 }
