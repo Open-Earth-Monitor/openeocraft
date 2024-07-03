@@ -11,6 +11,17 @@ save_result <- function(data, format, options = NULL) {
     stop(base::paste("Format", format, "is not supported."))
   }
   work_dir <- openeocraft::user_workspace()
+  # TODO: split data object into different files based on dates and
+  #  bands dimensions.
+  #  The number of output files will be: N(dates) * N(bands)
+  #  The format parameter just defines the file type to be saved in
+  #  this process.
+  #  At the end, an STAC Items must be created pointing to the generated
+  #  files (STAC files name: `collection.json`, `item_id.json`).
+  #  Note: The spec is not clear about the proper way to implement
+  #  the STAC documents: the link between collection and items should be
+  #  done by `links` or `assets` in collection?
+  #  See: https://api.openeo.org/#tag/Data-Processing/operation/list-results
   filename <- base::paste0("result", openeocraft::format_ext(format))
   filename <- base::file.path(work_dir, filename)
   if (format == "rds") {

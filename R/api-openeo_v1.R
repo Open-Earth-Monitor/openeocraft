@@ -126,6 +126,13 @@ api_result.openeo_v1 <- function(api, req, res) {
   user <- token_user(api, token)
   pg <- req$body
   result <- run_pgraph(api, user, pg)
+  # TODO: read all files in user workspace, wrap them into a TAR
+  #  file, and return back the tar file (something like
+  #  job_get_results() function does)
+  #  If there is just one image we can return the image without
+  #  wrapping it to a TAR file
+  #  See: https://api.openeo.org/#tag/Data-Processing/operation/compute-result
+  #  GH issue: #34
   data_serializer(result, res)
 }
 
