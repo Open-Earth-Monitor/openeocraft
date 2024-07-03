@@ -159,7 +159,7 @@ process_job_async <- function(api, user, job_id) {
           code <- e$code
         }
         job_upd_status(api, user, job_id, .job_status_error)
-        log_append(api, user, job_id, code, "error", e$message, ...)
+        log_append(api, user, job_id, code, "error", e$message)
       }
     )
     if (is.null(result)) {
@@ -170,7 +170,7 @@ process_job_async <- function(api, user, job_id) {
         job_id = job_id,
         code = 100,
         level = "error",
-        message = "Error running process graph", ...
+        message = "Error running process graph"
       )
     }
     job_upd_status(api, user, job_id, "finished")
