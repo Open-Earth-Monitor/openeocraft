@@ -11,6 +11,9 @@
 .job_status_error <- "error"
 .job_status_finished <- "finished"
 
+job_sync_id <- function() {
+  format(Sys.time(), "job-%Y%m%d")
+}
 # list of named lists, each containing job details
 job_read_rds <- function(api, user) {
   file <- file.path(api_user_workspace(api, user), "jobs.rds")
@@ -53,6 +56,11 @@ job_get_dir <- function(api, user, job_id) {
 }
 job_new_dir <- function(api, user, job_id) {
   job_dir <- job_get_dir(api, user, job_id)
+  if (dir.exists(job_dir)) {
+    unlink(job_dir, recursive = TRUE)
+    api_stopifnot(!dir.exists(job_dir), 500, "Could not delete the job ",
+                  job_id, "'s folder")
+  }
   dir.create(job_dir, recursive = TRUE)
   api_stopifnot(dir.exists(job_dir), 500, "Could not create the job ",
                 job_id, "'s folder")
@@ -165,7 +173,7 @@ job_sync <- function(api, user, job_id) {
   job <- jobs[[job_id]]
   job_upd_status(api, user, job_id, "running")
   tryCatch({
-    run_pgraph(api, user, job$process)
+    run_pgraph(api, user, job, job$process)
     job_upd_status(api, user, job_id, "finished")
   },
   # TODO: add more information of errors:
@@ -349,10 +357,27 @@ job_get_results <- function(api, user, job_id) {
   if (!dir.exists(results_path)) {
     api_stop(404, "No results found")
   }
-  result_files <- list.files(results_path, full.names = TRUE)
-  # TODO: create/save JSON collection with all result files as assets
-  #  on-the-fly. Get all metadata from the job (CRS, BBOX)
-  #  See: https://api.openeo.org/#tag/Data-Processing/operation/list-results
-  #  GH issue: #34
-  create_stac(result_files, ...)
+  if (job$status == "finished") {
+    result <- structure(
+      list(data = file.path(results_path, "_collection.json")),
+      class = paste0("openeo_json")
+    )
+    return(result)
+  }
+  job_empty_collection(api, user, job)
+}
+job_empty_collection <- function(api, user, job) {
+  collection <- list(
+    `openeo:status` = job$status,
+    type = "Collection",
+    stac_version = "1.0.0",
+    id = job$id,
+    title = job$title,
+    description = job$description,
+    license = "various",
+    extent = list(),
+    links = list(),
+    assets = list()
+  )
+  collection
 }

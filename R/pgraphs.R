@@ -105,10 +105,11 @@ pgraph_fn <- function(pg, parent = NULL) {
   make_fn(par, body = expr, env = parent.frame())
 }
 
-run_pgraph <- function(api, user, pg) {
+run_pgraph <- function(api, user, job, pg) {
   if ("process" %in% names(pg))
     pg <- pg$process
   expr <- pgraph_expr(pg)
   # TODO: need to define a scope with api and user objects
-  eval(expr, envir = list(api = api, user = user), enclos = get_namespace(api))
+  eval(expr, envir = list(api = api, user = user, job = job),
+       enclos = get_namespace(api))
 }

@@ -280,9 +280,11 @@ api_user_workspace <- function(api, user) {
 #' @export
 user_workspace <- function() {
   env <- parent.frame(2)
-  api_stopifnot(exists("api", env) && exists("user", env), status = 500,
-                "api and user objects not defined in the evaluation scope")
-  api_user_workspace(env$api, env$user)
+  api_stopifnot(
+    exists("api", env) && exists("user", env) && exists("job", env),
+    status = 500,
+    "api, user, and job objects are not defined in the evaluation scope")
+  job_get_dir(env$api, env$user, env$job$id)
 }
 
 #' Get Supported File Formats

@@ -16,29 +16,8 @@ save_result <- function(data, format, options = NULL) {
   #  The number of output files will be: N(dates) * N(bands)
   #  The format parameter just defines the file type to be saved in
   #  this process.
-  #  At the end, an STAC Items must be created pointing to the generated
-  #  files (STAC files name: `collection.json`, `item_id.json`).
-  #  Note: The spec is not clear about the proper way to implement
-  #  the STAC documents: the link between collection and items should be
-  #  done by `links` or `assets` in collection?
-  #  See: https://api.openeo.org/#tag/Data-Processing/operation/list-results
-  filename <- base::paste0("result", openeocraft::format_ext(format))
-  filename <- base::file.path(work_dir, filename)
-  collection <- list(
-    id = "",
-    assets = list(
-      stars
-    )
-  )
-  if (format == "rds") {
-    base::saveRDS(data, filename)
-  } else {
-    stars::write_stars(data, filename)
-  }
-  base::structure(
-    base::list(data = filename, format = format, options = options),
-    class = c(base::paste0("openeo_", format))
-  )
+  openeocraft::save_result(data, format, work_dir)
+  return(TRUE)
 }
 
 #* @openeo-process
