@@ -24,6 +24,12 @@ save_result <- function(data, format, options = NULL) {
   #  See: https://api.openeo.org/#tag/Data-Processing/operation/list-results
   filename <- base::paste0("result", openeocraft::format_ext(format))
   filename <- base::file.path(work_dir, filename)
+  collection <- list(
+    id = "",
+    assets = list(
+      stars
+    )
+  )
   if (format == "rds") {
     base::saveRDS(data, filename)
   } else {
@@ -31,7 +37,7 @@ save_result <- function(data, format, options = NULL) {
   }
   base::structure(
     base::list(data = filename, format = format, options = options),
-    class = base::c(base::paste0("openeo_", format))
+    class = c(base::paste0("openeo_", format))
   )
 }
 

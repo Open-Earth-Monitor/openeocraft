@@ -125,14 +125,56 @@ api_result.openeo_v1 <- function(api, req, res) {
   token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   pg <- req$body
-  result <- run_pgraph(api, user, pg)
-  # TODO: read all files in user workspace, wrap them into a TAR
+
+  # TODO: create job_check
+  #job_prepare(api, user, job)
+  # - fill defaults
+  # - check consistency of the provided fields
+  # - also check plan
+  job_id <- ids::random_id()
+  job <- list(
+    id = job_id,
+    title = job$title,
+    description = job$description,
+    process = job$process,
+    status = "created",
+    created = Sys.time(),
+    plan = job$plan,
+    budget = job$budget,
+    log_level = job$log_level,
+    links = list()
+  )
+  # TODO: create directory and job RDS file as an atomic transaction
+  # create job's directory
+  job_new_dir(api, user, job_id)
+
+  # TODO: how to avoid concurrency issues on reading/writing?
+  # use some specific package? e.g. filelock, sqllite?, mongodb?
+  job_save_rds(api, user, job)
+  job_sync(api, user, job_id)
+  result_dir <- file.path(job_get_dir(api, user, job_id), "results")
+  result_files <- list.files(result_dir, full.names = TRUE)
+  # TODO: wrap all result files into a TAR
   #  file, and return back the tar file (something like
   #  job_get_results() function does)
-  #  If there is just one image we can return the image without
-  #  wrapping it to a TAR file
   #  See: https://api.openeo.org/#tag/Data-Processing/operation/compute-result
   #  GH issue: #34
+  if (length(result_files) == 1) {
+    result <- structure(list(data = result_files),
+                        class = paste0("openeo_", ext_format(result_files)))
+    return(data_serializer(result, res))
+  }
+  tar_file <- file.path(job_get_dir(api, user, job_id))
+  if (!file.exists(tar_file)) {
+    # TODO: create/save JSON collection with all result files as assets
+    #  on-the-fly. Get all metadata from the job (CRS, BBOX)
+    #  See: https://api.openeo.org/#tag/Data-Processing/operation/list-results
+    #  GH issue: #34
+    create_stac(result_files, ...)
+    # TODO: implement save_tar() function
+    save_tar(result_files, tar_file)
+  }
+  result <- structure(list(data = tar_file), class = "openeo_tar")
   data_serializer(result, res)
 }
 

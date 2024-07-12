@@ -26,3 +26,10 @@ data_serializer.openeo_rds <- function(x, res) {
   res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
+
+#' @export
+data_serializer.openeo_tar <- function(x, res) {
+  res$setHeader("Content-Type", "application/tar")
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
+  res
+}

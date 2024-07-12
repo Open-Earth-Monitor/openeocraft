@@ -376,4 +376,13 @@ format_ext <- function(format) {
          json = ".json"
   )
 }
-
+#' @export
+ext_format <- function(filename) {
+  ext <- gsub("\\.([^.]+)$", "\\1", filename)
+  switch(ext,
+         tif = "gtiff",
+         nc = "netcdf",
+         rds = "rds",
+         json = "json"
+  )
+}

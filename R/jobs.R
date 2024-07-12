@@ -20,24 +20,45 @@ job_read_rds <- function(api, user) {
   jobs <- readRDS(file)
   jobs
 }
-
-job_save_rds <- function(api, user, jobs) {
-  file <- file.path(api_user_workspace(api, user), "jobs.rds")
-  tryCatch(saveRDS(jobs, file), error = function(e) {
-    api_stop(500, "Could not save the jobs file")
+job_save_rds <- function(api, user, job, jobs = NULL) {
+  job_file <- file.path(job_get_dir(api, user, job$id), "job.rds")
+  tryCatch(saveRDS(job, job_file), error = function(e) {
+    api_stop(500, "Could not save the job file")
   })
+  if (!is.null(jobs)) {
+    jobs[[job$id]] <- job
+    file <- file.path(api_user_workspace(api, user), "jobs.rds")
+    tryCatch(saveRDS(jobs, file), error = function(e) {
+      api_stop(500, "Could not save the jobs index file")
+    })
+  }
   invisible(NULL)
 }
+job_delete_rds <- function(api, user, job, jobs = NULL) {
+  job_file <- file.path(job_get_dir(api, user, job$id), "job.rds")
+  tryCatch(unlink(job_file), error = function(e) {
+    api_stop(500, "Could not delete the job file")
+  })
+  if (!is.null(jobs) && job$id %in% names(jobs)) {
+    jobs[[job$id]] <- NULL
+    file <- file.path(api_user_workspace(api, user), "jobs.rds")
+    tryCatch(saveRDS(jobs, file), error = function(e) {
+      api_stop(500, "Could not save the jobs index file")
+    })
+  }
+}
 
+job_get_dir <- function(api, user, job_id) {
+  file.path(api_user_workspace(api, user), "jobs", job_id)
+}
 job_new_dir <- function(api, user, job_id) {
-  job_dir <- file.path(api_user_workspace(api, user), "jobs", job_id)
+  job_dir <- job_get_dir(api, user, job_id)
   dir.create(job_dir, recursive = TRUE)
   api_stopifnot(dir.exists(job_dir), 500, "Could not create the job ",
                 job_id, "'s folder")
 }
-
 job_del_dir <- function(api, user, job_id) {
-  job_dir <- file.path(api_user_workspace(api, user), "jobs", job_id)
+  job_dir <- job_get_dir(api, user, job_id)
   unlink(job_dir, recursive = TRUE)
   api_stopifnot(!dir.exists(job_dir), 500, "Could not delete the job ",
                 job_id, "'s folder")
@@ -64,8 +85,7 @@ job_upd_status <- function(api, user, job_id, status) {
   jobs <- job_read_rds(api, user)
   job <- jobs[[job_id]]
   job$status <- status
-  jobs[[job_id]] <- job
-  job_save_rds(api, user, jobs)
+  job_save_rds(api, user, job, jobs)
 }
 
 logs_read_rds <- function(api, user, job_id) {
@@ -117,7 +137,6 @@ job_create <- function(api, user, job) {
   # - fill defaults
   # - check consistency of the provided fields
   # - also check plan
-
   job_id <- ids::random_id()
   job <- list(
     id = job_id,
@@ -131,53 +150,46 @@ job_create <- function(api, user, job) {
     log_level = job$log_level,
     links = list()
   )
+  # TODO: create directory and job RDS file as an atomic transaction
+  # create job's directory
+  job_new_dir(api, user, job_id)
+
   # TODO: how to avoid concurrency issues on reading/writing?
   # use some specific package? e.g. filelock, sqllite?, mongodb?
   jobs <- job_read_rds(api, user)
-  jobs[[job_id]] <- job
-  job_save_rds(api, user, jobs)
-  # create job's directory
-  job_new_dir(api, user, job_id)
+  job_save_rds(api, user, job, jobs)
   list(id = job_id, message = "Job created", code = 201)
 }
-
-process_job_async <- function(api, user, job_id) {
-  proc <- callr::r_bg(function(api, user, job_id) {
-    jobs <- job_read_rds(api, user)
-    job <- jobs[[job_id]]
-    job_upd_status(api, user, job_id, "running")
-    result <- tryCatch(
-      run_pgraph(api, job$process),
-      # TODO: add more information of errors:
-      # - traceback
-      # - implement proc_stop() function that store more details like
-      #   code?
-      # - implement proc_warning() function to update logs for warning
-      error = function(e) {
-        code <- 100
-        if ("code" %in% names(e)) {
-          code <- e$code
-        }
-        job_upd_status(api, user, job_id, .job_status_error)
-        log_append(api, user, job_id, code, "error", e$message)
-      }
-    )
-    if (is.null(result)) {
-      job_upd_status(api, user, job_id, .job_status_error)
-      log_append(
-        api = api,
-        user = user,
-        job_id = job_id,
-        code = 100,
-        level = "error",
-        message = "Error running process graph"
-      )
-    }
+job_sync <- function(api, user, job_id) {
+  jobs <- job_read_rds(api, user)
+  job <- jobs[[job_id]]
+  job_upd_status(api, user, job_id, "running")
+  tryCatch({
+    run_pgraph(api, user, job$process)
     job_upd_status(api, user, job_id, "finished")
-  }, args = list(api, user, job_id))
+  },
+  # TODO: add more information of errors:
+  # - traceback
+  # - implement proc_stop() function that store more details like
+  #   code?
+  # - implement proc_warning() function to update logs for warning
+  error = function(e) {
+    code <- 100
+    if ("code" %in% names(e)) {
+      code <- e$code
+    }
+    job_upd_status(api, user, job_id, .job_status_error)
+    log_append(api, user, job_id, code, "error", e$message)
+    invisible(NULL)
+  })
+}
+job_async <- function(api, user, job_id) {
+  proc <- callr::r_bg(
+    func = job_sync,
+    args = list(api, user, job_id)
+  )
   proc
 }
-
 #' Start a job asynchronously
 #'
 #' This function starts a job based on the job_id provided. It checks for job validity,
@@ -201,7 +213,7 @@ job_start <- function(api, user, job_id) {
   # define in the api how many workers to start?
   # length(procs)
   # length(procs) >= workers (per user?) --> wait
-  proc <- process_job_async(api, user, job_id)
+  proc <- job_async(api, user, job_id)
   procs[[job_id]] <- proc
   procs_save_rds(api, procs)
 
@@ -258,8 +270,7 @@ job_update <- function(api, user, job_id, job) {
   job$updated <- Sys.time()
 
   # Update the job in the jobs_list
-  jobs[[job_id]] <- job
-  job_save_rds(api, user, jobs)
+  job_save_rds(api, user, job, jobs)
 
   list(id = job_id, message = "Job updated", code = 200)
 }
@@ -272,20 +283,14 @@ job_update <- function(api, user, job_id, job) {
 job_delete <- function(api, user, job_id) {
   job_id <- URLdecode(job_id)
   jobs <- job_read_rds(api, user)
-
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
     api_stop(404, "Job not found")
   }
-
-  # Remove the job from the jobs_list
   removed_job <- jobs[[job_id]]
-  jobs[[job_id]] <- NULL
-  job_save_rds(api, user, jobs)
-
+  job_delete_rds(api, user, removed_job, jobs)
   # Delete the folder associated with the job_id
   job_del_dir(api, user, job_id)
-
   list(message = "Job deleted", code = 200, deleted_job = removed_job$id)
 }
 
@@ -340,18 +345,14 @@ job_get_results <- function(api, user, job_id) {
   if (job$status == .job_status_error) {
     api_stop(424, "Job returned an error")
   }
-  # TODO: The STAC items will be generated by the process graph.
-  #  This function just need to return it to the user.
+  results_path <- file.path(job_get_dir(api, user, job_id), "results")
+  if (!dir.exists(results_path)) {
+    api_stop(404, "No results found")
+  }
+  result_files <- list.files(results_path, full.names = TRUE)
+  # TODO: create/save JSON collection with all result files as assets
+  #  on-the-fly. Get all metadata from the job (CRS, BBOX)
   #  See: https://api.openeo.org/#tag/Data-Processing/operation/list-results
   #  GH issue: #34
-  results_path <- file.path(api_user_workspace(api, user), "results")
-  if (!dir.exists(results_path))
-    api_stop(404, "No results found")
-  files <- list.files(results_path, full.names = TRUE)
-  results <- lapply(files, function(file) {
-    # Read the binary data from the file
-    result <- readBin(file, what = "raw", n = file.info(file)$size)
-    return(result)
-  })
-  return(results)
+  create_stac(result_files, ...)
 }
