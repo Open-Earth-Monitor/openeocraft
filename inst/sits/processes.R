@@ -10,13 +10,12 @@ save_result <- function(data, format, options = NULL) {
   if (!(format %in% base::tolower(base::names(outputFormats)))) {
     stop(base::paste("Format", format, "is not supported."))
   }
-  work_dir <- openeocraft::user_workspace()
   # TODO: split data object into different files based on dates and
   #  bands dimensions.
   #  The number of output files will be: N(dates) * N(bands)
   #  The format parameter just defines the file type to be saved in
   #  this process.
-  openeocraft::save_result(data, format, work_dir)
+  openeocraft::save_result(data, format)
   return(TRUE)
 }
 

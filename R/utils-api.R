@@ -277,15 +277,81 @@ api_user_workspace <- function(api, user) {
   }
   workspace_dir
 }
-#' @export
-user_workspace <- function() {
-  env <- parent.frame(2)
-  api_stopifnot(
-    exists("api", env) && exists("user", env) && exists("job", env),
-    status = 500,
-    "api, user, and job objects are not defined in the evaluation scope")
-  job_get_dir(env$api, env$user, env$job$id)
+current_api <- function() {
+  env <- parent.frame(3)
+  api_stopifnot(exists("api", env), status = 500,
+                "api object is not defined in the evaluation scope")
+  env$api
 }
+current_user <- function() {
+  env <- parent.frame(3)
+  api_stopifnot(exists("user", env), status = 500,
+                "user is not defined in the evaluation scope")
+  env$user
+}
+current_job <- function() {
+  env <- parent.frame(3)
+  api_stopifnot(exists("job", env), status = 500,
+                "job object is not defined in the evaluation scope")
+  env$job
+}
+#' @export
+save_result <- function(data, format) {
+  api <- current_api()
+  user <- current_user()
+  job <- current_job()
+  job_dir <- job_get_dir(api, user, job$id)
+
+  stars::st_dimensions(data)
+
+  dim(data)[["t"]]
+  dim(data)[["bands"]]
+  times <- stars::st_get_dimension_values(data, "t")
+  bands <- stars::st_get_dimension_values(data, "bands")
+  data <- split(data, 3)
+  links <- lapply(seq_along(times), \(i) {
+    assets <- lapply(seq_along(bands), \(j) {
+      asset_file <- paste0(paste(bands[[j]], times[[i]], sep = "_"),
+                           format_ext(format))
+      asset_file <- file.path(job_dir, asset_file)
+      stars::write_stars(dplyr::select(data[,,,i], dplyr::all_of(j)), asset_file)
+      list(
+        href = asset_file,
+        roles = list("data")
+      )
+    })
+    names(assets) <- bands
+    bbox <- sf::st_bbox(data)
+    # TODO: get a hash function
+    id <- hash(list(bbox, times[[i]]))
+    item_file <- paste0(id, ".json")
+    item_file <- file.path(job_dir, item_file)
+    item <- list(
+      id = id,
+      type = "Feature",
+      geometry = NULL,
+      properties = list(
+        datetime = format(as.POSIXlt(times[[i]]), "%Y-%m-%dT%H:%M:%Sz")
+      ),
+      assets = assets,
+      links = list(
+        list(rel = "self", href = )
+      )
+    )
+    jsonlite::write_json(item, item_file)
+    list(
+      href = item_file,
+      rel = "item",
+      type = "application/geo+json"
+    )
+  })
+  # TODO:
+  # where to out assets? links? assets?
+  collection <- job_empty_collection(api, user, job)
+  collection$links <- links
+  jsonlite::write_json(collection, "collection.json")
+}
+
 
 #' Get Supported File Formats
 #'
