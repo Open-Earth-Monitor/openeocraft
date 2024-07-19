@@ -295,17 +295,20 @@ current_job <- function() {
                 "job object is not defined in the evaluation scope")
   env$job
 }
+current_request <- function() {
+  env <- parent.frame(3)
+  api_stopifnot(exists("req", env), status = 500,
+                "request object is not defined in the evaluation scope")
+  env$req
+}
 #' @export
 save_result <- function(data, format) {
   api <- current_api()
   user <- current_user()
   job <- current_job()
+  req <- current_request()
   job_dir <- job_get_dir(api, user, job$id)
-
-  stars::st_dimensions(data)
-
-  dim(data)[["t"]]
-  dim(data)[["bands"]]
+  host <- get_host(api, req)
   times <- stars::st_get_dimension_values(data, "t")
   bands <- stars::st_get_dimension_values(data, "bands")
   data <- split(data, 3)
@@ -313,43 +316,45 @@ save_result <- function(data, format) {
     assets <- lapply(seq_along(bands), \(j) {
       asset_file <- paste0(paste(bands[[j]], times[[i]], sep = "_"),
                            format_ext(format))
-      asset_file <- file.path(job_dir, asset_file)
-      stars::write_stars(dplyr::select(data[,,,i], dplyr::all_of(j)), asset_file)
+      stars::write_stars(dplyr::select(data[,,,i], dplyr::all_of(j)), file.path(job_dir, asset_file))
       list(
-        href = asset_file,
+        href = make_url(host, paste0("/files/jobs/", job$id, "/result/", asset_file)),
+        # TODO: implement format_content_type() function
+        type = format_content_type(format),
         roles = list("data")
       )
     })
     names(assets) <- bands
     bbox <- sf::st_bbox(data)
-    # TODO: get a hash function
-    id <- hash(list(bbox, times[[i]]))
+    id <- digest::digest(list(bbox, times[[i]]))
     item_file <- paste0(id, ".json")
-    item_file <- file.path(job_dir, item_file)
     item <- list(
       id = id,
       type = "Feature",
       geometry = NULL,
       properties = list(
-        datetime = format(as.POSIXlt(times[[i]]), "%Y-%m-%dT%H:%M:%Sz")
+        datetime = format(as.POSIXlt(times[[i]]), "%Y-%m-%dT%H:%M:%SZ")
       ),
       assets = assets,
       links = list(
-        list(rel = "self", href = )
+        list(
+          rel = "self",
+          href = make_url(host, paste0("/files/jobs/", job$id, "/result/", item_file)),
+          type = "application/geo+json"
+        )
       )
     )
-    jsonlite::write_json(item, item_file)
+    jsonlite::write_json(item, file.path(job_dir, item_file))
     list(
       href = item_file,
       rel = "item",
       type = "application/geo+json"
     )
   })
-  # TODO:
-  # where to out assets? links? assets?
+  # TODO: where to out assets? links? assets?
   collection <- job_empty_collection(api, user, job)
   collection$links <- links
-  jsonlite::write_json(collection, "collection.json")
+  jsonlite::write_json(collection, file.path(job_dir, "collection.json"))
 }
 
 
@@ -452,5 +457,24 @@ ext_format <- function(filename) {
          nc = "netcdf",
          rds = "rds",
          json = "json"
+  )
+}
+#' @export
+ext_content_type <- function(filename) {
+  ext <- gsub("\\.([^.]+)$", "\\1", filename)
+  switch(ext,
+    tif = "image/tiff",
+    nc = "application/octet-stream",
+    rds = "application/rds",
+    json = "application/json",
+  )
+}
+#' @export
+format_content_type <- function(format) {
+  switch(format,
+         gtiff = "image/tiff",
+         netcdf = "application/octet-stream",
+         rds = "application/rds",
+         json = "application/json"
   )
 }

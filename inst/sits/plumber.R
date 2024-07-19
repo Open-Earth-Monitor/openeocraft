@@ -231,3 +231,16 @@ function(req, res) {
 function(req, res) {
   api_wellknown(api, req)
 }
+
+#* Static file handling
+#* @get /files
+function(req, res) {
+  token <- req$header$token
+  user <- token_user(api, token)
+  url_path <- gsub("^/files", "", req$PATH_INFO)
+  path <- paste(api_user_workspace(api, user), url_path, sep = "/")
+  api_stopifnot(file.exists(path), status = 404,
+                "File not found")
+  res$setHeader("Content-Type", ext_content_type(path))
+  res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+}

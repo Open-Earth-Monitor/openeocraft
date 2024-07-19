@@ -21,49 +21,52 @@ job_read_rds <- function(api, user) {
     return(list())
   }
   jobs <- readRDS(file)
-  jobs
+  return(jobs)
 }
-job_save_rds <- function(api, user, job, jobs = NULL) {
-  job_file <- file.path(job_get_dir(api, user, job$id), "job.rds")
-  tryCatch(saveRDS(job, job_file), error = function(e) {
-    api_stop(500, "Could not save the job file")
+job_save_rds <- function(api, user, job, jobs) {
+  jobs[[job$id]] <- job
+  file <- file.path(api_user_workspace(api, user), "jobs.rds")
+  tryCatch(saveRDS(jobs, file), error = function(e) {
+    api_stop(500, "Could not save the jobs file")
   })
-  if (!is.null(jobs)) {
-    jobs[[job$id]] <- job
-    file <- file.path(api_user_workspace(api, user), "jobs.rds")
-    tryCatch(saveRDS(jobs, file), error = function(e) {
-      api_stop(500, "Could not save the jobs index file")
-    })
-  }
   invisible(NULL)
 }
-job_delete_rds <- function(api, user, job, jobs = NULL) {
-  job_file <- file.path(job_get_dir(api, user, job$id), "job.rds")
-  tryCatch(unlink(job_file), error = function(e) {
-    api_stop(500, "Could not delete the job file")
+job_crt_rds <- function(api, user, job) {
+  jobs <- job_read_rds(api, user)
+  job_save_rds(api, user, job, jobs)
+}
+job_upd_status <- function(api, user, job_id, status) {
+  jobs <- job_read_rds(api, user)
+  api_stopifnot(job_id %in% names(jobs), status = 500,
+                "Could not find sync job id")
+  job <- jobs[[job_id]]
+  job$status <- status
+  job_save_rds(api, user, job, jobs)
+  job
+}
+job_delete_rds <- function(api, user, job, jobs) {
+  if (!job$id %in% names(jobs))
+    return(invisible(NULL))
+  jobs[[job$id]] <- NULL
+  file <- file.path(api_user_workspace(api, user), "jobs.rds")
+  tryCatch(saveRDS(jobs, file), error = function(e) {
+    api_stop(500, "Could not save the jobs index file")
   })
-  if (!is.null(jobs) && job$id %in% names(jobs)) {
-    jobs[[job$id]] <- NULL
-    file <- file.path(api_user_workspace(api, user), "jobs.rds")
-    tryCatch(saveRDS(jobs, file), error = function(e) {
-      api_stop(500, "Could not save the jobs index file")
-    })
-  }
 }
 
 job_get_dir <- function(api, user, job_id) {
   file.path(api_user_workspace(api, user), "jobs", job_id)
 }
-job_new_dir <- function(api, user, job_id) {
-  job_dir <- job_get_dir(api, user, job_id)
+job_new_dir <- function(api, user, job) {
+  job_dir <- job_get_dir(api, user, job$id)
   if (dir.exists(job_dir)) {
     unlink(job_dir, recursive = TRUE)
     api_stopifnot(!dir.exists(job_dir), 500, "Could not delete the job ",
-                  job_id, "'s folder")
+                  job$id, "'s folder")
   }
   dir.create(job_dir, recursive = TRUE)
   api_stopifnot(dir.exists(job_dir), 500, "Could not create the job ",
-                job_id, "'s folder")
+                job$id, "'s folder")
 }
 job_del_dir <- function(api, user, job_id) {
   job_dir <- job_get_dir(api, user, job_id)
@@ -88,14 +91,6 @@ procs_save_rds <- function(api, procs) {
   })
   invisible(NULL)
 }
-
-job_upd_status <- function(api, user, job_id, status) {
-  jobs <- job_read_rds(api, user)
-  job <- jobs[[job_id]]
-  job$status <- status
-  job_save_rds(api, user, job, jobs)
-}
-
 logs_read_rds <- function(api, user, job_id) {
   file <- file.path(api_user_workspace(api, user), job_id, "logs.rds")
   if (!file.exists(file)) {
@@ -160,7 +155,7 @@ job_create <- function(api, user, job) {
   )
   # TODO: create directory and job RDS file as an atomic transaction
   # create job's directory
-  job_new_dir(api, user, job_id)
+  job_new_dir(api, user, job)
 
   # TODO: how to avoid concurrency issues on reading/writing?
   # use some specific package? e.g. filelock, sqllite?, mongodb?
@@ -169,9 +164,7 @@ job_create <- function(api, user, job) {
   list(id = job_id, message = "Job created", code = 201)
 }
 job_sync <- function(api, user, job_id) {
-  jobs <- job_read_rds(api, user)
-  job <- jobs[[job_id]]
-  job_upd_status(api, user, job_id, "running")
+  job <- job_upd_status(api, user, job_id, "running")
   tryCatch({
     run_pgraph(api, user, job, job$process)
     job_upd_status(api, user, job_id, "finished")

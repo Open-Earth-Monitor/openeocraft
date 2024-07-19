@@ -1,6 +1,6 @@
 library(openeo)
 
-con <- connect("http://127.0.0.1:8000")
+con <- connect("http://127.0.0.1:8001")
 p <- processes()
 login("rolf", "123456")
 

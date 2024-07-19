@@ -146,10 +146,10 @@ api_result.openeo_v1 <- function(api, req, res) {
   )
   # TODO: create directory and job RDS file as an atomic transaction
   # create job's directory
-  job_new_dir(api, user, job_id)
+  job_new_dir(api, user, job)
   # TODO: how to avoid concurrency issues on reading/writing?
   # use some specific package? e.g. filelock, sqllite?, mongodb?
-  job_save_rds(api, user, job)
+  job_crt_rds(api, user, job)
   job_sync(api, user, job_id)
   result_dir <- file.path(job_get_dir(api, user, job_id), "results")
   result_files <- list.files(result_dir, pattern = "^[^_]", full.names = TRUE)
