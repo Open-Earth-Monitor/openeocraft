@@ -1,8 +1,8 @@
 library(openeo)
 
 con <- connect("http://127.0.0.1:8001")
-p <- processes()
 login("rolf", "123456")
+p <- processes()
 
 list_collections()
 
@@ -40,9 +40,15 @@ x <- p$save_result(
       )
     }
   ),
-  format = "RDS"
+  format = "GTiff"
 )
 
+job <- create_job(x, "This is my first job", "Computing NDVI using openeocraft")
+job2 <- start_job(job)
+list_results(job2)
+download_results(job2, "~/Downloads/")
+
+compute_result(x, output_file = "~/ndvi.rds")
 compute_result(x, output_file = "~/ndvi.rds")
 
 # library(terra)

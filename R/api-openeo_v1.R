@@ -7,9 +7,6 @@ api_credential.openeo_v1 <- function(api, req, res) {
   password <- auth[[2]]
   file <- api_attr(api, "credentials")
   credentials <- readRDS(file)
-  print(user)
-  print(password)
-  print(credentials)
   if (!user %in% names(credentials$users) ||
       credentials$users[[user]]$password != password) {
     api_stop(403, "User or password does not match")
@@ -18,11 +15,14 @@ api_credential.openeo_v1 <- function(api, req, res) {
   if (!"token" %in% names(credentials$users[[user]])) {
     credentials <- new_token(credentials, user, 30)
     saveRDS(credentials, file)
-  } else if (credentials$users[[user]]$expiry > Sys.time()) {
-    old_token <- credentials$users[[user]]$token
-    credentials$tokens[[old_token]] <- NULL
-    credentials <- new_token(credentials, user, 30)
-    saveRDS(credentials, file)
+  } else {
+    token <- credentials$users[[user]]$token
+    if (credentials$tokens[[token]]$expiry > Sys.time()) {
+      old_token <- credentials$users[[user]]$token
+      credentials$tokens[[old_token]] <- NULL
+      credentials <- new_token(credentials, user, 30)
+      saveRDS(credentials, file)
+    }
   }
   list(access_token = credentials$users[[user]]$token)
 }
@@ -150,8 +150,8 @@ api_result.openeo_v1 <- function(api, req, res) {
   # TODO: how to avoid concurrency issues on reading/writing?
   # use some specific package? e.g. filelock, sqllite?, mongodb?
   job_crt_rds(api, user, job)
-  job_sync(api, user, job_id)
-  result_dir <- file.path(job_get_dir(api, user, job_id), "results")
+  job_sync(api, req, user, job_id)
+  result_dir <- file.path(job_get_dir(api, user, job_id))
   result_files <- list.files(result_dir, pattern = "^[^_]", full.names = TRUE)
   if (length(result_files) == 1) {
     result <- structure(

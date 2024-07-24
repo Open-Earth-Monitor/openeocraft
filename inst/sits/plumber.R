@@ -106,6 +106,7 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /jobs
 function(req, res) {
+  print("GET /jobs")
   api_jobs_list(api, req)
 }
 
@@ -114,20 +115,21 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
 function(req, res, job_id) {
-  token <- req$header$token
+  print("GET /jobs/<jobid>")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job_info(api, user, job_id)
 }
 
 #* Create a new batch job
-#* @parser json list(auto_unbox = TRUE)
 #* @serializer unboxedJSON
 #* @post /jobs
 function(req, res) {
-  token <- req$header$token
+  print("POST /jobs")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job <- req$body
-  job_create(api, user, job)
+  job_create(api, req, res, user, job)
 }
 
 #* Delete a batch job
@@ -135,7 +137,8 @@ function(req, res) {
 #* @serializer unboxedJSON
 #* @delete /jobs/<job_id:str>
 function(req, res, job_id) {
-  token <- req$header$token
+  print("DELETE /jobs/<jobid>")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job_delete(api, user, job_id)
 }
@@ -145,7 +148,8 @@ function(req, res, job_id) {
 #* @serializer unboxedJSON
 #* @patch /jobs/<job_id:str>
 function(req, res, job_id) {
-  token <- req$header$token
+  print("PATCH /jobs/<jobid>")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job <- req$body
   job_update(api, user, job_id, job)
@@ -156,9 +160,10 @@ function(req, res, job_id) {
 #* @serializer unboxedJSON
 #* @post /jobs/<job_id:str>/results
 function(req, res, job_id) {
-  token <- req$header$token
+  print("POST /jobs/<jobid>/results")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
-  job_start(api, user, job_id)
+  job_start(api, req, res, user, job_id)
 }
 
 #* Start a batch job
@@ -166,7 +171,8 @@ function(req, res, job_id) {
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>/results
 function(req, res, job_id) {
-  token <- req$header$token
+  print("GET /jobs/<jobid>/results")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job_get_results(api, user, job_id)
 }
@@ -176,7 +182,8 @@ function(req, res, job_id) {
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/estimate
 function(req, res, job_id) {
-  token <- req$header$token
+  print("GET /jobs/<jobid>/estimate")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job_id <- URLdecode(job_id)
   job_estimate(api, user, job_id)
@@ -187,7 +194,8 @@ function(req, res, job_id) {
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/logs
 function(req, res, job_id, offset, level, limit) {
-  token <- req$header$token
+  print("GET /jobs/<jobid>/logs")
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job_logs(api, user, job_id, offset, level, limit)
 }
@@ -232,13 +240,16 @@ function(req, res) {
   api_wellknown(api, req)
 }
 
-#* Static file handling
-#* @get /files
-function(req, res) {
-  token <- req$header$token
-  user <- token_user(api, token)
-  url_path <- gsub("^/files", "", req$PATH_INFO)
-  path <- paste(api_user_workspace(api, user), url_path, sep = "/")
+#* Workspace files handling
+#* @get /files/jobs/<job_id>/<asset>
+function(req, res, job_id, asset) {
+  file <- gsub("^([^?]+)?", "\\1", asset)
+  if (!"token" %in% names(req$args)) {
+    api_stop(401, "URL token parameter is missing")
+  }
+  token <- req$args$token
+  user <- rawToChar(base64enc::base64decode(token))
+  path <- file.path(api_user_workspace(api, user), "jobs", job_id, file)
   api_stopifnot(file.exists(path), status = 404,
                 "File not found")
   res$setHeader("Content-Type", ext_content_type(path))

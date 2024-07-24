@@ -4,7 +4,7 @@ data_serializer <- function(x, res) {
 #' @export
 data_serializer.openeo_json <- function(x, res) {
   res$setHeader("Content-Type", "application/json")
-  res$body <- x$data
+  res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
 #' @export

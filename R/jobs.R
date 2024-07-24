@@ -134,7 +134,7 @@ log_append <- function(api, user, job_id, code, level, message, ...) {
 #'
 #' @param req the request body containing job details
 #' @export
-job_create <- function(api, user, job) {
+job_create <- function(api, req, res, user, job) {
   # TODO: create job_check
   #job_prepare(api, user, job)
   # - fill defaults
@@ -161,12 +161,20 @@ job_create <- function(api, user, job) {
   # use some specific package? e.g. filelock, sqllite?, mongodb?
   jobs <- job_read_rds(api, user)
   job_save_rds(api, user, job, jobs)
-  list(id = job_id, message = "Job created", code = 201)
+  host <- get_host(api, req)
+  res$setHeader("Location", make_url(host, "/jobs/", job_id))
+  res$setHeader("OpenEO-Identifier", job_id)
+  res$status <- 201
+  list()
 }
-job_sync <- function(api, user, job_id) {
+job_sync <- function(api, req, user, job_id) {
   job <- job_upd_status(api, user, job_id, "running")
+
+  run_pgraph(api, req, user, job, job$process)
+  job_upd_status(api, user, job_id, "finished")
+  return(NULL)
   tryCatch({
-    run_pgraph(api, user, job, job$process)
+    run_pgraph(api, req, user, job, job$process)
     job_upd_status(api, user, job_id, "finished")
   },
   # TODO: add more information of errors:
@@ -184,12 +192,14 @@ job_sync <- function(api, user, job_id) {
     invisible(NULL)
   })
 }
-job_async <- function(api, user, job_id) {
-  proc <- callr::r_bg(
-    func = job_sync,
-    args = list(api, user, job_id)
-  )
-  proc
+job_async <- function(api, req, user, job_id) {
+  # proc <- callr::r_bg(
+  #   func = job_sync,
+  #   args = list(api, user, job_id)
+  # )
+  # proc
+  job_sync(api, req, user, job_id)
+  return(0)
 }
 #' Start a job asynchronously
 #'
@@ -199,7 +209,7 @@ job_async <- function(api, user, job_id) {
 #' @param job_id The identifier for the job.
 #' @return A list with a message and a status code.
 #' @export
-job_start <- function(api, user, job_id) {
+job_start <- function(api, req, res, user, job_id) {
   jobs <- job_read_rds(api, user)
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
@@ -214,12 +224,11 @@ job_start <- function(api, user, job_id) {
   # define in the api how many workers to start?
   # length(procs)
   # length(procs) >= workers (per user?) --> wait
-  proc <- job_async(api, user, job_id)
+  proc <- job_async(api, req, user, job_id)
   procs[[job_id]] <- proc
   procs_save_rds(api, procs)
-
-  list(id = job_id, message = "Job started and running in the background",
-       code = 200)
+  res$status <- 202
+  list()
 }
 
 #' Get job information/metadata
@@ -346,18 +355,14 @@ job_get_results <- function(api, user, job_id) {
   if (job$status == .job_status_error) {
     api_stop(424, "Job returned an error")
   }
-  results_path <- file.path(job_get_dir(api, user, job_id), "results")
+  results_path <- file.path(job_get_dir(api, user, job_id))
   if (!dir.exists(results_path)) {
     api_stop(404, "No results found")
   }
-  if (job$status == "finished") {
-    result <- structure(
-      list(data = file.path(results_path, "_collection.json")),
-      class = paste0("openeo_json")
-    )
-    return(result)
+  if (job$status != "finished") {
+    job_empty_collection(api, user, job)
   }
-  job_empty_collection(api, user, job)
+  jsonlite::read_json(file.path(results_path, "_collection.json"))
 }
 job_empty_collection <- function(api, user, job) {
   collection <- list(
