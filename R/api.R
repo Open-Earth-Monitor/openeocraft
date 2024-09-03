@@ -41,9 +41,22 @@
 #'
 #' @param description A character string describing the API.
 #'
+#' @param backend_version Version number of the back-end implementation.
+#'
+#' @param api_version Version number of the openEO specification this
+#'   back-end implements.
+#'
+#' @param stac_api The version of the STAC specification, which may not
+#'   be equal to the STAC API version.
+#'
+#' @param work_dir Specifies whether the implementation is ready to be
+#'   used in production use (`TRUE`) or not (`FALSE`).
+#'
 #' @param conforms_to A character vector specifying the conformance
 #'   standards adhered to by the API. This parameter can be NULL or
 #'   contain additional conformance standards to add to the defaults.
+#'
+#' @param production description
 #'
 #' @param pr The Plumber router object to be associated with the API server.
 #'   For annotated API definition, users can capture the current Plumber
@@ -56,8 +69,12 @@
 #' @param docs_endpoint The endpoint where the API documentation
 #'   (swagger) will be available. An `NULL` value disable this feature.
 #'
+#' @param wellknown_versions description
+#'
 #' @param handle_errors A logical value indicating whether to handle
 #'   errors using the `openeocraft` default error handler. Default is `TRUE`.
+#'
+#' @param api_base_url The openEO service root URL.
 #'
 #' @param api An object representing the API. This object is typically
 #'   created using either the `create_stac` or `create_ogcapi`
@@ -69,8 +86,7 @@
 #'   construct and send the HTTP response back to the client making
 #'   the request.
 #'
-#' @param collection_id The identifier of the collection. This parameter
-#'   specifies which collection the request is targeting.
+#' @param check_auth Check for authenticated user (`TRUE`) or not (`FALSE`).
 #'
 #' @param ... Additional arguments to be passed to the method-specific
 #'   functions.

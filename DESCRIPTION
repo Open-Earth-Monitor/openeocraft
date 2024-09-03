@@ -27,4 +27,7 @@ Imports:
     jsonlite,
     base64enc,
     callr,
-    ids
+    ids,
+    dplyr,
+    stars,
+    swagger

@@ -115,7 +115,7 @@ api_processes.openeo_v1 <- function(api, req, check_auth = FALSE) {
 }
 #' @export
 api_jobs_list.openeo_v1 <- function(api, req) {
-  token <- req$header$token
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
   job_list_all(api, user)
 }

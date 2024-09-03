@@ -2,6 +2,37 @@
 #* @openeo-import math.R
 #* @openeo-import data.R
 
+.data_timeline <- function(data) {
+  stars::st_get_dimension_values(data, "t")
+}
+
+.data_bands <- function(data) {
+  bands <- "default"
+  if ("bands" %in% base::names(stars::st_dimensions(data)))
+    bands <- stars::st_get_dimension_values(data, "bands")
+  bands
+}
+
+.data_get_time <- function(data, time) {
+  i <- base::match(time, .data_timeline(data))
+  if (any(is.na(i))) {
+    time <- paste0(time[is.na(i)], collapse = ",")
+    openeocraft::api_stop(404, "Time(s) ", time, " not found")
+  }
+  if ("bands" %in% base::names(stars::st_dimensions(data)))
+    return(data[,,,i])
+  data[,,i]
+}
+
+.data_get_band <- function(data, band) {
+  j <- match(band, .data_bands(data))
+  if (any(is.na(j))) {
+    band <- paste0(band[is.na(j)], collapse = ",")
+    openeocraft::api_stop(404, "Band(s) ", band, " not found")
+  }
+  dplyr::select(data, dplyr::all_of(j))
+}
+
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
   format <- base::tolower(format)
@@ -15,7 +46,50 @@ save_result <- function(data, format, options = NULL) {
   #  The number of output files will be: N(dates) * N(bands)
   #  The format parameter just defines the file type to be saved in
   #  this process.
-  openeocraft::save_result(data, format)
+  api <- openeocraft::current_api()
+  user <- openeocraft::current_user()
+  job <- openeocraft::current_job()
+  req <- openeocraft::current_request()
+  job_dir <- openeocraft::job_get_dir(api, user, job$id)
+  host <- openeocraft::get_host(api, req)
+  times <- .data_timeline(data)
+  bands <- .data_bands(data)
+  # TODO implement generic function not relying on an specific data type
+  results <- base::list()
+  for (i in base::seq_along(times)) {
+    assets_file <- base::lapply(base::seq_along(bands), \(j) {
+      asset_file <- base::paste0(base::paste(bands[[j]], times[[i]], sep = "_"),
+                                 openeocraft::format_ext(format))
+      stars::write_stars(.data_get_band(.data_get_time(data, i), j),
+                         base::file.path(job_dir, asset_file))
+      asset_file
+    })
+    # TODO: implement asset tokens
+    assets <- base::lapply(assets_file, \(asset_file) {
+      asset_path <- base::file.path("/files/jobs", job$id, asset_file)
+      base::list(
+        href = openeocraft::make_url(
+          host = host,
+          asset_path,
+          token = base64enc::base64encode(base::charToRaw(user))
+        ),
+        # TODO: implement format_content_type() function
+        type = openeocraft::format_content_type(format),
+        roles = base::list("data")
+      )
+    })
+    base::names(assets) <- base::paste0(bands, "_", times[[i]])
+    results <- base::c(results, assets)
+  }
+  # TODO: where to out assets? links? assets?
+  collection <- openeocraft::job_empty_collection(api, user, job)
+  collection$assets <- results
+  jsonlite::write_json(
+    x = collection,
+    path = base::file.path(job_dir, "_collection.json"),
+    auto_unbox = TRUE
+  )
+
   return(TRUE)
 }
 
@@ -76,7 +150,7 @@ load_collection <- function(id,
   )
   bands <- base::c("B02", "B04", "B08")
 
-  stars::st_as_stars(
+  data <- stars::st_as_stars(
     base::rbind(
       mock_img(
         bands = bands,
@@ -98,6 +172,8 @@ load_collection <- function(id,
     y_decreasing = TRUE,
     coords = 1:4
   )
+
+  base::split(data, 3)
 }
 
 #* @openeo-process

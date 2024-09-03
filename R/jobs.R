@@ -1,8 +1,3 @@
-#' @import jsonlite
-#' @import callr
-#' @importFrom ids random_id
-
-
 # api_user_workspace(api, user) -> work_dir / <user>
 # work_dir / <user> / jobs.rds
 # work_dir / <user> / <job_id> /
@@ -53,7 +48,7 @@ job_delete_rds <- function(api, user, job, jobs) {
     api_stop(500, "Could not save the jobs index file")
   })
 }
-
+#' @export
 job_get_dir <- function(api, user, job_id) {
   file.path(api_user_workspace(api, user), "jobs", job_id)
 }
@@ -236,7 +231,6 @@ job_start <- function(api, req, res, user, job_id) {
 #' @param job_id The identifier for the job
 #' @export
 job_info <- function(api, user, job_id) {
-  job_id <- URLdecode(job_id)
   jobs <- job_read_rds(api, user)
 
   # Check if the job_id exists in the jobs_list
@@ -258,7 +252,6 @@ job_info <- function(api, user, job_id) {
 #' @export
 job_update <- function(api, user, job_id, job) {
   # TODO: all checks should be done in api_*() functions level
-  job_id <- URLdecode(job_id)
   # TODO: implement job_check partial parameter that does the check
   #   job fields independently.
   #job_check(job, partial = TRUE)
@@ -291,7 +284,6 @@ job_update <- function(api, user, job_id, job) {
 #' @param job_id The identifier for the job
 #' @export
 job_delete <- function(api, user, job_id) {
-  job_id <- URLdecode(job_id)
   jobs <- job_read_rds(api, user)
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
@@ -330,7 +322,6 @@ job_estimate <- function(api, user, job_id) {
 #' @export
 job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) {
   level_list <- c("error", "warning", "info", "debug")
-  job_id <- URLdecode(job_id)
   offset <- as.integer(offset)
   if (is.na(offset)) offset <- 0
   api_stopifnot(level %in% level_list, 400, "level must be one of ",
@@ -364,6 +355,7 @@ job_get_results <- function(api, user, job_id) {
   }
   jsonlite::read_json(file.path(results_path, "_collection.json"))
 }
+#' @export
 job_empty_collection <- function(api, user, job) {
   collection <- list(
     `openeo:status` = job$status,

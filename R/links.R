@@ -53,7 +53,7 @@ new_link <- function(rel, href, ...) {
   not_null <- !vapply(dots, is.null, logical(1), USE.NAMES = FALSE)
   c(list(rel = rel, href = href), dots[not_null])
 }
-#' @keywords internal
+#' @export
 make_url <- function(host, ...) {
   dots <- c(...)
   segments <- unname(dots)

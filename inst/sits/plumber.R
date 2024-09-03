@@ -185,7 +185,6 @@ function(req, res, job_id) {
   print("GET /jobs/<jobid>/estimate")
   token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- token_user(api, token)
-  job_id <- URLdecode(job_id)
   job_estimate(api, user, job_id)
 }
 

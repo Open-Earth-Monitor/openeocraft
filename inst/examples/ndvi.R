@@ -1,7 +1,7 @@
 library(openeo)
 
-con <- connect("http://127.0.0.1:8001")
-login("rolf", "123456")
+con <- connect("http://127.0.0.1:8001", user = "rolf", password = "123456")
+login(user = "rolf", password = "123456")
 p <- processes()
 
 list_collections()
