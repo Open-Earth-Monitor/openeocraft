@@ -34,6 +34,71 @@
 }
 
 #* @openeo-process
+load_collection <- function(id,
+                            spatial_extent = NULL,
+                            temporal_extent = NULL,
+                            bands = NULL,
+                            properties = NULL) {
+  mock_img <- function(band, size, origin, res, times) {
+    data <- terra::rast(
+      nrows = size[[1]],
+      ncols = size[[2]],
+      nlyrs = base::length(times),
+      xmin = origin[[1]],
+      xmax = origin[[1]] + res[[1]] * size[[1]],
+      ymin = origin[[2]],
+      ymax = origin[[2]] + res[[2]] * size[[2]],
+      crs = "WGS84",
+      vals = matrix(stats::runif(size[[1]] * size[[2]] * base::length(times)),
+                    ncol = base::length(times)),
+      names = rep(band, base::length(times)),
+      time = as.Date(times)
+    )
+    data
+  }
+
+  spatial_extent <- base::c(
+    west = -45.0,
+    east = -45.0 * 10 * 0.009,
+    south = -10.0 * 10 * -0.009,
+    north = -10.0
+  )
+  temporal_extent <- base::c(
+    t0 = "2020-01-01",
+    t1 = "2021-01-01"
+  )
+  bands <- base::c("B02", "B04", "B08")
+
+  data <- terra::sds(
+    mock_img(
+      band = bands[[1]],
+      size = base::c(10, 10),
+      origin = base::c(-45.0, -10.0),
+      res = base::c(0.009, 0.009),
+      times = c("2020-01-01", "2021-01-01")
+    ),
+    mock_img(
+      band = bands[[2]],
+      size = base::c(10, 10),
+      origin = base::c(-45.0, -10.0),
+      res = base::c(0.009, 0.009),
+      times = c("2020-01-01", "2021-01-01")
+    ),
+    mock_img(
+      band = bands[[3]],
+      size = base::c(10, 10),
+      origin = base::c(-45.0, -10.0),
+      res = base::c(0.009, 0.009),
+      times = c("2020-01-01", "2021-01-01")
+    )
+  )
+  terra::set.names(data, bands)
+  # select by date:
+  # data$B02[[terra::time(data$B02) >= as.Date("2020-07-01")]]
+  data
+}
+
+#* @openeo-process
 save_result <- function(data, format, options = NULL) {
   format <- base::tolower(format)
   supported_formats <- openeocraft::file_formats()
@@ -106,74 +171,6 @@ reduce_dimension <- function(data, reducer, dimension, context = NULL) {
     base::names(x) <- dimnames
     reducer_fn(x, context = context)
   })
-}
-
-#* @openeo-process
-load_collection <- function(id,
-                            spatial_extent = NULL,
-                            temporal_extent = NULL,
-                            bands = NULL,
-                            properties = NULL) {
-  mock_img <- function(bands, size, origin, res, ...) {
-    data <- base::data.frame(
-      x = base::rep(
-        base::rep(
-          base::seq(from = origin[[1]], by = res[[1]], length.out = size[[1]]),
-          each = size[[2]]
-        ),
-        times = base::length(bands)
-      ),
-      y = base::rep(
-        base::rep(
-          base::seq(from = origin[[2]], by = res[[2]], length.out = size[[2]]),
-          times = size[[1]]
-        ),
-        times = base::length(bands)
-      ),
-      bands = base::rep(bands, each = size[[1]] * size[[2]])
-    )
-    extra <- base::as.data.frame(base::list(...))
-    if (base::nrow(extra))
-      data <- base::cbind(data, extra)
-    data$values <- stats::runif(size[[1]] * size[[2]] * base::length(bands))
-    data
-  }
-
-  spatial_extent <- base::c(
-    west = -45.0,
-    east = -45.0 * 10 * 0.009,
-    south = -10.0 * 10 * -0.009,
-    north = -10.0
-  )
-  temporal_extent <- base::c(
-    t0 = "2020-01-01",
-    t1 = "2021-01-01"
-  )
-  bands <- base::c("B02", "B04", "B08")
-
-  data <- stars::st_as_stars(
-    base::rbind(
-      mock_img(
-        bands = bands,
-        size = base::c(10, 10),
-        origin = base::c(-45.0, -10.0),
-        res = base::c(0.009, 0.009),
-        t = "2020-01-01"
-      ),
-      mock_img(
-        bands = bands,
-        size = base::c(10, 10),
-        origin = base::c(-45.0, -10.0),
-        res = base::c(0.009, 0.009),
-        t = "2021-01-01"
-      )
-    ),
-    dims = 1:4,
-    xy = 1:2,
-    y_decreasing = TRUE,
-    coords = 1:4
-  )
-  data
 }
 
 #* @openeo-process

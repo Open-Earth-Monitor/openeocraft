@@ -105,7 +105,7 @@ api_conformance.openeo_v1 <- function(api, req) {
 api_processes.openeo_v1 <- function(api, req, check_auth = FALSE) {
   if (check_auth) {
     token <- req$header$token
-    token_user(api, token)
+    get_token_user(api, token)
   }
   procs <- api_attr(api, "processes")
   procs <- list(
@@ -116,14 +116,14 @@ api_processes.openeo_v1 <- function(api, req, check_auth = FALSE) {
 #' @export
 api_jobs_list.openeo_v1 <- function(api, req) {
   token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  user <- get_token_user(api, token)
   job_list_all(api, user)
 }
 #' @rdname api_handling
 #' @export
 api_result.openeo_v1 <- function(api, req, res) {
   token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  user <- get_token_user(api, token)
   pg <- req$body
 
   # TODO: create job_check
@@ -162,6 +162,7 @@ api_result.openeo_v1 <- function(api, req, res) {
   }
   result_files <- list.files(result_dir, full.names = TRUE)
   tar_file <- file.path(job_get_dir(api, user, job_id), "_files.tar")
+  # TODO: remove directory structure from the tar file
   utils::tar(tar_file, result_files)
   result <- structure(list(data = tar_file), class = "openeo_tar")
   data_serializer(result, res)

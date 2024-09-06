@@ -116,8 +116,8 @@ function(req, res) {
 #* @get /jobs/<job_id:str>
 function(req, res, job_id) {
   print("GET /jobs/<jobid>")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job_info(api, user, job_id)
 }
 
@@ -126,8 +126,8 @@ function(req, res, job_id) {
 #* @post /jobs
 function(req, res) {
   print("POST /jobs")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job <- req$body
   job_create(api, req, res, user, job)
 }
@@ -138,8 +138,8 @@ function(req, res) {
 #* @delete /jobs/<job_id:str>
 function(req, res, job_id) {
   print("DELETE /jobs/<jobid>")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job_delete(api, user, job_id)
 }
 
@@ -149,8 +149,8 @@ function(req, res, job_id) {
 #* @patch /jobs/<job_id:str>
 function(req, res, job_id) {
   print("PATCH /jobs/<jobid>")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job <- req$body
   job_update(api, user, job_id, job)
 }
@@ -161,8 +161,8 @@ function(req, res, job_id) {
 #* @post /jobs/<job_id:str>/results
 function(req, res, job_id) {
   print("POST /jobs/<jobid>/results")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job_start(api, req, res, user, job_id)
 }
 
@@ -172,8 +172,8 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id:str>/results
 function(req, res, job_id) {
   print("GET /jobs/<jobid>/results")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job_get_results(api, user, job_id)
 }
 
@@ -183,8 +183,8 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/estimate
 function(req, res, job_id) {
   print("GET /jobs/<jobid>/estimate")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job_estimate(api, user, job_id)
 }
 
@@ -194,8 +194,8 @@ function(req, res, job_id) {
 #* @get /jobs/<job_id>/logs
 function(req, res, job_id, offset, level, limit) {
   print("GET /jobs/<jobid>/logs")
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- token_user(api, token)
+  token <- get_token(req)
+  user <- get_token_user(api, token)
   job_logs(api, user, job_id, offset, level, limit)
 }
 
@@ -242,6 +242,7 @@ function(req, res) {
 #* Workspace files handling
 #* @get /files/jobs/<job_id>/<asset>
 function(req, res, job_id, asset) {
+  print("GET /files/jobs/<jobid>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
     api_stop(401, "URL token parameter is missing")
@@ -249,8 +250,10 @@ function(req, res, job_id, asset) {
   token <- req$args$token
   user <- rawToChar(base64enc::base64decode(token))
   path <- file.path(api_user_workspace(api, user), "jobs", job_id, file)
-  api_stopifnot(file.exists(path), status = 404,
-                "File not found")
+  if (!file.exists(path)) {
+    api_stop(404, "File not found")
+  }
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+  res
 }

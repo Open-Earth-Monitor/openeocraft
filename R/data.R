@@ -29,7 +29,7 @@ data_serializer.openeo_rds <- function(x, res) {
 
 #' @export
 data_serializer.openeo_tar <- function(x, res) {
-  res$setHeader("Content-Type", "application/tar")
+  res$setHeader("Content-Type", "application/x-tar")
   res$body <- readBin(x$data, what = "raw", n = file.info(x$data)$size)
   res
 }
@@ -55,7 +55,7 @@ ext_format <- function(filename) {
 }
 #' @export
 ext_content_type <- function(filename) {
-  ext <- gsub("\\.([^.]+)$", "\\1", filename)
+  ext <- gsub(".*\\.([^.]+)$", "\\1", filename)
   switch(ext,
          tif = "image/tiff",
          nc = "application/octet-stream",

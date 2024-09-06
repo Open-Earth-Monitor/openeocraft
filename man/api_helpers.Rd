@@ -5,7 +5,6 @@
 \alias{api_cors_handler}
 \alias{api_error_handler}
 \alias{api_stop}
-\alias{api_stopifnot}
 \alias{api_success}
 \alias{get_host}
 \alias{get_path}
@@ -17,8 +16,6 @@ api_cors_handler(req, res, origin = "*", methods = "*")
 api_error_handler(req, res, err)
 
 api_stop(status, ...)
-
-api_stopifnot(expr, status, ...)
 
 api_success(status, ...)
 
@@ -43,8 +40,8 @@ header in CORS requests. Defaults to '*'.}
 header in CORS requests. Defaults to '*'.}
 
 \item{err}{The error object containing information about the
-encountered error. If the error is thrown by \code{api_stopifnot} or
-\code{api_stop} functions, this object has 'status' and 'message' fields
+encountered error. If the error is thrown by \code{api_stop}
+function, this object has 'status' and 'message' fields
 that are used to produce the HTTP response error.}
 
 \item{status}{The HTTP status code to set for the response. This just
@@ -52,9 +49,6 @@ works if the \code{api_error_handler} function is handling errors in
 \code{plumber}.}
 
 \item{...}{Additional arguments to be passed to error handling functions.}
-
-\item{expr}{The expression to evaluate. If the expression evaluates
-to FALSE, an error will be raised.}
 }
 \description{
 This set of functions provides HTTP CORS (Cross-Origin Resource Sharing)
@@ -74,9 +68,6 @@ in \code{plumber}.
 \item \code{api_stop}: Throws an error and set the HTTP status code and
 error message to be returned to the user by the \code{api_error_handler}
 function.
-
-\item \code{api_stopifnot}: Throws an error if the provided expression
-is evaluated as \code{FALSE}.
 
 \item \code{get_host}: Get the API host address from an \code{req} object.
 

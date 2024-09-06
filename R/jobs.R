@@ -32,8 +32,9 @@ job_crt_rds <- function(api, user, job) {
 }
 job_upd_status <- function(api, user, job_id, status) {
   jobs <- job_read_rds(api, user)
-  api_stopifnot(job_id %in% names(jobs), status = 500,
-                "Could not find sync job id")
+  if (!job_id %in% names(jobs)) {
+    api_stop(500, "Could not find sync job id")
+  }
   job <- jobs[[job_id]]
   job$status <- status
   job_save_rds(api, user, job, jobs)
@@ -56,18 +57,21 @@ job_new_dir <- function(api, user, job) {
   job_dir <- job_get_dir(api, user, job$id)
   if (dir.exists(job_dir)) {
     unlink(job_dir, recursive = TRUE)
-    api_stopifnot(!dir.exists(job_dir), 500, "Could not delete the job ",
-                  job$id, "'s folder")
+    if (dir.exists(job_dir)) {
+      api_stop(500, "Could not delete the job ", job$id, "'s folder")
+    }
   }
   dir.create(job_dir, recursive = TRUE)
-  api_stopifnot(dir.exists(job_dir), 500, "Could not create the job ",
-                job$id, "'s folder")
+  if (!dir.exists(job_dir)) {
+    api_stop(500, "Could not create the job ", job$id, "'s folder")
+  }
 }
 job_del_dir <- function(api, user, job_id) {
   job_dir <- job_get_dir(api, user, job_id)
   unlink(job_dir, recursive = TRUE)
-  api_stopifnot(!dir.exists(job_dir), 500, "Could not delete the job ",
-                job_id, "'s folder")
+  if (dir.exists(job_dir)) {
+    api_stop(500, "Could not delete the job ", job_id, "'s folder")
+  }
 }
 
 procs_read_rds <- function(api) {
@@ -324,10 +328,14 @@ job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) 
   level_list <- c("error", "warning", "info", "debug")
   offset <- as.integer(offset)
   if (is.na(offset)) offset <- 0
-  api_stopifnot(level %in% level_list, 400, "level must be one of ",
-                paste0("'", level_list, "'", collapse = ", "))
+  if (!level %in% level_list) {
+    api_stop(400, "level must be one of ",
+             paste0("'", level_list, "'", collapse = ", "))
+  }
   limit <- as.integer(limit)
-  api_stopifnot(limit >= 1, 400, "limit parameter must be >= 1")
+  if (limit < 1) {
+    api_stop(400, "limit parameter must be >= 1")
+  }
   logs <- logs_read_rds(api, user, job_id)
   levels <- vapply(logs, \(log) log$level, character(1))
   selection <- match(levels, level_list) <= match(level, level_list)

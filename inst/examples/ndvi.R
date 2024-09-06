@@ -1,6 +1,6 @@
 library(openeo)
 
-con <- connect("http://127.0.0.1:8001", user = "rolf", password = "123456")
+con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 login(user = "rolf", password = "123456")
 p <- processes()
 
@@ -43,13 +43,14 @@ x <- p$save_result(
   format = "GTiff"
 )
 
+list_file_formats()
 job <- create_job(x, "This is my first job", "Computing NDVI using openeocraft")
 job2 <- start_job(job)
-list_results(job2)
+res <- list_results(job2)
+res$assets
 download_results(job2, "~/Downloads/")
 
-compute_result(x, output_file = "~/ndvi.rds")
-compute_result(x, output_file = "~/ndvi.rds")
+compute_result(x, output_file = "~/Downloads/ndvi.tar")
 
 # library(terra)
 # result <- terra::rast("~/ndvi.tif")

@@ -17,9 +17,6 @@
 #'   error message to be returned to the user by the `api_error_handler`
 #'   function.
 #'
-#' \item `api_stopifnot`: Throws an error if the provided expression
-#'   is evaluated as `FALSE`.
-#'
 #' \item `get_host`: Get the API host address from an `req` object.
 #'
 #' \item `get_path`: Get the path from an `req` object.
@@ -42,16 +39,13 @@
 #'   header in CORS requests. Defaults to '*'.
 #'
 #' @param err The error object containing information about the
-#'   encountered error. If the error is thrown by `api_stopifnot` or
-#'   `api_stop` functions, this object has 'status' and 'message' fields
+#'   encountered error. If the error is thrown by `api_stop`
+#'   function, this object has 'status' and 'message' fields
 #'   that are used to produce the HTTP response error.
 #'
 #' @param status The HTTP status code to set for the response. This just
 #'   works if the `api_error_handler` function is handling errors in
 #'   `plumber`.
-#'
-#' @param expr The expression to evaluate. If the expression evaluates
-#'   to FALSE, an error will be raised.
 #'
 #' @param ... Additional arguments to be passed to error handling functions.
 #'
@@ -91,14 +85,6 @@ api_error_handler <- function(req, res, err) {
 #' @export
 api_stop <- function(status, ...) {
   stop(errorCondition(paste0(...), status = status))
-}
-#' @rdname api_helpers
-#' @export
-api_stopifnot <- function(expr, status, ...) {
-  message <- paste0(...)
-  if (!nzchar(message))
-    message <- paste(deparse(substitute(expr)), "is not TRUE")
-  if (!expr) api_stop(status, message)
 }
 #' @rdname api_helpers
 #' @export
@@ -250,7 +236,11 @@ new_token <- function(credentials, user, valid_days = 30) {
   credentials
 }
 #' @export
-token_user <- function(api, token) {
+get_token <- function(req) {
+  gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+}
+#' @export
+get_token_user <- function(api, token) {
   if (is.null(token)) {
     api_stop(401, "Token is missing")
   }
@@ -290,57 +280,6 @@ create_env <- function(api, user, job, req) {
     req = req
   )
 }
-# save_result <- function(data, format) {
-#   api <- current_api()
-#   user <- current_user()
-#   job <- current_job()
-#   req <- current_request()
-#   job_dir <- job_get_dir(api, user, job$id)
-#   host <- get_host(api, req)
-#   times <- stars::st_get_dimension_values(data, "t")
-#   bands <- "default"
-#   no_bands <- TRUE
-#   if ("bands" %in% names(stars::st_dimensions(data))) {
-#     bands <- stars::st_get_dimension_values(data, "bands")
-#     no_bands <- FALSE
-#   }
-#   # TODO implement generic function not relying on an specific data type
-#   data <- split(data, 3)
-#   results <- list()
-#   for (i in seq_along(times)) {
-#     assets_file <- lapply(seq_along(bands), \(j) {
-#       asset_file <- paste0(paste(bands[[j]], times[[i]], sep = "_"),
-#                            format_ext(format))
-#       if (no_bands) {
-#         stars::write_stars(dplyr::select(data[,,i], dplyr::all_of(j)), file.path(job_dir, asset_file))
-#       } else {
-#         stars::write_stars(dplyr::select(data[,,,i], dplyr::all_of(j)), file.path(job_dir, asset_file))
-#       }
-#       asset_file
-#     })
-#     # TODO: implement asset tokens
-#     assets <- lapply(assets_file, \(asset_file) {
-#       list(
-#         href = make_url(host, file.path("/files/jobs", job$id, asset_file),
-#                         token = base64enc::base64encode(charToRaw(user))),
-#         # TODO: implement format_content_type() function
-#         type = format_content_type(format),
-#         roles = list("data")
-#       )
-#     })
-#     names(assets) <- paste0(bands, "_", times[[i]])
-#     results <- c(results, assets)
-#   }
-#   # TODO: where to out assets? links? assets?
-#   collection <- job_empty_collection(api, user, job)
-#   collection$assets <- results
-#   jsonlite::write_json(
-#     x = collection,
-#     path = file.path(job_dir, "_collection.json"),
-#     auto_unbox = TRUE
-#   )
-# }
-
 #' Get Supported File Formats
 #'
 #' This function returns a list of supported input and output file formats
