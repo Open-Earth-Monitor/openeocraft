@@ -1,11 +1,12 @@
+len <- function(x) {
+  length(x)
+}
 as_name <- function(x) {
   as.name(x)
 }
-
 as_call <- function(id, args) {
   as.call(c(list(as_name(id)), lapply(args, function(x) x)))
 }
-
 make_fn <- function(params, body = NULL, env = parent.frame()) {
   fn <- function() {}
   formals(fn) <- params
@@ -14,7 +15,6 @@ make_fn <- function(params, body = NULL, env = parent.frame()) {
   environment(fn) <- env
   fn
 }
-
 param <- function(name, default = NULL) {
   par <- alist(x = )
   if (!missing(default))
@@ -22,12 +22,10 @@ param <- function(name, default = NULL) {
   names(par) <- name
   par
 }
-
 format_endpoint <- function(x) {
   x <- gsub("<([^:]+):[^>]+>", "<\\1>", x)
   gsub("<([^>]+)>", "{\\1}", x)
 }
-
 placeholders <- function(x, schema = "openeo") {
   if (is.list(x)) {
     if (!is.null(names(x)))
@@ -37,6 +35,22 @@ placeholders <- function(x, schema = "openeo") {
     unique(unlist(lapply(x, placeholders)))
   } else
     NULL
+}
+random_id <- function(n) {
+  paste(as.raw(sample(256L, 16, TRUE) - 1), collapse = "")
+}
+transact <- function(expr, commit = NULL, rollback = NULL) {
+  has_rollback <- !is.null(rollback)
+  if (has_rollback) {
+    on.exit(rollback, add = TRUE)
+  }
+  tryCatch(
+    expr,
+    error = function(err) {
+      if (!has_rollback) stop(err)
+    },
+    finally = commit
+  )
 }
 
 #' @export

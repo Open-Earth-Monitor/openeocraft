@@ -189,3 +189,34 @@ api_job_info.openeo_v1 <- function(api, req, job_id) {
   # TODO: populate links?
   job
 }
+#' @export
+api_job_create <- function(api, req, user, job_info) {
+  # TODO: create job_check
+  job_info_check(job_info)
+  # TODO: create directory and job RDS file as an atomic transaction
+  # create job's directory
+  job_new_dir(api, user, job)
+  job_id <- random_id()
+  job <- list(
+    id = job_id,
+    title = job$title,
+    description = job$description,
+    process = job$process,
+    status = "created",
+    created = Sys.time(),
+    plan = job$plan,
+    budget = job$budget,
+    log_level = job$log_level,
+    links = list()
+  )
+  # TODO: how to avoid concurrency issues on reading/writing?
+  # use some specific package? e.g. filelock, sqllite?, mongodb?
+  jobs <- job_read_rds(api, user)
+  job_save_rds(api, user, job, jobs)
+  # Set HTTP headers
+  host <- get_host(api, req)
+  res$setHeader("Location", make_url(host, "/jobs/", job_id))
+  res$setHeader("OpenEO-Identifier", job_id)
+  res$status <- 201
+  list()
+}

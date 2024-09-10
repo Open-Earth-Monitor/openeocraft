@@ -85,6 +85,7 @@ function(req, res, collection_id) {
   print("collections/<col_id>")
   doc <- openstac::api_collection(api$stac_api, collection_id, req)
   doc <- delete_link(doc, rel = "item")
+  doc
 }
 
 #* Lists api processes

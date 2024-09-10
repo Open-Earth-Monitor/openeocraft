@@ -135,11 +135,11 @@ log_append <- function(api, user, job_id, code, level, message, ...) {
 #' @export
 job_create <- function(api, req, res, user, job) {
   # TODO: create job_check
-  #job_prepare(api, user, job)
+  # job_prepare(api, user, job)
   # - fill defaults
   # - check consistency of the provided fields
   # - also check plan
-  job_id <- ids::random_id()
+  job_id <- random_id()
   job <- list(
     id = job_id,
     title = job$title,
@@ -155,7 +155,6 @@ job_create <- function(api, req, res, user, job) {
   # TODO: create directory and job RDS file as an atomic transaction
   # create job's directory
   job_new_dir(api, user, job)
-
   # TODO: how to avoid concurrency issues on reading/writing?
   # use some specific package? e.g. filelock, sqllite?, mongodb?
   jobs <- job_read_rds(api, user)
@@ -168,7 +167,6 @@ job_create <- function(api, req, res, user, job) {
 }
 job_sync <- function(api, req, user, job_id) {
   job <- job_upd_status(api, user, job_id, "running")
-
   run_pgraph(api, req, user, job, job$process)
   job_upd_status(api, user, job_id, "finished")
   return(NULL)
@@ -363,4 +361,9 @@ job_empty_collection <- function(api, user, job) {
     assets = list()
   )
   collection
+}
+job_info_check <- function(job_info) {
+  if (!all(c("status", "title", "description") %in% names(job_info))) {
+    api_stop(400, "Invalid job data")
+  }
 }
