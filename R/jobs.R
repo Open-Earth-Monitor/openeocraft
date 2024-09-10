@@ -299,21 +299,6 @@ job_delete <- function(api, user, job_id) {
   job_del_dir(api, user, job_id)
   list(message = "Job deleted", code = 200, deleted_job = removed_job$id)
 }
-
-#' @export
-job_list_all <- function(api, user) {
-  jobs <- job_read_rds(api, user)
-  jobs <- list(
-    jobs = unname(lapply(jobs, \(job) {
-      job[c("id", "status", "created")]
-    })),
-    # TODO: populate this link with some function like we do in other endpoints
-    links = list()
-  )
-  jobs
-}
-
-
 # Get an estimate for a job
 #' @export
 job_estimate <- function(api, user, job_id) {

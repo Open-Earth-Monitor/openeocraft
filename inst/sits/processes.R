@@ -39,19 +39,16 @@ save_result <- function(data, format, options = NULL) {
   supported_formats <- openeocraft::file_formats()
   outputFormats <- supported_formats$output
   if (!(format %in% base::tolower(base::names(outputFormats)))) {
-    stop(base::paste("Format", format, "is not supported."))
+    stop("Format ", format, " is not supported.")
   }
   # TODO: split data object into different files based on dates and
   #  bands dimensions.
   #  The number of output files will be: N(dates) * N(bands)
   #  The format parameter just defines the file type to be saved in
   #  this process.
-  api <- openeocraft::current_api()
-  user <- openeocraft::current_user()
-  job <- openeocraft::current_job()
-  req <- openeocraft::current_request()
-  job_dir <- openeocraft::job_get_dir(api, user, job$id)
-  host <- openeocraft::get_host(api, req)
+  env <- openeocraft::current_env()
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  host <- openeocraft::get_host(env$api, env$req)
   times <- .data_timeline(data)
   bands <- .data_bands(data)
   # TODO implement generic function not relying on an specific data type
@@ -66,12 +63,12 @@ save_result <- function(data, format, options = NULL) {
     })
     # TODO: implement asset tokens
     assets <- base::lapply(assets_file, \(asset_file) {
-      asset_path <- base::file.path("/files/jobs", job$id, asset_file)
+      asset_path <- base::file.path("/files/jobs", env$job$id, asset_file)
       base::list(
         href = openeocraft::make_url(
           host = host,
           asset_path,
-          token = base64enc::base64encode(base::charToRaw(user))
+          token = base64enc::base64encode(base::charToRaw(env$user))
         ),
         # TODO: implement format_content_type() function
         type = openeocraft::format_content_type(format),
@@ -83,7 +80,7 @@ save_result <- function(data, format, options = NULL) {
     results <- base::c(results, assets)
   }
   # TODO: where to out assets? links? assets?
-  collection <- openeocraft::job_empty_collection(api, user, job)
+  collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
   collection$assets <- results
   jsonlite::write_json(
     x = collection,

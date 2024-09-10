@@ -1,4 +1,3 @@
-
 #' @export
 load_processes <- function(api, processes_file) {
   stopifnot(file.exists(processes_file))
@@ -17,48 +16,32 @@ current_env <- function() {
   for (i in seq(2, n)) {
     env <- parent.frame(i)
     if (exists("openeocraft", env))
-      return(env)
+      return(as.list(env))
   }
   api_stop(500, "invalid evaluation environment")
 }
 #' @export
-current_api <- function() {
-  env <- current_env()
-  env$api
+get_job_dir <- function(env = NULL) {
+  if (is.null(env))
+    env <- current_env()
+  job_get_dir(env$api, env$user, env$job$id)
 }
-#' @export
-current_user <- function() {
-  env <- current_env()
-  env$user
-}
-#' @export
-current_job <- function() {
-  env <- current_env()
-  env$job
-}
-#' @export
-current_request <- function() {
-  env <- current_env()
-  env$req
-}
+
 get_namespace <- function(api) {
   api_attr(api, "namespace")
 }
-
 setup_namespace <- function(api) {
   namespace <- new.env(parent = emptyenv())
   api_attr(api, "namespace") <- namespace
   load_rlang(api)
   api
 }
-
 add_process <- function(api, process) {
   processes <- api_attr(api, "processes")
   processes[[process$id]] <- process
   api_attr(api, "processes") <- processes
   api
 }
-
 load_rlang <- function(api) {
   export_fn <- function(...) {
     fn_list <- list(...)
@@ -77,9 +60,10 @@ load_rlang <- function(api) {
   export_fn("if", "for", "while", "repeat", "break", "next")
   export_fn("function", "return")
   export_fn("c", "list", "stop")
+  # load openeocraft runtime functions
+  export_fn("current_env", "get_job_dir")
   invisible(NULL)
 }
-
 run_pgraph <- function(api, req, user, job, pg) {
   if ("process" %in% names(pg))
     pg <- pg$process

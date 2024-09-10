@@ -113,12 +113,6 @@ api_processes.openeo_v1 <- function(api, req, check_auth = FALSE) {
   )
   procs
 }
-#' @export
-api_jobs_list.openeo_v1 <- function(api, req) {
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
-  user <- get_token_user(api, token)
-  job_list_all(api, user)
-}
 #' @rdname api_handling
 #' @export
 api_result.openeo_v1 <- function(api, req, res) {
@@ -167,4 +161,31 @@ api_result.openeo_v1 <- function(api, req, res) {
   result <- structure(list(data = tar_file), class = "openeo_tar")
   data_serializer(result, res)
 }
-
+#' @export
+api_jobs_list.openeo_v1 <- function(api, req) {
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  user <- get_token_user(api, token)
+  jobs <- job_read_rds(api, user)
+  jobs <- list(
+    jobs = unname(lapply(jobs, \(job) {
+      job[c("id", "status", "created")]
+    })),
+    # TODO: populate this link with some function like we do in other endpoints
+    links = list()
+  )
+  jobs
+}
+#' @export
+api_job_info.openeo_v1 <- function(api, req, job_id) {
+  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  user <- get_token_user(api, token)
+  jobs <- job_read_rds(api, user)
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404, "Job not found")
+  }
+  # Retrieve the job from the jobs_list
+  job <- jobs[[job_id]]
+  # TODO: populate links?
+  job
+}

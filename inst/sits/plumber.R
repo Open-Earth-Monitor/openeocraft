@@ -84,7 +84,7 @@ function(req, res) {
 function(req, res, collection_id) {
   print("collections/<col_id>")
   doc <- openstac::api_collection(api$stac_api, collection_id, req)
-  delete_link(doc, rel = "item")
+  doc <- delete_link(doc, rel = "item")
 }
 
 #* Lists api processes
@@ -92,14 +92,16 @@ function(req, res, collection_id) {
 #* @get /processes
 function(req, res) {
   print("processes")
-  api_processes(api, req, check_auth = FALSE)
+  doc <- api_processes(api, req, check_auth = FALSE)
+  doc
 }
 
 #* Process and download data synchronously
 #* @post /result
 function(req, res) {
   print("result")
-  api_result(api, req, res)
+  doc <- api_result(api, req, res)
+  doc
 }
 
 #* List all batch jobs
@@ -107,7 +109,8 @@ function(req, res) {
 #* @get /jobs
 function(req, res) {
   print("GET /jobs")
-  api_jobs_list(api, req)
+  doc <- api_jobs_list(api, req)
+  doc
 }
 
 #* Get batch job metadata
@@ -116,9 +119,8 @@ function(req, res) {
 #* @get /jobs/<job_id:str>
 function(req, res, job_id) {
   print("GET /jobs/<jobid>")
-  token <- get_token(req)
-  user <- get_token_user(api, token)
-  job_info(api, user, job_id)
+  doc <- api_job_info(api, req, job_id)
+  doc
 }
 
 #* Create a new batch job

@@ -88,6 +88,8 @@
 #'
 #' @param check_auth Check for authenticated user (`TRUE`) or not (`FALSE`).
 #'
+#' @param job_id The identifier for the job
+#'
 #' @param ... Additional arguments to be passed to the method-specific
 #'   functions.
 #'
@@ -216,15 +218,19 @@ api_processes <- function(api, req, check_auth = FALSE) {
 }
 #' @rdname api_handling
 #' @export
+api_result <- function(api, req, res) {
+  UseMethod("api_result", api)
+}
+#' @rdname api_handling
+#' @export
 api_jobs_list <- function(api, req) {
   UseMethod("api_jobs_list", api)
 }
 #' @rdname api_handling
 #' @export
-api_result <- function(api, req, res) {
-  UseMethod("api_result", api)
+api_job_info <- function(api, req) {
+  UseMethod("api_job_info", api)
 }
-
 # TODO:
 # - Supported UDF runtimes `GET /udf_runtime`
 # - Supported secondary web service protocols `GET /service_types`
