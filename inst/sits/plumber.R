@@ -46,7 +46,7 @@ new_credential(api, user = "rolf", password = "123456")
 new_credential(api, user = "brian", password = "123456")
 
 # Load processes
-processes_file <- system.file("sits/processes.R", package = "openeocraft")
+processes_file <- system.file("sits/processes3.R", package = "openeocraft")
 load_processes(api, processes_file)
 
 #* Enable Cross-origin Resource Sharing

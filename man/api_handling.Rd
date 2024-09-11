@@ -11,8 +11,10 @@
 \alias{api_landing_page}
 \alias{api_conformance}
 \alias{api_processes}
-\alias{api_jobs_list}
 \alias{api_result}
+\alias{api_jobs_list}
+\alias{api_job_info}
+\alias{api_job_create}
 \title{Handle API requests}
 \usage{
 \method{api_result}{openeo_v1}(api, req, res)
@@ -64,9 +66,13 @@ api_conformance(api, req)
 
 api_processes(api, req, check_auth = FALSE)
 
+api_result(api, req, res)
+
 api_jobs_list(api, req)
 
-api_result(api, req, res)
+api_job_info(api, req)
+
+api_job_create(api, req)
 }
 \arguments{
 \item{api}{An object representing the API. This object is typically
@@ -132,6 +138,8 @@ errors using the \code{openeocraft} default error handler. Default is \code{TRUE
 \item{wellknown_versions}{description}
 
 \item{check_auth}{Check for authenticated user (\code{TRUE}) or not (\code{FALSE}).}
+
+\item{job_id}{The identifier for the job}
 }
 \value{
 For API creation functions, returns a api object. For API
