@@ -2,95 +2,18 @@
 #* @openeo-import math.R
 #* @openeo-import data.R
 
-.data_timeline <- function(data) {
-  stars::st_get_dimension_values(data, "t")
-}
-
-.data_bands <- function(data) {
-  bands <- "default"
-  if ("bands" %in% base::names(stars::st_dimensions(data)))
-    bands <- stars::st_get_dimension_values(data, "bands")
-  bands
-}
-
-.data_get_time <- function(data, time) {
-  i <- base::match(time, .data_timeline(data))
-  if (any(is.na(i))) {
-    time <- paste0(time[is.na(i)], collapse = ",")
-    openeocraft::api_stop(404, "Time(s) ", time, " not found")
-  }
-  if ("bands" %in% base::names(stars::st_dimensions(data)))
-    return(data[,,,i])
-  data[,,i]
-}
-
-.data_get_band <- function(data, band) {
-  j <- match(band, .data_bands(data))
-  if (any(is.na(j))) {
-    band <- paste0(band[is.na(j)], collapse = ",")
-    openeocraft::api_stop(404, "Band(s) ", band, " not found")
-  }
-  dplyr::select(data, dplyr::all_of(j))
-}
-
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
+  env <- openeocraft::current_env()
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  host <- openeocraft::get_host(env$api, env$req)
 
-  format <- base::tolower(format)
-  supported_formats <- openeocraft::file_formats()
-  outputFormats <- supported_formats$output
-  if (!(format %in% base::tolower(base::names(outputFormats)))) {
-    stop(base::paste("Format", format, "is not supported."))
+  for (i in seq_len(nrow(data))) {
+    # TODO: move files to result subfolder
+    path <- gsub("^.*/", "/result/", data$file_info[[i]]$path)
+    data$file_info[[i]]$path <- make_files_url(host, env$user, env$job$id, path)
   }
-  # TODO: split data object into different files based on dates and
-  #  bands dimensions.
-  #  The number of output files will be: N(dates) * N(bands)
-  #  The format parameter just defines the file type to be saved in
-  #  this process.
-  api <- openeocraft::current_api()
-  user <- openeocraft::current_user()
-  job <- openeocraft::current_job()
-  req <- openeocraft::current_request()
-  job_dir <- openeocraft::job_get_dir(api, user, job$id)
-  host <- openeocraft::get_host(api, req)
-  times <- .data_timeline(data)
-  bands <- .data_bands(data)
-  # TODO implement generic function not relying on an specific data type
-  results <- base::list()
-  for (i in base::seq_along(times)) {
-    assets_file <- base::lapply(base::seq_along(bands), \(j) {
-      asset_file <- base::paste0(base::paste(bands[[j]], times[[i]], sep = "_"),
-                                 openeocraft::format_ext(format))
-      stars::write_stars(.data_get_band(.data_get_time(data, i), j),
-                         base::file.path(job_dir, asset_file))
-      asset_file
-    })
-    # TODO: implement asset tokens
-    assets <- base::lapply(assets_file, \(asset_file) {
-      asset_path <- base::file.path("/files/jobs", job$id, asset_file)
-      base::list(
-        href = openeocraft::make_url(
-          host = host,
-          asset_path,
-          token = base64enc::base64encode(base::charToRaw(user))
-        ),
-        # TODO: implement format_content_type() function
-        type = openeocraft::format_content_type(format),
-        roles = base::list("data")
-      )
-    })
-    base::names(assets) <- base::paste0(bands, "_", times[[i]])
-    results <- base::c(results, assets)
-  }
-  # TODO: where to out assets? links? assets?
-  collection <- openeocraft::job_empty_collection(api, user, job)
-  collection$assets <- results
-  jsonlite::write_json(
-    x = collection,
-    path = base::file.path(job_dir, "_collection.json"),
-    auto_unbox = TRUE
-  )
-
+  saveRDS(data, file.path(job_dir, ""))
   return(TRUE)
 }
 
@@ -129,11 +52,12 @@ ml_fit_class_random_forest <- function(training_set,
   if (!base::is.null(random_state)) {
     base::set.seed(random_state)
   }
-  sits::sits_rfor(
+  model <- sits::sits_rfor(
     samples = training_set,
     num_trees = num_trees,
     mtry = max_variables
   )
+  model
 }
 
 #' @openeo-process
@@ -145,7 +69,7 @@ ml_predict <- function(data,
   user <- openeocraft::current_user()
   job <- openeocraft::current_job()
   # Preparing parameters
-  output_dir <- openeocraft::job_get_dir(api, user, job$id)
+  job_dir <- openeocraft::job_get_dir(api, user, job$id)
   roi <- NULL
   if (!is.null(attr(data, "roi")))
     roi <- attr(data, "roi")
@@ -156,7 +80,14 @@ ml_predict <- function(data,
     roi = roi,
     memsize = 2L,
     multicores = 2L,
-    output_dir = output_dir
+    output_dir = job_dir
+  )
+  # label the probability cube
+  data <- sits::sits_label_classification(
+    cube = data,
+    memsize = 2L,
+    multicores = 2L,
+    output_dir = job_dir
   )
   # data <- sits::sits_mosaic(
   #   cube = data,
@@ -171,11 +102,9 @@ ml_predict <- function(data,
 #' @openeo-process
 cube_regularize <- function(data, resolution, period) {
   # Get current context of evaluation environment
-  api <- openeocraft::current_api()
-  user <- openeocraft::current_user()
-  job <- openeocraft::current_job()
+  env <- openeocraft::current_env()
   # Preparing parameters
-  output_dir <- openeocraft::job_get_dir(api, user, job$id)
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
   roi <- NULL
   if (!is.null(attr(data, "roi")))
     roi <- attr(data, "roi")
@@ -184,9 +113,28 @@ cube_regularize <- function(data, resolution, period) {
     cube = data,
     period = period,
     res = resolution,
-    output_dir = output_dir,
+    output_dir = job_dir,
     roi = roi,
     multicores = 2L
+  )
+  data
+}
+
+#' @openeo-process
+ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
+  # Get current context of evaluation environment
+  env <- openeocraft::current_env()
+  # Preparing parameters
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Regularize
+  nir <- as.name(nir)
+  red <- as.name(red)
+  data <- sits::sits_apply(
+    data = data,
+    NDVI = (nir - red) / (nir + red),
+    memsize = 2L,
+    multicores = 2L,
+    output_dir = job_dir
   )
   data
 }

@@ -145,8 +145,8 @@ api_result.openeo_v1 <- function(api, req, res) {
   # use some specific package? e.g. filelock, sqllite?, mongodb?
   job_crt_rds(api, user, job)
   job_sync(api, req, user, job_id)
-  result_dir <- file.path(job_get_dir(api, user, job_id))
-  result_files <- list.files(result_dir, pattern = "^[^_]", full.names = TRUE)
+  job_dir <- job_get_dir(api, user, job_id)
+  result_files <- list.files(job_dir, pattern = "^[^_]", full.names = TRUE)
   if (length(result_files) == 1) {
     result <- structure(
       list(data = result_files),
@@ -154,7 +154,8 @@ api_result.openeo_v1 <- function(api, req, res) {
     )
     return(data_serializer(result, res))
   }
-  result_files <- list.files(result_dir, full.names = TRUE)
+  # TODO: change to /results subfolder
+  result_files <- list.files(job_dir, full.names = TRUE)
   tar_file <- file.path(job_get_dir(api, user, job_id), "_files.tar")
   # TODO: remove directory structure from the tar file
   utils::tar(tar_file, result_files)

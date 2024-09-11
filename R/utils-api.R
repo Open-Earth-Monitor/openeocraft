@@ -362,3 +362,9 @@ file_formats <- function() {
     output = outputFormats
   )
 }
+
+make_files_url <- function(host, user, job_id, file) {
+  token <- base64enc::base64encode(charToRaw(user))
+  file <- file.path("/files/jobs", job_id, file)
+  paste0(host, file, "?", token)
+}

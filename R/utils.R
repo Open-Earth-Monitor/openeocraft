@@ -36,6 +36,7 @@ placeholders <- function(x, schema = "openeo") {
   } else
     NULL
 }
+#' @export
 random_id <- function(n) {
   paste(as.raw(sample(256L, n, TRUE) - 1L), collapse = "")
 }

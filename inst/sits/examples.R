@@ -51,3 +51,5 @@ label_cube <- sits_label_classification(
 )
 # plot the classified image
 plot(label_cube)
+
+data <- label_cube
