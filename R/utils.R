@@ -37,7 +37,7 @@ placeholders <- function(x, schema = "openeo") {
     NULL
 }
 random_id <- function(n) {
-  paste(as.raw(sample(256L, 16, TRUE) - 1), collapse = "")
+  paste(as.raw(sample(256L, n, TRUE) - 1L), collapse = "")
 }
 transact <- function(expr, commit = NULL, rollback = NULL) {
   has_rollback <- !is.null(rollback)

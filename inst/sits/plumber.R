@@ -129,10 +129,7 @@ function(req, res, job_id) {
 #* @post /jobs
 function(req, res) {
   print("POST /jobs")
-  token <- get_token(req)
-  user <- get_token_user(api, token)
-  job <- req$body
-  job_create(api, req, res, user, job)
+  api_job_create(api, req, res)
 }
 
 #* Delete a batch job

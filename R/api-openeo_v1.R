@@ -190,25 +190,28 @@ api_job_info.openeo_v1 <- function(api, req, job_id) {
   job
 }
 #' @export
-api_job_create <- function(api, req, user, job_info) {
+api_job_create <- function(api, req, res) {
+  token <- get_token(req)
+  user <- get_token_user(api, token)
+  job_info <- req$body
   # TODO: create job_check
   job_info_check(job_info)
+  job_id <- random_id(16L)
+  job <- list(
+    id = job_id,
+    title = job_info$title,
+    description = job_info$description,
+    process = job_info$process,
+    status = "created",
+    created = Sys.time(),
+    plan = job_info$plan,
+    budget = job_info$budget,
+    log_level = job_info$log_level,
+    links = list()
+  )
   # TODO: create directory and job RDS file as an atomic transaction
   # create job's directory
   job_new_dir(api, user, job)
-  job_id <- random_id()
-  job <- list(
-    id = job_id,
-    title = job$title,
-    description = job$description,
-    process = job$process,
-    status = "created",
-    created = Sys.time(),
-    plan = job$plan,
-    budget = job$budget,
-    log_level = job$log_level,
-    links = list()
-  )
   # TODO: how to avoid concurrency issues on reading/writing?
   # use some specific package? e.g. filelock, sqllite?, mongodb?
   jobs <- job_read_rds(api, user)
