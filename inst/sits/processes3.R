@@ -132,11 +132,18 @@ save_result <- function(data, format, options = NULL) {
   job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
   host <- openeocraft::get_host(env$api, env$req)
 
-  for (i in seq_len(nrow(data))) {
-    # TODO: move files to result subfolder
-    path <- gsub("^.*/", "/result/", data$file_info[[i]]$path)
-    data$file_info[[i]]$path <- make_files_url(host, env$user, env$job$id, path)
+  result_dir <- file.path(job_dir, "result")
+  if (!dir.exists(result_dir)) {
+    dir.create(result_dir)
   }
-  saveRDS(data, file.path(job_dir, ""))
+
+  for (i in seq_len(nrow(data))) {
+    # TODO: test to see if this works
+    original_path <- data$file_info[[i]]$path
+    new_path <- file.path(result_dir, basename(original_path))
+    file.rename(original_path, new_path)
+    data$file_info[[i]]$path <- make_files_url(host, env$user, env$job$id, new_path)
+  }
+  saveRDS(data, file.path(result_dir, ""))
   return(TRUE)
 }
