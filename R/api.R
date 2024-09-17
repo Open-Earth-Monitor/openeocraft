@@ -228,12 +228,12 @@ api_jobs_list <- function(api, req) {
 }
 #' @rdname api_handling
 #' @export
-api_job_info <- function(api, req) {
+api_job_info <- function(api, req, job_id) {
   UseMethod("api_job_info", api)
 }
 #' @rdname api_handling
 #' @export
-api_job_create <- function(api, req) {
+api_job_create <- function(api, req, res) {
   UseMethod("api_job_create", api)
 }
 # TODO:

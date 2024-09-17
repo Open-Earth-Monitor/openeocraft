@@ -148,8 +148,7 @@ api_result.openeo_v1 <- function(api, req, res) {
 
   # TODO: Test to see if the results are being returned correctly
   job_dir <- job_get_dir(api, user, job_id)
-  result_dir <- file.path(job_dir, "result")
-  result_files <- list.files(result_dir, pattern = "^[^_]", full.names = TRUE)
+  result_files <- list.files(job_dir, pattern = "^[^_]", full.names = TRUE)
 
   if (length(result_files) == 1) {
     result <- structure(
@@ -160,7 +159,7 @@ api_result.openeo_v1 <- function(api, req, res) {
   }
 
   # result_files <- list.files(result_dir, full.names = TRUE)
-  tar_file <- file.path(result_dir, "_files.tar")
+  tar_file <- file.path(job_dir, "_files.tar")
 
   # TODO: remove directory structure from the tar file
   utils::tar(tar_file, result_files)
@@ -196,12 +195,12 @@ api_job_info.openeo_v1 <- function(api, req, job_id) {
   job
 }
 #' @export
-api_job_create <- function(api, req, res) {
+api_job_create.openeo_v1 <- function(api, req, res) {
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_info <- req$body
   # TODO: create job_check
-  job_info_check(job_info)
+  #job_info_check(job_info)
   job_id <- random_id(16L)
   job <- list(
     id = job_id,

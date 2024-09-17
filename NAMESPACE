@@ -2,6 +2,7 @@
 
 S3method(api_conformance,openeo_v1)
 S3method(api_credential,openeo_v1)
+S3method(api_job_create,openeo_v1)
 S3method(api_job_info,openeo_v1)
 S3method(api_jobs_list,openeo_v1)
 S3method(api_landing_page,openeo_v1)
