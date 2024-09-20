@@ -20,8 +20,8 @@ load_collection <- function(id,
     collection = collection,
     bands = bands,
     roi = spatial_extent,
-    start_date = spatial_extent[["t0"]],
-    end_date = spatial_extent[["t1"]]
+    start_date = temporal_extent[[1]],
+    end_date = temporal_extent[[2]]
   )
   # Save roi for later
   base::attr(data, "roi") <- spatial_extent
@@ -155,46 +155,46 @@ save_result <- function(data, format, options = NULL) {
   if (!base::is.null(base::attr(data, "roi"))) {
     roi <- base::attr(data, "roi")
   }
-  # Copy files
+  # Copy files result
   data <- sits::sits_cube_copy(
     cube = data,
     roi = roi,
+    multicores = 2L,
     output_dir = result_dir
   )
-  for (tile_id in base::seq_len(base::nrow(data))) {
-    # TODO: test to see if this works
-    data$file_info[[tile_id]]$path <- openeocraft::make_files_url(
+  # Create assets list
+  assets <- list()
+  for (i in base::seq_len(base::nrow(data))) {
+    # Change URLs to allow client access files
+    data$file_info[[i]]$path <- openeocraft::make_files_url(
       host = host,
       user = env$user,
       job_id = env$job$id,
-      file = base::basename(data$file_info[[tile_id]]$path)
+      file = base::basename(data$file_info[[i]]$path)
     )
+    # Transform sits_cube into STAC assets
+    tile_assets <- base::lapply(data$file_info[[i]]$path, \(path) {
+      list(
+        href = path,
+        # TODO: implement format_content_type() function
+        type = openeocraft::format_content_type(format),
+        roles = base::list("data")
+      )
+    })
+    base::names(tile_assets) <- base::paste0(
+      data$tile[[i]], "_",
+      data$file_info[[i]]$band, "_",
+      data$file_info[[i]]$start_date, "_",
+      data$file_info[[i]]$end_date
+    )
+    assets <- c(assets, tile_assets)
   }
-
-  # TODO implement generic function not relying on an specific data type
-  data2 <- tidyr::unnest(data, file_info, names_sep = "_")
-  tidyr::nest(data2, .by = c("source", "collection", "satellite", "sensor", "tile", "file_info_fid", "file_info_date"))
-  # TODO: implement asset tokens
-  assets <- base::lapply(assets_file, \(asset_file) {
-    asset_path <- base::file.path("/files/jobs", env$job$id, asset_file)
-    base::list(
-      href = data[["file_info_path"]],
-      # TODO: implement format_content_type() function
-      type = openeocraft::format_content_type(format),
-      roles = base::list("data")
-    )
-  })
-  # TODO: where to out assets? links? assets?
   collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
-  collection$assets <- results
+  collection$assets <- assets
   jsonlite::write_json(
     x = collection,
-    path = base::file.path(job_dir, "_collection.json"),
+    path = base::file.path(result_dir, "_collection.json"),
     auto_unbox = TRUE
   )
-
-
-
-  base::saveRDS(data, base::file.path(result_dir, "_data.rds"))
   return(TRUE)
 }
