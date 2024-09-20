@@ -147,8 +147,7 @@ api_result.openeo_v1 <- function(api, req, res) {
   job_sync(api, req, user, job_id)
 
   # TODO: Test to see if the results are being returned correctly
-  job_dir <- job_get_dir(api, user, job_id)
-  result_dir <- file.path(job_dir, "result")
+  result_dir <- job_get_dir(api, user, job_id)
   result_files <- list.files(result_dir, pattern = "^[^_]", full.names = TRUE)
 
   if (length(result_files) == 1) {
@@ -196,7 +195,7 @@ api_job_info.openeo_v1 <- function(api, req, job_id) {
   job
 }
 #' @export
-api_job_create <- function(api, req, res) {
+api_job_create.openeo_v1 <- function(api, req, res) {
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_info <- req$body

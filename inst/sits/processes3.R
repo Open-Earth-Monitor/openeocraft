@@ -8,6 +8,7 @@ load_collection <- function(id,
                             temporal_extent = NULL,
                             bands = NULL,
                             properties = NULL) {
+  base::browser()
   id <- base::strsplit(id, "/")[[1]]
   source <- id[[1]]
   collection <- id[[2]]
@@ -23,7 +24,7 @@ load_collection <- function(id,
     end_date = spatial_extent[["t1"]]
   )
   # Save roi for later
-  attr(data, "roi") <- spatial_extent
+  base::attr(data, "roi") <- spatial_extent
   data
 }
 
@@ -55,9 +56,15 @@ ml_predict <- function(data,
   job <- openeocraft::current_job()
   # Preparing parameters
   job_dir <- openeocraft::job_get_dir(api, user, job$id)
+  # Create result directory
+  result_dir <- base::file.path(job_dir, "temp")
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir)
+  }
+  # Get ROI from cube
   roi <- NULL
-  if (!is.null(attr(data, "roi"))) {
-    roi <- attr(data, "roi")
+  if (!base::is.null(base::attr(data, "roi"))) {
+    roi <- base::attr(data, "roi")
   }
   # Predict
   data <- sits::sits_classify(
@@ -66,14 +73,14 @@ ml_predict <- function(data,
     roi = roi,
     memsize = 2L,
     multicores = 2L,
-    output_dir = job_dir
+    output_dir = result_dir
   )
   # label the probability cube
   data <- sits::sits_label_classification(
     cube = data,
     memsize = 2L,
     multicores = 2L,
-    output_dir = job_dir
+    output_dir = result_dir
   )
   # data <- sits::sits_mosaic(
   #   cube = data,
@@ -91,16 +98,22 @@ cube_regularize <- function(data, resolution, period) {
   env <- openeocraft::current_env()
   # Preparing parameters
   job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Create result directory
+  result_dir <- base::file.path(job_dir, "temp")
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir)
+  }
+  # Get ROI from cube
   roi <- NULL
-  if (!is.null(attr(data, "roi"))) {
-    roi <- attr(data, "roi")
+  if (!base::is.null(base::attr(data, "roi"))) {
+    roi <- base::attr(data, "roi")
   }
   # Regularize
   data <- sits::sits_regularize(
     cube = data,
     period = period,
     res = resolution,
-    output_dir = job_dir,
+    output_dir = result_dir,
     roi = roi,
     multicores = 2L
   )
@@ -113,37 +126,75 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
   env <- openeocraft::current_env()
   # Preparing parameters
   job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Create result directory
+  result_dir <- base::file.path(job_dir, "temp")
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir)
+  }
   # Regularize
-  nir <- as.name(nir)
-  red <- as.name(red)
+  nir <- base::as.name(nir)
+  red <- base::as.name(red)
   data <- sits::sits_apply(
     data = data,
     NDVI = (nir - red) / (nir + red),
     memsize = 2L,
     multicores = 2L,
-    output_dir = job_dir
+    output_dir = result_dir
   )
   data
 }
 
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
+  base::browser()
   env <- openeocraft::current_env()
-  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
   host <- openeocraft::get_host(env$api, env$req)
-
-  result_dir <- file.path(job_dir, "result")
-  if (!dir.exists(result_dir)) {
-    dir.create(result_dir)
+  result_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Get ROI from cube
+  roi <- NULL
+  if (!base::is.null(base::attr(data, "roi"))) {
+    roi <- base::attr(data, "roi")
   }
-
-  for (i in seq_len(nrow(data))) {
+  # Copy files
+  data <- sits::sits_cube_copy(
+    cube = data,
+    roi = roi,
+    output_dir = result_dir
+  )
+  for (tile_id in base::seq_len(base::nrow(data))) {
     # TODO: test to see if this works
-    original_path <- data$file_info[[i]]$path
-    new_path <- file.path(result_dir, basename(original_path))
-    file.rename(original_path, new_path)
-    data$file_info[[i]]$path <- make_files_url(host, env$user, env$job$id, new_path)
+    data$file_info[[tile_id]]$path <- openeocraft::make_files_url(
+      host = host,
+      user = env$user,
+      job_id = env$job$id,
+      file = base::basename(data$file_info[[tile_id]]$path)
+    )
   }
-  saveRDS(data, file.path(result_dir, ""))
+
+  # TODO implement generic function not relying on an specific data type
+  data2 <- tidyr::unnest(data, file_info, names_sep = "_")
+  tidyr::nest(data2, .by = c("source", "collection", "satellite", "sensor", "tile", "file_info_fid", "file_info_date"))
+  # TODO: implement asset tokens
+  assets <- base::lapply(assets_file, \(asset_file) {
+    asset_path <- base::file.path("/files/jobs", env$job$id, asset_file)
+    base::list(
+      href = data[["file_info_path"]],
+      # TODO: implement format_content_type() function
+      type = openeocraft::format_content_type(format),
+      roles = base::list("data")
+    )
+  })
+  # TODO: where to out assets? links? assets?
+  collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+  collection$assets <- results
+  jsonlite::write_json(
+    x = collection,
+    path = base::file.path(job_dir, "_collection.json"),
+    auto_unbox = TRUE
+  )
+
+
+
+  base::saveRDS(data, base::file.path(result_dir, "_data.rds"))
   return(TRUE)
 }

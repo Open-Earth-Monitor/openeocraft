@@ -70,9 +70,9 @@ api_result(api, req, res)
 
 api_jobs_list(api, req)
 
-api_job_info(api, req)
+api_job_info(api, req, job_id)
 
-api_job_create(api, req)
+api_job_create(api, req, res)
 }
 \arguments{
 \item{api}{An object representing the API. This object is typically

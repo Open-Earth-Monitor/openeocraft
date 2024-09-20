@@ -363,7 +363,7 @@ job_empty_collection <- function(api, user, job) {
   collection
 }
 job_info_check <- function(job_info) {
-  if (!all(c("status", "title", "description") %in% names(job_info))) {
+  if (!all(c("title", "description", "process") %in% names(job_info))) {
     api_stop(400, "Invalid job data")
   }
 }
