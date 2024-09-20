@@ -133,12 +133,23 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
   # Regularize
   nir <- base::as.name(nir)
   red <- base::as.name(red)
-  data <- sits::sits_apply(
-    data = data,
-    NDVI = (nir - red) / (nir + red),
-    memsize = 2L,
-    multicores = 2L,
-    output_dir = result_dir
+  # data <- sits::sits_apply(
+  #   data = data,
+  #   NDVI = call("/", call("-", nir, red), call("+", nir, red)),
+  #   memsize = 2L,
+  #   multicores = 2L,
+  #   output_dir = result_dir
+  # )
+  data <- base::do.call(
+    sits::sits_apply,
+    args = list(
+      data = data,
+      NDVI = base::call("/", base::call("-", nir, red), base::call("+", nir, red)),
+      memsize = 2L,
+      multicores = 2L,
+      output_dir = result_dir
+    ),
+    envir = base::baseenv()
   )
   data
 }

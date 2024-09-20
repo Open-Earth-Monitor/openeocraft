@@ -192,7 +192,6 @@ job_sync <- function(api, req, user, job_id) {
 }
 job_async <- function(api, req, user, job_id) {
   job_dir <- job_get_dir(api, user, job_id)
-  browser()
   proc <- callr::r_bg(
     func = function(api, req, user, job_id) {
       openeocraft::job_sync(api, req, user, job_id)
@@ -217,10 +216,15 @@ job_start <- function(api, req, res, user, job_id) {
   if (!(job_id %in% names(jobs))) {
     api_stop(404, "Job not found")
   }
+  # TODO: get process from job_id
   procs <- procs_read_rds(api)
   if (!is.null(procs[[job_id]])) {
-    return(list(id = job_id, message = "Job already started", code = 200))
+    # TODO: check if there is another message to finished state!
+    if (procs[[job_id]]$is_alive() || jobs[[job_id]]$status == "finished") {
+      return(list(id = job_id, message = "Job already started", code = 200))
+    }
   }
+
   # TODO: implement queue: check for maximum number of workers
   # procs_alive(procs) -> manage process not alive
   # define in the api how many workers to start?
