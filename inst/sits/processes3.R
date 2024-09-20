@@ -8,7 +8,6 @@ load_collection <- function(id,
                             temporal_extent = NULL,
                             bands = NULL,
                             properties = NULL) {
-  base::browser()
   id <- base::strsplit(id, "/")[[1]]
   source <- id[[1]]
   collection <- id[[2]]
@@ -146,7 +145,6 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
 
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
-  base::browser()
   env <- openeocraft::current_env()
   host <- openeocraft::get_host(env$api, env$req)
   result_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
@@ -166,11 +164,12 @@ save_result <- function(data, format, options = NULL) {
   assets <- list()
   for (i in base::seq_len(base::nrow(data))) {
     # Change URLs to allow client access files
+    filename <- base::basename(data$file_info[[i]]$path)
     data$file_info[[i]]$path <- openeocraft::make_files_url(
       host = host,
       user = env$user,
       job_id = env$job$id,
-      file = base::basename(data$file_info[[i]]$path)
+      file = filename
     )
     # Transform sits_cube into STAC assets
     tile_assets <- base::lapply(data$file_info[[i]]$path, \(path) {
@@ -181,12 +180,7 @@ save_result <- function(data, format, options = NULL) {
         roles = base::list("data")
       )
     })
-    base::names(tile_assets) <- base::paste0(
-      data$tile[[i]], "_",
-      data$file_info[[i]]$band, "_",
-      data$file_info[[i]]$start_date, "_",
-      data$file_info[[i]]$end_date
-    )
+    base::names(tile_assets) <- filename
     assets <- c(assets, tile_assets)
   }
   collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)

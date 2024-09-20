@@ -165,6 +165,7 @@ job_create <- function(api, req, res, user, job) {
   res$status <- 201
   list()
 }
+#' @export
 job_sync <- function(api, req, user, job_id) {
   job <- job_upd_status(api, user, job_id, "running")
   run_pgraph(api, req, user, job, job$process)
@@ -190,13 +191,17 @@ job_sync <- function(api, req, user, job_id) {
   })
 }
 job_async <- function(api, req, user, job_id) {
-  # proc <- callr::r_bg(
-  #   func = job_sync,
-  #   args = list(api, user, job_id)
-  # )
-  # proc
-  job_sync(api, req, user, job_id)
-  return(0)
+  job_dir <- job_get_dir(api, user, job_id)
+  browser()
+  proc <- callr::r_bg(
+    func = function(api, req, user, job_id) {
+      openeocraft::job_sync(api, req, user, job_id)
+    },
+    args = list(api, req, user, job_id),
+    stdout = file.path(job_dir, "_stdout.log"),
+    stderr = file.path(job_dir, "_stderr.log")
+  )
+  proc
 }
 #' Start a job asynchronously
 #'

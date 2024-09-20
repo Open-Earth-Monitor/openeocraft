@@ -65,6 +65,7 @@ ext_content_type <- function(filename) {
 }
 #' @export
 format_content_type <- function(format) {
+  format <- tolower(format)
   switch(format,
          gtiff = "image/tiff",
          netcdf = "application/octet-stream",

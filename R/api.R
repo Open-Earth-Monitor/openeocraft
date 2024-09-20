@@ -129,7 +129,7 @@ create_api <- function(api_class,
       backend_version = backend_version,
       api_version = api_version,
       stac_api = stac_api,
-      work_dir = work_dir,
+      work_dir = path.expand(work_dir),
       conforms_to = unique(as.list(conforms_to)),
       production = production, ...
     ),
