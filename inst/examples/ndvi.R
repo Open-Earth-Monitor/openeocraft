@@ -3,8 +3,8 @@ library(openeo)
 con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
-x <- p$save_result(
-  p$cube_regularize(
+aws_s2_reg <- p$export_to_workspace(
+  data = p$cube_regularize(
     data = p$load_collection(
       id = "AWS/SENTINEL-2-L2A",
       spatial_extent = list(
@@ -26,23 +26,124 @@ x <- p$save_result(
     period = "P1M",
     resolution = 320
   ),
+  name = "s2_cube",
+  folder = "/test"
+)
+
+job <- create_job(
+  graph = aws_s2_reg,
+  title = "Sentinel-2 AWS regularized",
+  description = paste(
+    "period: 2018-07-01/2018-10-01",
+    "bands: B02, B04, B08",
+    sep = "\n"
+  )
+)
+job <- start_job(job)
+res <- list_results(job) # empty
+
+# rf_model <- sits_train(samples_modis_ndvi, ml_method = sits_rfor)
+#
+# data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
+# cube <- sits_cube(
+#   source = "BDC",
+#   collection = "MOD13Q1-6",
+#   data_dir = data_dir
+# )
+#
+# # classify a data cube
+# probs_cube <- sits_classify(
+#   data = cube,
+#   ml_model = rf_model,
+#   output_dir = tempdir(),
+#   version = "ex_classify"
+# )
+#
+# # label the probability cube
+# label_cube <- sits_label_classification(
+#   probs_cube,
+#   output_dir = tempdir(),
+#   version = "ex_classify"
+# )
+
+
+# p$ml_cross_validate_class_random_forest(
+#   training_set = samples_modis_ndvi,
+#   target = "label",
+#   num_trees = 50,
+#   folds = 5
+# )
+#
+# p$ml_validate_class_random_forest(
+#   training_set = samples_modis_ndvi,
+#   target = "label",
+#   num_trees = 50,
+#   train_test_split = 0.8
+# )
+
+
+# rf_model <- p$export_to_workspace(
+#   data = p$ml_fit_class_random_forest(
+#     training_set = samples_modis_ndvi,
+#     target = "label",
+#     num_trees = 50,
+#     random_state = 42
+#   ),
+#   name = "rf_model",
+#   folder = "/models"
+# )
+#
+# job <- create_job(
+#   graph = rf_model,
+#   title = "Sentinel-2 AWS regularized",
+#   description = paste(
+#     "period: 2018-07-01/2018-10-01",
+#     "bands: B02, B04, B08",
+#     sep = "\n"
+#   )
+# )
+# job <- start_job(job)
+
+
+samples_modis_ndvi
+
+rf_model <- p$ml_fit_class_random_forest(
+  training_set = samples_modis_ndvi,
+  target = "label",
+  num_trees = 50,
+  random_state = 42
+)
+
+# rf_model <- p$import_from_workspace(
+#   name = "rf_model",
+#   folder = "/models"
+# )
+
+cube <- p$import_from_workspace(
+  name = "s2_cube",
+  folder = "/test"
+)
+
+probs_cube <- p$ml_predict(
+  data = cube,
+  model = rf_model
+)
+
+label_cube <- p$ml_label_class(
+  data = probs_cube
+)
+
+lbl_job <- p$save_result(
+  data = label_cube,
   format = "GTiff"
 )
 
-
-job <- create_job(x, "This is my first job", "Computing NDVI using openeocraft")
-job2 <- start_job(job)
-res <- list_results(job2)
+lbl_job <- create_job(
+  graph = lbl_job,
+  title = "This is my first job",
+  description = "Computing NDVI using openeocraft"
+)
+lbl_job <- start_job(lbl_job)
+res <- list_results(lbl_job)
 res$assets
-download_results(job2, "~/Downloads/")
-
-compute_result(x, output_file = "~/Downloads/ndvi.tar")
-
-# library(terra)
-# result <- terra::rast("~/ndvi.tif")
-# plot(result)
-
-library(stars)
-result <- readRDS("~/ndvi.rds")
-result
-plot(result)
+download_results(lbl_job, "~/Downloads/")
