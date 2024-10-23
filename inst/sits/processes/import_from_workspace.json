@@ -1,0 +1,42 @@
+{
+    "id": "import_from_workspace",
+    "summary": "Import a datacube or model from a workspace",
+    "description": "Imports a datacube or machine learning model from the specified folder within the workspace. The `name` identifies the item to be imported.",
+    "categories": [
+        "cube",
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "name",
+            "description": "The name of the datacube or model to be imported from the workspace.",
+            "schema": {
+                "type": "string"
+            }
+        },
+        {
+            "name": "folder",
+            "description": "The folder path within the workspace from which the datacube or model should be imported.",
+            "schema": {
+                "type": "string"
+            }
+        }
+    ],
+    "returns": {
+        "description": "The imported datacube or model object.",
+        "schema": {
+            "type": "object",
+            "oneOf": [
+                {
+                    "type": "object",
+                    "subtype": "datacube"
+                },
+                {
+                    "type": "object",
+                    "subtype": "ml-model"
+                }
+            ]
+        }
+    }
+}
