@@ -24,19 +24,9 @@
         }
     ],
     "returns": {
-        "description": "The imported datacube or model object.",
+        "description": "The imported object.",
         "schema": {
-            "type": "object",
-            "oneOf": [
-                {
-                    "type": "object",
-                    "subtype": "datacube"
-                },
-                {
-                    "type": "object",
-                    "subtype": "ml-model"
-                }
-            ]
+            "type": "object"
         }
     }
 }

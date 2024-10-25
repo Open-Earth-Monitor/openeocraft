@@ -1,5 +1,5 @@
 {
-    "id": "export_workspace",
+    "id": "export_to_workspace",
     "summary": "Export data to a cloud user workspace",
     "description": "Exports the given processing results made available through a STAC resource (e.g., a STAC Collection) to the given user workspace. The STAC resource itself is exported with all STAC resources and assets underneath.",
     "categories": [
@@ -17,7 +17,7 @@
             }
         },
         {
-            "name": "workspace",
+            "name": "name",
             "description": "The identifier of the workspace to export to.",
             "schema": {
                 "type": "string",
@@ -26,23 +26,22 @@
             }
         },
         {
-            "name": "merge",
+            "name": "folder",
             "description": "Provides a cloud-specific path identifier to a STAC resource to merge the given STAC resource into. If not provided, the STAC resource is kept separate from any other STAC resources in the workspace.",
             "schema": {
                 "type": [
-                    "string",
-                    "null"
+                    "string"
                 ]
             },
             "optional": true,
-            "default": null
+            "default": "/"
         }
     ],
     "returns": {
-        "description": "Returns the potentially updated STAC resource.",
+        "description": "Always returns `true` as in case of an error an exception is thrown which aborts the execution of the process.",
         "schema": {
-            "type": "object",
-            "subtype": "stac"
+            "type": "boolean",
+            "const": true
         }
     }
 }

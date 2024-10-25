@@ -50,11 +50,9 @@ ml_predict <- function(data,
                        model,
                        dimensions = NULL) {
   # Get current context of evaluation environment
-  api <- openeocraft::current_api()
-  user <- openeocraft::current_user()
-  job <- openeocraft::current_job()
+  env <- openeocraft::current_env()
   # Preparing parameters
-  job_dir <- openeocraft::job_get_dir(api, user, job$id)
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
   # Create result directory
   result_dir <- base::file.path(job_dir, "temp")
   if (!base::dir.exists(result_dir)) {
@@ -74,13 +72,13 @@ ml_predict <- function(data,
     multicores = 2L,
     output_dir = result_dir
   )
-  # label the probability cube
-  data <- sits::sits_label_classification(
-    cube = data,
-    memsize = 2L,
-    multicores = 2L,
-    output_dir = result_dir
-  )
+  # # label the probability cube
+  # data <- sits::sits_label_classification(
+  #   cube = data,
+  #   memsize = 2L,
+  #   multicores = 2L,
+  #   output_dir = result_dir
+  # )
   # data <- sits::sits_mosaic(
   #   cube = data,
   #   crs = "EPSG:3857",
@@ -202,4 +200,67 @@ save_result <- function(data, format, options = NULL) {
     auto_unbox = TRUE
   )
   return(TRUE)
+}
+
+#* @openeo-process
+export_to_workspace <- function(data, name, folder) {
+  # Get current context of evaluation environment
+  env <- openeocraft::current_env()
+  # Get workspace directory
+  workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
+  workspace_dir <- base::file.path(workspace_dir, "root")
+  # Create result directory
+  result_dir <- base::file.path(workspace_dir, folder)
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir, recursive = TRUE)
+  }
+  if (!base::dir.exists(result_dir)) {
+    openeocraft::api_stop(500, "Could not create the folder")
+  }
+  # Save RDS object representation
+  file <- base::file.path(result_dir, base::paste0(name, ".rds"))
+  base::saveRDS(data, file)
+  TRUE
+}
+
+#* @openeo-process
+import_from_workspace <- function(name, folder) {
+  # Get current context of evaluation environment
+  env <- openeocraft::current_env()
+  # Get workspace directory
+  workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
+  workspace_dir <- base::file.path(workspace_dir, "root")
+  # Get result directory
+  result_dir <- base::file.path(workspace_dir, folder)
+  if (!base::dir.exists(result_dir)) {
+    openeocraft::api_stop(500, "Folder does not exist")
+  }
+  # Get RDS object representation
+  file <- base::file.path(result_dir, base::paste0(name, ".rds"))
+  if (!base::file.exists(file)) {
+    openeocraft::api_stop(500, "File does not exist")
+  }
+  data <- base::readRDS(file)
+  data
+}
+
+#* @openeo-process
+ml_label_class <- function(data) {
+  # Get current context of evaluation environment
+  env <- openeocraft::current_env()
+  # Preparing parameters
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Create result directory
+  result_dir <- base::file.path(job_dir, "temp")
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir)
+  }
+  # label the probability cube
+  data <- sits::sits_label_classification(
+    cube = data,
+    memsize = 2L,
+    multicores = 2L,
+    output_dir = result_dir
+  )
+  data
 }

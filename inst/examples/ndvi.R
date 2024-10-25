@@ -3,7 +3,7 @@ library(openeo)
 con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
-aws_s2_reg <- p$export_workspace(
+aws_s2_reg <- p$export_to_workspace(
   data = p$cube_regularize(
     data = p$load_collection(
       id = "AWS/SENTINEL-2-L2A",
