@@ -3,7 +3,7 @@ library(openeo)
 con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
-aws_s2_reg <- p$export_to_workspace(
+aws_s2_reg <- p$export_workspace(
   data = p$cube_regularize(
     data = p$load_collection(
       id = "AWS/SENTINEL-2-L2A",
@@ -67,6 +67,7 @@ res <- list_results(job) # empty
 # )
 
 
+
 # p$ml_cross_validate_class_random_forest(
 #   training_set = samples_modis_ndvi,
 #   target = "label",
@@ -75,6 +76,14 @@ res <- list_results(job) # empty
 # )
 #
 # p$ml_validate_class_random_forest(
+#   training_set = samples_modis_ndvi,
+#   target = "label",
+#   num_trees = 50,
+#   train_test_split = 0.8
+# )
+
+# brian p : modified to
+# p$ml_validate(
 #   training_set = samples_modis_ndvi,
 #   target = "label",
 #   num_trees = 50,
