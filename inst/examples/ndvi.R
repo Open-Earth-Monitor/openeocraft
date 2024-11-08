@@ -3,7 +3,8 @@ library(openeo)
 con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
-aws_s2_reg <- p$export_to_workspace(
+# Just run it once
+aws_s2_reg <- p$export_cube(
   data = p$cube_regularize(
     data = p$load_collection(
       id = "AWS/SENTINEL-2-L2A",
@@ -40,7 +41,24 @@ job <- create_job(
   )
 )
 job <- start_job(job)
-res <- list_results(job) # empty
+res <- list_results(job)
+
+aws_s2_reg <- p$export_cube(
+  p$import_cube(
+    name = "s2_cube",
+    folder = "test"
+  ),
+  name = "s2_cube",
+  folder = "test2"
+)
+
+cube <- p$export_cube(
+  p$load_result(
+    job_id = "04df1eb88d43e6fe5ec355f7e17352c6"
+  ),
+  name = "s2_cube",
+  folder = "recovered"
+)
 
 # rf_model <- sits_train(samples_modis_ndvi, ml_method = sits_rfor)
 #
@@ -128,9 +146,12 @@ rf_model <- p$ml_fit_class_random_forest(
 #   folder = "/models"
 # )
 
-cube <- p$import_from_workspace(
+cube <- p$export_cube(
+  p$load_result(
+    job_id = "04df1eb88d43e6fe5ec355f7e17352c6"
+  ),
   name = "s2_cube",
-  folder = "/test"
+  folder = "recovered"
 )
 
 probs_cube <- p$ml_predict(

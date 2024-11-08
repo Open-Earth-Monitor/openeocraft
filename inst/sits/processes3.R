@@ -157,6 +157,14 @@ save_result <- function(data, format, options = NULL) {
   env <- openeocraft::current_env()
   host <- openeocraft::get_host(env$api, env$req)
   result_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  obj_dir <- base::file.path(result_dir, ".obj")
+  # Create result directory
+  if (!base::dir.exists(obj_dir)) {
+    base::dir.create(obj_dir, recursive = TRUE)
+  }
+  if (!base::dir.exists(obj_dir)) {
+    openeocraft::api_stop(500, "Could not create the folder")
+  }
   # Get ROI from cube
   roi <- NULL
   if (!base::is.null(base::attr(data, "roi"))) {
@@ -169,6 +177,9 @@ save_result <- function(data, format, options = NULL) {
     multicores = 2L,
     output_dir = result_dir
   )
+  # Save RDS object representation
+  file <- base::file.path(result_dir, ".obj", "cube.rds")
+  base::saveRDS(data, file)
   # Create assets list
   assets <- list()
   for (i in base::seq_len(base::nrow(data))) {
@@ -203,28 +214,99 @@ save_result <- function(data, format, options = NULL) {
 }
 
 #* @openeo-process
-export_to_workspace <- function(data, name, folder) {
+load_result <- function(job_id) {
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
+  # Get result directory
+  result_dir <- openeocraft::job_get_dir(env$api, env$user, job_id)
+  obj_dir <- base::file.path(result_dir, ".obj")
+  if (!base::dir.exists(obj_dir)) {
+    openeocraft::api_stop(500, "Object's representation folder doesn't exist")
+  }
+  # Get RDS object representation
+  file <- base::file.path(result_dir, ".obj", "cube.rds")
+  if (!base::file.exists(file)) {
+    openeocraft::api_stop(500, "Object's representation file doesn't exist")
+  }
+  data <- base::readRDS(file)
+  data
+}
+
+#* @openeo-process
+export_cube <- function(data, name, folder) {
+  env <- openeocraft::current_env()
+  host <- openeocraft::get_host(env$api, env$req)
   # Get workspace directory
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
   workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
   workspace_dir <- base::file.path(workspace_dir, "root")
+  result_dir <- base::file.path(workspace_dir, folder)
+  obj_dir <- base::file.path(result_dir, ".obj")
   # Create result directory
   result_dir <- base::file.path(workspace_dir, folder)
-  if (!base::dir.exists(result_dir)) {
-    base::dir.create(result_dir, recursive = TRUE)
+  if (!base::dir.exists(obj_dir)) {
+    base::dir.create(obj_dir, recursive = TRUE)
   }
-  if (!base::dir.exists(result_dir)) {
+  if (!base::dir.exists(obj_dir)) {
     openeocraft::api_stop(500, "Could not create the folder")
   }
+  # Get ROI from cube
+  roi <- NULL
+  if (!base::is.null(base::attr(data, "roi"))) {
+    roi <- base::attr(data, "roi")
+  }
+  # Copy files result
+  data <- sits::sits_cube_copy(
+    cube = data,
+    roi = roi,
+    multicores = 2L,
+    output_dir = result_dir
+  )
   # Save RDS object representation
-  file <- base::file.path(result_dir, base::paste0(name, ".rds"))
+  file <- base::file.path(result_dir, ".obj", base::paste0(name, ".rds"))
   base::saveRDS(data, file)
+  # Create assets list
+  assets <- list()
+  for (i in base::seq_len(base::nrow(data))) {
+    # Change URLs to allow client access files
+    filename <- base::basename(data$file_info[[i]]$path)
+    data$file_info[[i]]$path <- openeocraft::make_workspace_files_url(
+      host = host,
+      user = env$user,
+      folder = folder,
+      file = filename
+    )
+    # Transform sits_cube into STAC assets
+    tile_assets <- base::lapply(data$file_info[[i]]$path, \(path) {
+      list(
+        href = path,
+        # TODO: implement format_content_type() function
+        type = openeocraft::format_content_type("gtiff"),
+        roles = base::list("data")
+      )
+    })
+    base::names(tile_assets) <- filename
+    assets <- c(assets, tile_assets)
+  }
+  collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+  collection$assets <- assets
+  # Save collection in workspace directory
+  jsonlite::write_json(
+    x = collection,
+    path = base::file.path(result_dir, "_collection.json"),
+    auto_unbox = TRUE
+  )
+  # Save also in job directory
+  jsonlite::write_json(
+    x = collection,
+    path = base::file.path(job_dir, "_collection.json"),
+    auto_unbox = TRUE
+  )
   TRUE
 }
 
 #* @openeo-process
-import_from_workspace <- function(name, folder) {
+import_cube <- function(name, folder) {
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
   # Get workspace directory
@@ -236,7 +318,7 @@ import_from_workspace <- function(name, folder) {
     openeocraft::api_stop(500, "Folder does not exist")
   }
   # Get RDS object representation
-  file <- base::file.path(result_dir, base::paste0(name, ".rds"))
+  file <- base::file.path(result_dir, ".obj", base::paste0(name, ".rds"))
   if (!base::file.exists(file)) {
     openeocraft::api_stop(500, "File does not exist")
   }

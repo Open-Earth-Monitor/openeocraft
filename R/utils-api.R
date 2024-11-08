@@ -364,8 +364,14 @@ file_formats <- function() {
 }
 
 #' @export
-make_files_url <- function(host, user, job_id, file) {
+make_job_files_url <- function(host, user, job_id, file) {
   token <- base64enc::base64encode(charToRaw(user))
   file <- file.path("/files/jobs", job_id, file)
+  paste0(host, file, "?token=", token)
+}
+#' @export
+make_workspace_files_url <- function(host, user, folder, file) {
+  token <- base64enc::base64encode(charToRaw(user))
+  file <- file.path("/files/root", folder, file)
   paste0(host, file, "?token=", token)
 }
