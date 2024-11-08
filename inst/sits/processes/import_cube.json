@@ -1,0 +1,36 @@
+{
+    "id": "import_cube",
+    "summary": "Import a data cube from the user workspace",
+    "description": "Loads a data cube from the user's workspace by specifying its name and folder location. This function allows previously saved data cubes to be accessed for further analysis or processing.",
+    "categories": [
+        "cube"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "name",
+            "description": "The name of the data cube to import from the workspace.",
+            "schema": {
+                "type": "string",
+                "minLength": 1
+            }
+        },
+        {
+            "name": "folder",
+            "description": "The path to the folder in the user workspace where the data cube is stored.",
+            "optional": true,
+            "schema": {
+                "type": "string",
+                "default": "/",
+                "minLength": 1
+            }
+        }
+    ],
+    "returns": {
+        "description": "The imported data cube object, containing multi-dimensional data such as spatial, spectral, or temporal information.",
+        "schema": {
+            "type": "object",
+            "subtype": "datacube"
+        }
+    }
+}
