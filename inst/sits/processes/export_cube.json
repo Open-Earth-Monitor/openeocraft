@@ -1,0 +1,43 @@
+{
+    "id": "export_cube",
+    "summary": "Export a data cube to the user workspace",
+    "description": "Saves a specified data cube to the user's workspace with a given name in the specified folder. This allows the data cube to be stored and accessed later.",
+    "categories": [
+        "cube"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "data",
+            "description": "The data cube to export, containing multi-dimensional data such as spatial, spectral, or temporal information.",
+            "schema": {
+                "type": "object",
+                "subtype": "datacube"
+            }
+        },
+        {
+            "name": "name",
+            "description": "The name to save the data cube under in the workspace. Must be a unique name within the specified folder.",
+            "schema": {
+                "type": "string",
+                "minLength": 1
+            }
+        },
+        {
+            "name": "folder",
+            "description": "The path to the folder in the user workspace where the data cube will be saved.",
+            "optional": true,
+            "schema": {
+                "type": "string",
+                "default": "/",
+                "minLength": 1
+            }
+        }
+    ],
+    "returns": {
+        "description": "A success message or confirmation of the data cube's location within the user workspace.",
+        "schema": {
+            "type": "string"
+        }
+    }
+}

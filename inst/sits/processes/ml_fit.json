@@ -1,28 +1,23 @@
 {
     "id": "ml_fit",
-    "summary": "Fit a machine learning model",
-    "description": "Executes the fit of a specified machine learning model based on training data. The model type and corresponding parameters can be provided to configure the fitting process.",
+    "summary": "Fit a machine learning model to training data",
+    "description": "Trains a specified model using the provided training data and target dimension, applying it to recognize patterns in the data.",
     "categories": [
         "machine learning"
     ],
     "experimental": true,
     "parameters": [
         {
-            "name": "model_name",
-            "description": "The name of the machine learning model to fit. This could be any algorithm such as `random_forest`, `logistic_regression`, `svm`, etc.",
+            "name": "model",
+            "description": "A pre-defined model to be trained, such as one created by `ml_class_random_forest`.",
             "schema": {
-                "type": "string",
-                "enum": [
-                    "random_forest",
-                    "support_vector_machine",
-                    "xgboost",
-                    "temp_cnn"
-                ]
+                "type": "object",
+                "subtype": "ml-model"
             }
         },
         {
             "name": "training_set",
-            "description": "The training set for the machine learning model, provided as a vector data cube. This set contains both the independent variables and dependent variable that the model will analyze to learn patterns and relationships.",
+            "description": "Training data for the model, provided as a vector data cube that includes both independent variables and the target variable.",
             "schema": [
                 {
                     "type": "object",
@@ -52,36 +47,14 @@
         },
         {
             "name": "target",
-            "description": "The dimension in the training set that represents the dependent variable for classification or regression tasks.",
+            "description": "Name of the dimension in the training set that represents the dependent variable.",
             "schema": {
                 "type": "string"
-            }
-        },
-        {
-            "name": "model_parameters",
-            "description": "A dictionary of parameters specific to the selected model. These parameters will vary depending on the model chosen. For example, `max_depth`, `num_trees` for Random Forest, or `penalty`, `C` for Logistic Regression.",
-            "schema": {
-                "type": "object",
-                "additionalProperties": {
-                    "type": ["string", "number", "boolean", "null"]
-                }
-            }
-        },
-        {
-            "name": "random_state",
-            "description": "A randomization seed to use for model training. This ensures reproducibility of results when a seed is provided. If not given or `null`, no seed is used and results may differ on subsequent use.",
-            "optional": true,
-            "default": null,
-            "schema": {
-                "type": [
-                    "integer",
-                    "null"
-                ]
             }
         }
     ],
     "returns": {
-        "description": "A model object that can be saved with ``save_ml_model()`` and restored with ``load_ml_model()``.",
+        "description": "A trained model object that can be saved or used for making predictions.",
         "schema": {
             "type": "object",
             "subtype": "ml-model"
