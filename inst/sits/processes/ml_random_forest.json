@@ -1,0 +1,60 @@
+{
+    "id": "ml_random_forest",
+    "summary": "Initialize a Random Forest model",
+    "description": "Creates and configures a Random Forest model. Parameters such as the number of trees and maximum depth can be specified.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "num_trees",
+            "description": "The number of trees in the Random Forest.",
+            "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 100
+            }
+        },
+        {
+            "name": "max_depth",
+            "description": "The maximum depth of each tree in the Random Forest. If `null`, nodes expand until all leaves are pure or contain fewer than min_samples_split samples.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        },
+        {
+            "name": "random_state",
+            "description": "Seed for the random number generator. If `null`, no seed is used, and results may vary.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        },
+        {
+            "name": "classification",
+            "description": "Specifies whether the Random Forest model is for classification. Defaults to `true`.",
+            "optional": true,
+            "default": true,
+            "schema": {
+                "type": "boolean"
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained Random Forest model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    }
+}
