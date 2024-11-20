@@ -29,8 +29,8 @@ load_collection <- function(id,
 }
 
 #* @openeo-process
-ml_random_forest <- function(num_trees,
-                             max_depth,
+ml_random_forest <- function(num_trees = 100,
+                             max_depth = NULL,
                              random_state = NULL,
                              classification = TRUE) {
   base::print("ml_random_forest()")
@@ -52,6 +52,7 @@ ml_fit <- function(model, training_set, target="label") {
   if (!base::is.null(random_state)) {
     base::set.seed(random_state)
   }
+  training_set <- jsonlite::unserializeJSON(training_set)
   base::saveRDS(training_set, "~/predictors.rds")
   sits::sits_train(training_set, model)
 }
@@ -221,26 +222,89 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
   if (!base::dir.exists(result_dir)) {
     base::dir.create(result_dir)
   }
-  # Regularize
-  nir <- base::as.name(nir)
-  red <- base::as.name(red)
-  # data <- sits::sits_apply(
-  #   data = data,
-  #   NDVI = call("/", call("-", nir, red), call("+", nir, red)),
-  #   memsize = 2L,
-  #   multicores = 2L,
-  #   output_dir = result_dir
-  # )
-  data <- base::do.call(
-    sits::sits_apply,
-    args = list(
-      data = data,
-      NDVI = base::call("/", base::call("-", nir, red), base::call("+", nir, red)),
-      memsize = 2L,
-      multicores = 2L,
-      output_dir = result_dir
-    ),
-    envir = base::baseenv()
+  #
+  # sits apply re-implementation
+  sits:::sits_apply.raster_cube
+  .sits_apply <- function(data, out_band, expr) {
+    window_size = 1L
+    memsize = 2L
+    multicores = 2L
+    normalized = TRUE
+    progress = FALSE
+    sits:::.check_is_raster_cube(data)
+    sits:::.check_that(sits:::.cube_is_regular(data))
+    sits:::.check_int_parameter(window_size, min = 1, is_odd = TRUE)
+    sits:::.check_lgl_parameter(normalized)
+    sits:::.check_int_parameter(memsize, min = 1, max = 16384)
+    sits:::.check_int_parameter(multicores, min = 1, max = 2048)
+    sits:::.check_output_dir(result_dir)
+    bands <- sits:::.cube_bands(data)
+    # re-implementation of sits:::.apply_capture_expression()
+    expr <- list(expr)
+    out_band <- base::toupper(base::gsub("_", "-", out_band, fixed = TRUE))
+    #
+    base::names(expr) <- out_band
+    if (out_band %in% bands) {
+      if (sits:::.check_messages()) {
+        warning(sits:::.conf("messages", "sits_apply_out_band"), call. = FALSE)
+      }
+      return(data)
+    }
+    in_bands <- sits:::.apply_input_bands(
+      cube = data,
+      bands = bands,
+      expr = expr
+    )
+    overlap <- base::ceiling(window_size / 2) - 1
+    block <- sits:::.raster_file_blocksize(
+      sits:::.raster_open_rast(sits:::.tile_path(data))
+    )
+    job_memsize <- sits:::.jobs_memsize(
+      job_size = sits:::.block_size(block = block, overlap = overlap),
+      npaths = base::length(in_bands) + 1,
+      nbytes = 8,
+      proc_bloat = sits:::.conf("processing_bloat_cpu")
+    )
+    block <- sits:::.jobs_optimal_block(
+      job_memsize = job_memsize,
+      block = block,
+      image_size = sits:::.tile_size(sits:::.tile(data)),
+      memsize = memsize,
+      multicores = multicores
+    )
+    block <- sits:::.block_regulate_size(block)
+    multicores <- sits:::.jobs_max_multicores(
+      job_memsize = job_memsize,
+      memsize = memsize,
+      multicores = multicores
+    )
+    sits:::.parallel_start(workers = multicores)
+    base::on.exit(sits:::.parallel_stop(), add = TRUE)
+    features_cube <- sits:::.cube_split_features(data)
+    features_band <- sits:::.jobs_map_parallel_dfr(features_cube, function(feature) {
+      output_feature <- sits:::.apply_feature(
+        feature = feature,
+        block = block,
+        expr = expr,
+        window_size = window_size,
+        out_band = out_band,
+        in_bands = in_bands,
+        overlap = overlap,
+        normalized = normalized,
+        output_dir = result_dir
+      )
+      return(output_feature)
+    }, progress = progress)
+    sits:::.cube_merge_tiles(
+      dplyr::bind_rows(list(features_cube, features_band))
+    )
+  }
+  #
+  data <- .sits_apply(
+    data = data,
+    out_band = target_band,
+    expr = base::bquote((.(base::as.name(nir)) - .(base::as.name(red))) /
+                          (.(base::as.name(nir)) + .(base::as.name(red))))
   )
   data
 }

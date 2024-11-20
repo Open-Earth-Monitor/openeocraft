@@ -14,7 +14,7 @@ run_job <- function(pg, title = "title", description = "description") {
 }
 
 # Just run it once
-aws_s2_reg <- p$export_cube(
+s2_reg <- p$export_cube(
   data = p$cube_regularize(
     data = p$load_collection(
       id = "AWS/SENTINEL-2-L2A",
@@ -25,11 +25,10 @@ aws_s2_reg <- p$export_cube(
         south = 47.2
       ),
       temporal_extent = list(
-        "2018-07-01",
-        "2018-10-01"
+        "2018-09-01",
+        "2019-08-31"
       ),
       bands = list(
-        "B02",
         "B04",
         "B08"
       )
@@ -38,22 +37,45 @@ aws_s2_reg <- p$export_cube(
     resolution = 320
   ),
   name = "s2_cube",
-  folder = "/test"
+  folder = "test3"
 )
 
-job <- create_job(
-  graph = aws_s2_reg,
-  title = "Sentinel-2 AWS regularized",
-  description = paste(
-    "period: 2018-07-01/2018-10-01",
-    "bands: B02, B04, B08",
-    sep = "\n"
-  )
-)
-job <- start_job(job)
-res <- list_results(job)
+job <- run_job(s2_reg)
 
-# ---- example 2:  ----
+job
+
+describe_job(job)
+
+list_results(job)
+
+# ---- example 3  ----
+
+library(openeo)
+
+con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
+p <- processes()
+
+s2_reg <- p$export_cube(
+  data = p$ndvi(
+    data = p$import_cube(
+      name = "s2_cube",
+      folder = "test3"
+    ),
+    nir = "B08",
+    red = "B04",
+    target_band = "NDVI"
+  ),
+  name = "s2_cube",
+  folder = "test3"
+)
+
+job <- run_job(s2_reg)
+
+job
+
+describe_job(job)
+
+# ---- example 3  ----
 
 library(openeo)
 
@@ -89,7 +111,6 @@ openeo::compute_result(cube, output_file = "i_dont_know", format = "GTiff")
 library(openeo)
 library(sits)
 
-
 con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
@@ -100,7 +121,7 @@ rf_model <- p$export_model(
       max_depth = NULL,
       random_state = 42
     ),
-    training_set = sits::samples_modis_ndvi
+    training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi)
   ),
   name = "rf_model",
   folder = "recovered"
@@ -110,30 +131,34 @@ job <- run_job(rf_model)
 
 job
 
-aws_s2_reg <- p$import_cube(
-  name = "s2_cube",
-  folder = "test"
-)
+# ---- example 4 ----
 
+library(openeo)
+library(sits)
 
+con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
+p <- processes()
 
-# rf_model <- p$import_from_workspace(
-#   name = "rf_model",
-#   folder = "/models"
-# )
-
-cube <- p$export_cube(
-  p$load_result(
-    job_id = "04df1eb88d43e6fe5ec355f7e17352c6"
+probs_cube <- p$save_result(
+  data = p$ml_predict(
+    data = p$import_cube(
+      name = "s2_cube",
+      folder = "test"
+    ),
+    model = p$import_model(
+      name = "rf_model",
+      folder = "recovered"
+    )
   ),
-  name = "s2_cube",
-  folder = "recovered"
+  format = "gtiff"
 )
 
-probs_cube <- p$ml_predict(
-  data = cube,
-  model = rf_model
-)
+job <- run_job(probs_cube)
+
+job
+
+
+
 
 label_cube <- p$ml_label_class(
   data = probs_cube
