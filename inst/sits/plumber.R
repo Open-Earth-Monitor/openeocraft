@@ -8,11 +8,12 @@
 # Load libraries
 library(openeocraft)
 library(plumber)
-#library(promises)
-#library(future)
+library(promises)
+library(coro)
 
 # Set number of processes to serve the API
-#future::plan(future::multisession(workers = 2))
+future::plan("multisession")
+async <- function(x) x
 
 # Create an STAC server API object
 stac_api <- openstac::create_stac(
@@ -57,155 +58,155 @@ function(req, res) {
 
 #* HTTP Basic authentication
 #* @get /credentials/basic
-function(req, res) {
+async(function(req, res) {
   api_credential(api, req, res)
-}
+})
 
 #* Lists api processes
 #* @serializer unboxedJSON
 #* @get /conformance
-function(req, res) {
+async(function(req, res) {
   print("conformance")
   api_conformance(api, req)
-}
+})
 
 #* Basic metadata for all datasets
 #* @serializer unboxedJSON
 #* @get /collections
-function(req, res) {
+async(function(req, res) {
   print("collections")
   openstac::api_collections(api$stac_api, req)
-}
+})
 
 #* Full metadata for a specific dataset
 #* @param collection_id Collection identifier
 #* @serializer unboxedJSON
 #* @get /collections/<collection_id>
-function(req, res, collection_id) {
+async(function(req, res, collection_id) {
   print("collections/<col_id>")
   doc <- openstac::api_collection(api$stac_api, collection_id, req)
   doc <- delete_link(doc, rel = "item")
   doc
-}
+})
 
 #* Lists api processes
 #* @serializer unboxedJSON
 #* @get /processes
-function(req, res) {
+async(function(req, res) {
   print("processes")
   doc <- api_processes(api, req, check_auth = FALSE)
   doc
-}
+})
 
 #* Process and download data synchronously
 #* @post /result
-function(req, res) {
+async(function(req, res) {
   print("result")
   doc <- api_result(api, req, res)
   doc
-}
+})
 
 #* List all batch jobs
 #* @serializer unboxedJSON
 #* @get /jobs
-function(req, res) {
+async(function(req, res) {
   print("GET /jobs")
   doc <- api_jobs_list(api, req)
   doc
-}
+})
 
 #* Get batch job metadata
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
-function(req, res, job_id) {
+async(function(req, res, job_id) {
   print("GET /jobs/<jobid>")
   doc <- api_job_info(api, req, job_id)
   doc
-}
+})
 
 #* Create a new batch job
 #* @serializer unboxedJSON
 #* @post /jobs
-function(req, res) {
+async(function(req, res) {
   print("POST /jobs")
   api_job_create(api, req, res)
-}
+})
 
 #* Delete a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @delete /jobs/<job_id:str>
-function(req, res, job_id) {
+async(function(req, res, job_id) {
   print("DELETE /jobs/<jobid>")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_delete(api, user, job_id)
-}
+})
 
 #* Update a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @patch /jobs/<job_id:str>
-function(req, res, job_id) {
+async(function(req, res, job_id) {
   print("PATCH /jobs/<jobid>")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job <- req$body
   job_update(api, user, job_id, job)
-}
+})
 
 #* Start a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @post /jobs/<job_id:str>/results
-function(req, res, job_id) {
+async(function(req, res, job_id) {
   print("POST /jobs/<jobid>/results")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_start(api, req, res, user, job_id)
-}
+})
 
 #* Start a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>/results
-function(req, res, job_id) {
+async(function(req, res, job_id) {
   print("GET /jobs/<jobid>/results")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_get_results(api, user, job_id)
-}
+})
 
 #* Get an estimate for a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/estimate
-function(req, res, job_id) {
+async(function(req, res, job_id) {
   print("GET /jobs/<jobid>/estimate")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_estimate(api, user, job_id)
-}
+})
 
 #* Logs for a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/logs
-function(req, res, job_id, offset, level, limit) {
+async(function(req, res, job_id, offset, level, limit) {
   print("GET /jobs/<jobid>/logs")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_logs(api, user, job_id, offset, level, limit)
-}
+})
 
 #* List supported file formats
 #* @serializer unboxedJSON
 #* @get /file_formats
-function(req, res) {
+async(function(req, res) {
   print("file_formats")
   file_formats()
-}
+})
 
 # NOTE:
 #  this must be placed after endpoints to be shown in
@@ -228,20 +229,20 @@ function(pr) {
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /
-function(req, res) {
+async(function(req, res) {
   api_landing_page(api, req)
-}
+})
 
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
-function(req, res) {
+async(function(req, res) {
   api_wellknown(api, req)
-}
+})
 
 #* Workspace job files handling
 #* @get /files/jobs/<job_id>/<asset>
-function(req, res, job_id, asset) {
+async(function(req, res, job_id, asset) {
   print("GET /files/jobs/<jobid>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
@@ -256,11 +257,11 @@ function(req, res, job_id, asset) {
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
   res
-}
+})
 
 #* Workspace root files handling
 #* @get /files/root/<folder>/<asset>
-function(req, res, folder, asset) {
+async(function(req, res, folder, asset) {
   print("GET /files/root/<folder>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
@@ -275,4 +276,4 @@ function(req, res, folder, asset) {
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
   res
-}
+})

@@ -351,7 +351,7 @@ job_get_results <- function(api, user, job_id) {
     api_stop(404, "No results found")
   }
   if (job$status != "finished") {
-    job_empty_collection(api, user, job)
+    return(job_empty_collection(api, user, job))
   }
   jsonlite::read_json(file.path(results_path, "_collection.json"))
 }

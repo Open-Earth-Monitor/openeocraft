@@ -46,7 +46,7 @@
             ]
         },
         {
-            "name": "label",
+            "name": "target",
             "description": "The name of the dependent variable (label) in the dataset.",
             "schema": {
                 "type": "string"

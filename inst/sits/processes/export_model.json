@@ -1,0 +1,43 @@
+{
+    "id": "export_model",
+    "summary": "Export a model to the user workspace",
+    "description": "Saves a specified model to the user's workspace with a given name in the specified folder. This allows the model to be stored and accessed later.",
+    "categories": [
+        "cube"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "model",
+            "description": "The model to export",
+            "schema": {
+                "type": "object",
+                "subtype": "datacube"
+            }
+        },
+        {
+            "name": "name",
+            "description": "The name to save the model under in the workspace. Must be a unique name within the specified folder.",
+            "schema": {
+                "type": "string",
+                "minLength": 1
+            }
+        },
+        {
+            "name": "folder",
+            "description": "The path to the folder in the user workspace where the model will be saved.",
+            "optional": true,
+            "schema": {
+                "type": "string",
+                "default": "/",
+                "minLength": 1
+            }
+        }
+    ],
+    "returns": {
+        "description": "A success message or confirmation of the model's location within the user workspace.",
+        "schema": {
+            "type": "string"
+        }
+    }
+}

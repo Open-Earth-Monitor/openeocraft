@@ -1,6 +1,6 @@
 {
-    "id": "load_job",
-    "summary": "Load a job by its identifier",
+    "id": "load_result",
+    "summary": "Load a job result by its identifier",
     "description": "Retrieves and loads the outputs of a completed job or task based on the provided unique identifier.",
     "categories": [
         "cubes",
