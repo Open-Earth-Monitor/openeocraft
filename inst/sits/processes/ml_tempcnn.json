@@ -1,0 +1,186 @@
+{
+    "id": "ml_tempcnn",
+    "summary": "Initialize a Temporal Convolutional Neural Network (TempCNN) model",
+    "description": "Creates and configures a Temporal Convolutional Neural Network (TempCNN) model for time-series data. Parameters such as the convolutional architecture, dense layers, optimizer, and learning rate schedule can be specified.",
+    "categories": [
+        "machine learning",
+        "time-series"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "cnn_layers",
+            "description": "A list specifying the number of filters in each convolutional layer. Defaults to [64, 64, 64].",
+            "optional": true,
+            "default": [64, 64, 64],
+            "schema": {
+                "type": "array",
+                "items": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "minItems": 1
+            }
+        },
+        {
+            "name": "cnn_kernels",
+            "description": "A list specifying the kernel size for each convolutional layer. Must match the number of CNN layers. Defaults to [5, 5, 5].",
+            "optional": true,
+            "default": [5, 5, 5],
+            "schema": {
+                "type": "array",
+                "items": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "minItems": 1
+            }
+        },
+        {
+            "name": "cnn_dropout_rates",
+            "description": "A list of dropout rates for each convolutional layer. Must match the number of CNN layers. Defaults to [0.2, 0.2, 0.2].",
+            "optional": true,
+            "default": [0.2, 0.2, 0.2],
+            "schema": {
+                "type": "array",
+                "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                },
+                "minItems": 1
+            }
+        },
+        {
+            "name": "dense_layer_nodes",
+            "description": "The number of nodes in the dense layer following the convolutional layers. Defaults to 256.",
+            "optional": true,
+            "default": 256,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "dense_layer_dropout_rate",
+            "description": "The dropout rate for the dense layer. Defaults to 0.5.",
+            "optional": true,
+            "default": 0.5,
+            "schema": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+            }
+        },
+        {
+            "name": "optimizer",
+            "description": "The optimizer to use for training. Defaults to 'adam'. Supported values include 'adam', 'adabound', 'adabelief', 'madagrad', 'nadam', 'qhadam', 'radam', 'swats', and 'yogi'.",
+            "optional": true,
+            "default": "adam",
+            "schema": {
+                "type": "string",
+                "enum": [
+                    "adam",
+                    "adabound",
+                    "adabelief",
+                    "madagrad",
+                    "nadam",
+                    "qhadam",
+                    "radam",
+                    "swats",
+                    "yogi"
+                ]
+            }
+        },
+        {
+            "name": "learning_rate",
+            "description": "The initial learning rate for training. Defaults to 0.0005.",
+            "optional": true,
+            "default": 0.0005,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "epsilon",
+            "description": "The epsilon value for numerical stability in optimizers. Defaults to 1e-8.",
+            "optional": true,
+            "default": 0.00000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "weight_decay",
+            "description": "The weight decay (L2 penalty) value for regularization. Defaults to 1e-6.",
+            "optional": true,
+            "default": 0.000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "lr_decay_epochs",
+            "description": "The number of epochs after which the learning rate is decayed. Defaults to 1.",
+            "optional": true,
+            "default": 1,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "lr_decay_rate",
+            "description": "The rate at which the learning rate is decayed after the specified number of epochs. Defaults to 0.95.",
+            "optional": true,
+            "default": 0.95,
+            "schema": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+            }
+        },
+        {
+            "name": "epochs",
+            "description": "The number of training epochs. Defaults to 150.",
+            "optional": true,
+            "default": 150,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "batch_size",
+            "description": "The size of batches for training. Defaults to 64.",
+            "optional": true,
+            "default": 64,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "random_state",
+            "description": "Seed for the random number generator. If `null`, no seed is used, and results may vary.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained TempCNN model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    }
+}

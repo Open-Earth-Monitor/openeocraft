@@ -30,7 +30,7 @@ load_collection <- function(id,
 
 #* @openeo-process
 ml_random_forest <- function(num_trees = 100,
-                             max_depth = NULL,
+                             max_variables ="sqrt",
                              random_state = NULL,
                              classification = TRUE) {
   base::print("ml_random_forest()")
@@ -38,8 +38,8 @@ ml_random_forest <- function(num_trees = 100,
     stop("Regression is not supported", call. = FALSE)
   }
   model <- sits::sits_rfor(
-    num_trees = num_trees,
-    mtry = max_depth
+    num_trees = num_trees
+    # mtry = max_variables , TO DO, handle max_variables param, use default for now
   )
   base::attr(model, "random_state") <- random_state
   model
