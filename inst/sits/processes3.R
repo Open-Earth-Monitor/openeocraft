@@ -381,11 +381,11 @@ ml_predict_probability <- function(data, model) {
 }
 
 #* @openeo-process
-ml_class_smooth <- function(data,
-                            window_size,
-                            neighborhood_fraction,
-                            smoothness) {
-  base::print("ml_class_smooth()")
+ml_smooth_class <- function(data,
+                            window_size = 7L,
+                            neighborhood_fraction = 0.5,
+                            smoothness = 10L) {
+  base::print("ml_smooth_class()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
   # Preparing parameters

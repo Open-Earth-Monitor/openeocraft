@@ -3,9 +3,7 @@
     "summary": "Initialize a Temporal Attention Encoder (TAE) model",
     "description": "Creates and configures a Temporal Attention Encoder (TAE) model. TAE leverages temporal attention mechanisms to process and analyze sequential data effectively. Parameters such as optimizer, learning rate, and decay schedules can be customized.",
     "categories": [
-        "machine learning",
-        "time-series",
-        "attention"
+        "machine learning"
     ],
     "experimental": true,
     "parameters": [
