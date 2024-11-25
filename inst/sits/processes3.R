@@ -200,6 +200,53 @@ ml_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
 }
 
 #* @openeo-process
+ml_tae <- function(epochs = 150,
+                   batch_size = 64,
+                   optimizer = "adam",
+                   learning_rate = 0.001,
+                   epsilon = 0.00000001,
+                   weight_decay = 0.000001,
+                   lr_decay_epochs = 1,
+                   lr_decay_rate = 0.95,
+                   random_state = NULL) {
+  base::print("ml_tae()")
+
+  if (!is.null(random_state)) {
+    set.seed(random_state)
+  }
+
+  optimizer_fn <- switch(
+    optimizer,
+    "adam" = torch::optim_adamw,
+    "adabound" = torch::optim_adabound,
+    "adabelief" = torch::optim_adabelief,
+    "madagrad" = torch::optim_madagrad,
+    "nadam" = torch::optim_nadam,
+    "qhadam" = torch::optim_qhadam,
+    "radam" = torch::optim_radam,
+    "swats" = torch::optim_swats,
+    "yogi" = torch::optim_yogi,
+    stop("Unsupported optimizer. Currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.", call. = FALSE)
+  )
+
+  opt_hparams <- list(lr = learning_rate, eps = epsilon, weight_decay = weight_decay)
+
+  model <- sits::sits_tae(
+    epochs = epochs,
+    batch_size = batch_size,
+    optimizer = optimizer_fn,
+    opt_hparams = opt_hparams,
+    lr_decay_epochs = lr_decay_epochs,
+    lr_decay_rate = lr_decay_rate
+  )
+
+  base::attr(model, "random_state") <- random_state
+
+  model
+}
+
+
+#* @openeo-process
 ml_lighttae <- function(epochs = 150,
                         batch_size = 128,
                         optimizer = "adam",
