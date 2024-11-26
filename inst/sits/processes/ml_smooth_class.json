@@ -1,0 +1,57 @@
+{
+    "id": "ml_smooth_class",
+    "summary": "Apply a smoothing operation to a classified datacube.",
+    "description": "This process applies a smoothing operation to a classified datacube using a sliding window approach. The window size, neighborhood fraction, and smoothness factor determine the extent and behavior of the smoothing.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "data",
+            "description": "The classified datacube to smooth.",
+            "schema": {
+                "type": "object",
+                "subtype": "datacube"
+            }
+        },
+        {
+            "name": "window_size",
+            "description": "The size of the sliding window, defined in pixels. This determines the extent of the neighborhood considered during smoothing. Defaults to 7.",
+            "optional": true,
+            "default": 7,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "neighborhood_fraction",
+            "description": "The minimum fraction of similar neighboring pixels required to apply smoothing within the window. Values range from 0 (no similarity required) to 1 (all neighbors must be similar). Defaults to 0.5.",
+            "optional": true,
+            "default": 0.5,
+            "schema": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+            }
+        },
+        {
+            "name": "smoothness",
+            "description": "A factor that controls the intensity of the smoothing effect. Higher values result in stronger smoothing. Defaults to 10.",
+            "optional": true,
+            "default": 10,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        }
+    ],
+    "returns": {
+        "description": "A smoothed classified datacube.",
+        "schema": {
+            "type": "object",
+            "subtype": "datacube"
+        }
+    }
+}

@@ -1,0 +1,128 @@
+{
+    "id": "ml_lighttae",
+    "summary": "Initialize a Lightweight Temporal Self-Attention Encoder (LTAE) model",
+    "description": "Creates and configures a Lightweight Temporal Self-Attention Encoder (LTAE) model. LTAE is designed for efficient modeling of temporal dependencies in sequential data using self-attention mechanisms. Parameters such as optimizer, learning rate, and learning rate decay schedule can be specified.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "epochs",
+            "description": "The number of training epochs. Defaults to 150.",
+            "optional": true,
+            "default": 150,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "batch_size",
+            "description": "The size of batches for training. Defaults to 128.",
+            "optional": true,
+            "default": 128,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "optimizer",
+            "description": "The optimizer to use for training. Defaults to 'adam'. Supported values include 'adam', 'adabound', 'adabelief', 'madagrad', 'nadam', 'qhadam', 'radam', 'swats', and 'yogi'.",
+            "optional": true,
+            "default": "adam",
+            "schema": {
+                "type": "string",
+                "enum": [
+                    "adam",
+                    "adabound",
+                    "adabelief",
+                    "madagrad",
+                    "nadam",
+                    "qhadam",
+                    "radam",
+                    "swats",
+                    "yogi"
+                ]
+            }
+        },
+        {
+            "name": "learning_rate",
+            "description": "The initial learning rate for training. Defaults to 0.0005.",
+            "optional": true,
+            "default": 0.0005,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "epsilon",
+            "description": "The epsilon value for numerical stability in optimizers. Defaults to 1e-8.",
+            "optional": true,
+            "default": 0.00000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "weight_decay",
+            "description": "The weight decay (L2 penalty) value for regularization. Defaults to 0.0007.",
+            "optional": true,
+            "default": 0.0007,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "lr_decay_epochs",
+            "description": "The number of epochs after which the learning rate is decayed. Defaults to 50.",
+            "optional": true,
+            "default": 50,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "lr_decay_rate",
+            "description": "The rate at which the learning rate is decayed after the specified number of epochs. Defaults to 1.",
+            "optional": true,
+            "default": 1,
+            "schema": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+            }
+        },
+        {
+            "name": "random_state",
+            "description": "A randomization seed to use for the random sampling in training. If not given or `null`, no seed is used and results may differ on subsequent use.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained Lightweight Temporal Self-Attention Encoder (LTAE) model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    },
+    "links": [
+        {
+            "description": "Research paper describing the Lightweight Temporal Self-Attention Encoder (LTAE).",
+            "citation": "V. S. F. Garnot and L. Landrieu, “Lightweight Temporal Self-attention for Classifying Satellite Images Time Series,” in Advanced Analytics and Learning on Temporal Data, 2020, pp. 171–181, doi: 10.1007/978-3-030-65742-0_12.",
+            "url": "https://doi.org/10.1007/978-3-030-65742-0_12"
+        }
+    ]
+}

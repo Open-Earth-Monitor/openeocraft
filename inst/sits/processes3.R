@@ -30,7 +30,7 @@ load_collection <- function(id,
 
 #* @openeo-process
 ml_random_forest <- function(num_trees = 100,
-                             max_depth = NULL,
+                             max_variables ="sqrt",
                              random_state = NULL,
                              classification = TRUE) {
   base::print("ml_random_forest()")
@@ -38,12 +38,261 @@ ml_random_forest <- function(num_trees = 100,
     stop("Regression is not supported", call. = FALSE)
   }
   model <- sits::sits_rfor(
-    num_trees = num_trees,
-    mtry = max_depth
+    num_trees = num_trees
+    # mtry = max_variables , TO DO, handle max_variables param, use default for now
   )
   base::attr(model, "random_state") <- random_state
   model
 }
+
+#* @openeo-process
+ml_svm <- function(kernel = "radial",
+                   degree = 3,
+                   coef0 = 0,
+                   cost = 10,
+                   tolerance = 0.001,
+                   epsilon = 0.1,
+                   cachesize = 1000,
+                   random_state = NULL,
+                   classification = TRUE) {
+  base::print("ml_svm()")
+  formula = sits::sits_formula_linear()
+
+  if (!classification) {
+    stop("Regression is not supported", call. = FALSE)
+  }
+
+  if (!is.null(random_state)) {
+    set.seed(random_state)
+  }
+
+  model <- sits::sits_svm(
+    formula = formula,
+    cachesize = cachesize,
+    kernel = kernel,
+    degree = degree,
+    coef0 = coef0,
+    cost = cost,
+    tolerance = tolerance,
+    epsilon = epsilon
+  )
+
+  base::attr(model, "random_state") <- random_state
+
+  model
+}
+
+
+#* @openeo-process
+ml_mlp <- function(layers = base::list(512, 512, 512),
+                    dropout_rates = base::list(0.2, 0.3, 0.4),
+                    optimizer = "adam",
+                    learning_rate = 0.001,
+                    epsilon = 0.00000001,
+                    weight_decay = 0.000001,
+                    epochs = 100,
+                    batch_size = 64,
+                    random_state = NULL,
+                    classification = TRUE) {
+    base::print("ml_mlp()")
+
+    if (!classification) {
+      stop("Regression is not supported", call. = FALSE)
+    }
+
+    if (!is.null(random_state)) {
+      set.seed(random_state)
+    }
+
+    optimizer_fn <- switch(
+      optimizer,
+      "adam" = torch::optim_adamw,
+      "adabound" = torch::optim_adabound,
+      "adabelief" = torch::optim_adabelief,
+      "madagrad" = torch::optim_madagrad,
+      "nadam" = torch::optim_nadam,
+      "qhadam" = torch::optim_qhadam,
+      "radam" = torch::optim_radam,
+      "swats" = torch::optim_swats,
+      "yogi" = torch::optim_yogi,
+      stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
+    )
+
+    opt_hparams <- base::list(lr = learning_rate, eps = epsilon, weight_decay = weight_decay)
+
+    layers <- base::unlist(layers)
+    dropout_rates <- base::unlist(dropout_rates)
+
+
+    model <- sits::sits_mlp(
+      layers = layers,
+      dropout_rates = dropout_rates,
+      optimizer = optimizer_fn,
+      opt_hparams = opt_hparams,
+      epochs = epochs,
+      batch_size = batch_size
+    )
+
+    base::attr(model, "random_state") <- random_state
+
+    model
+}
+
+#* @openeo-process
+ml_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
+                       cnn_kernels = base::list(5, 5, 5),
+                       cnn_dropout_rates = base::list(0.2, 0.2, 0.2),
+                       dense_layer_nodes = 256,
+                       dense_layer_dropout_rate = 0.5,
+                       optimizer = "adam",
+                       learning_rate = 0.0005,
+                       epsilon = 0.00000001,
+                       weight_decay = 0.000001,
+                       lr_decay_epochs = 1,
+                       lr_decay_rate = 0.95,
+                       epochs = 150,
+                       batch_size = 64,
+                       random_state = NULL) {
+  base::print("ml_tempcnn()")
+
+
+  if (!is.null(random_state)) {
+    set.seed(random_state)
+  }
+
+  optimizer_fn <- switch(
+    optimizer,
+    "adam" = torch::optim_adamw,
+    "adabound" = torch::optim_adabound,
+    "adabelief" = torch::optim_adabelief,
+    "madagrad" = torch::optim_madagrad,
+    "nadam" = torch::optim_nadam,
+    "qhadam" = torch::optim_qhadam,
+    "radam" = torch::optim_radam,
+    "swats" = torch::optim_swats,
+    "yogi" = torch::optim_yogi,
+    stop("Unsupported optimizer. Currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.", call. = FALSE)
+  )
+
+  opt_hparams <- base::list(lr = learning_rate, eps = epsilon, weight_decay = weight_decay)
+
+  cnn_layers <- base::unlist(cnn_layers)
+  cnn_kernels <- base::unlist(cnn_kernels)
+  cnn_dropout_rates <- base::unlist(cnn_dropout_rates)
+
+  model <- sits::sits_tempcnn(
+    cnn_layers = cnn_layers,
+    cnn_kernels = cnn_kernels,
+    cnn_dropout_rates = cnn_dropout_rates,
+    dense_layer_nodes = dense_layer_nodes,
+    dense_layer_dropout_rate = dense_layer_dropout_rate,
+    optimizer = optimizer_fn,
+    opt_hparams = opt_hparams,
+    lr_decay_epochs = lr_decay_epochs,
+    lr_decay_rate = lr_decay_rate,
+    epochs = epochs,
+    batch_size = batch_size
+  )
+
+  base::attr(model, "random_state") <- random_state
+
+  model
+}
+
+#* @openeo-process
+ml_tae <- function(epochs = 150,
+                   batch_size = 64,
+                   optimizer = "adam",
+                   learning_rate = 0.001,
+                   epsilon = 0.00000001,
+                   weight_decay = 0.000001,
+                   lr_decay_epochs = 1,
+                   lr_decay_rate = 0.95,
+                   random_state = NULL) {
+  base::print("ml_tae()")
+
+  if (!is.null(random_state)) {
+    set.seed(random_state)
+  }
+
+  optimizer_fn <- switch(
+    optimizer,
+    "adam" = torch::optim_adamw,
+    "adabound" = torch::optim_adabound,
+    "adabelief" = torch::optim_adabelief,
+    "madagrad" = torch::optim_madagrad,
+    "nadam" = torch::optim_nadam,
+    "qhadam" = torch::optim_qhadam,
+    "radam" = torch::optim_radam,
+    "swats" = torch::optim_swats,
+    "yogi" = torch::optim_yogi,
+    stop("Unsupported optimizer. Currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.", call. = FALSE)
+  )
+
+  opt_hparams <- list(lr = learning_rate, eps = epsilon, weight_decay = weight_decay)
+
+  model <- sits::sits_tae(
+    epochs = epochs,
+    batch_size = batch_size,
+    optimizer = optimizer_fn,
+    opt_hparams = opt_hparams,
+    lr_decay_epochs = lr_decay_epochs,
+    lr_decay_rate = lr_decay_rate
+  )
+
+  base::attr(model, "random_state") <- random_state
+
+  model
+}
+
+
+#* @openeo-process
+ml_lighttae <- function(epochs = 150,
+                        batch_size = 128,
+                        optimizer = "adam",
+                        learning_rate = 0.0005,
+                        epsilon = 0.00000001,
+                        weight_decay = 0.0007,
+                        lr_decay_epochs = 50,
+                        lr_decay_rate = 1,
+                        random_state = NULL) {
+  base::print("ml_lighttae()")
+
+  if (!is.null(random_state)) {
+    set.seed(random_state)
+  }
+
+  optimizer_fn <- switch(
+    optimizer,
+    "adam" = torch::optim_adamw,
+    "adabound" = torch::optim_adabound,
+    "adabelief" = torch::optim_adabelief,
+    "madagrad" = torch::optim_madagrad,
+    "nadam" = torch::optim_nadam,
+    "qhadam" = torch::optim_qhadam,
+    "radam" = torch::optim_radam,
+    "swats" = torch::optim_swats,
+    "yogi" = torch::optim_yogi,
+    stop("Unsupported optimizer. Currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.", call. = FALSE)
+  )
+
+  opt_hparams <- list(lr = learning_rate, eps = epsilon, weight_decay = weight_decay)
+
+  model <- sits::sits_lighttae(
+    epochs = epochs,
+    batch_size = batch_size,
+    optimizer = optimizer_fn,
+    opt_hparams = opt_hparams,
+    lr_decay_epochs = lr_decay_epochs,
+    lr_decay_rate = lr_decay_rate
+  )
+
+  base::attr(model, "random_state") <- random_state
+
+  model
+}
+
+
 
 #* @openeo-process
 ml_fit <- function(model, training_set, target="label") {
@@ -132,11 +381,11 @@ ml_predict_probability <- function(data, model) {
 }
 
 #* @openeo-process
-ml_class_smooth <- function(data,
-                            window_size,
-                            neighborhood_fraction,
-                            smoothness) {
-  base::print("ml_class_smooth()")
+ml_smooth_class <- function(data,
+                            window_size = 7L,
+                            neighborhood_fraction = 0.5,
+                            smoothness = 10L) {
+  base::print("ml_smooth_class()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
   # Preparing parameters
