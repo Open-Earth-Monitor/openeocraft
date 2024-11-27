@@ -1,7 +1,7 @@
 {
-    "id": "ml_tae",
-    "summary": "Initialize a Temporal Attention Encoder (TAE) model",
-    "description": "Creates and configures a Temporal Attention Encoder (TAE) model. TAE leverages temporal attention mechanisms to process and analyze sequential data effectively. Parameters such as optimizer, learning rate, and decay schedules can be customized.",
+    "id": "mlm_class_tae",
+    "summary": "Initialize a Temporal Attention Encoder (TAE) classification model",
+    "description": "Creates and configures a Temporal Attention Encoder (TAE) classification model. TAE leverages temporal attention mechanisms to process and analyze sequential data effectively. Parameters such as optimizer, learning rate, and decay schedules can be customized.",
     "categories": [
         "machine learning"
     ],
@@ -100,7 +100,7 @@
         }
     ],
     "returns": {
-        "description": "An untrained Temporal Attention Encoder (TAE) model instance.",
+        "description": "An untrained Temporal Attention Encoder (TAE) classification model instance.",
         "schema": {
             "type": "object",
             "subtype": "ml-model"
@@ -108,9 +108,10 @@
     },
     "links": [
         {
-            "description": "Research paper describing the Temporal Attention Encoder (TAE) and its application in satellite image time series classification.",
-            "citation": "V. Garnot, L. Landrieu, S. Giordano, and N. Chehata, “Satellite Image Time Series Classification With Pixel-Set Encoders and Temporal Self-Attention,” in 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 12322–12331, doi: 10.1109/CVPR42600.2020.01234.",
-            "url": "https://doi.org/10.1109/CVPR42600.2020.01234"
+            "href": "https://doi.org/10.1109/CVPR42600.2020.01234",
+            "title": "V. Garnot, L. Landrieu, S. Giordano, and N. Chehata (2020), Satellite Image Time Series Classification With Pixel-Set Encoders and Temporal Self-Attention",
+            "type": "text/html",
+            "rel": "about"
         }
     ]
 }

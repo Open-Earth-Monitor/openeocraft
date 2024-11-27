@@ -1,7 +1,7 @@
 {
-    "id": "ml_svm",
-    "summary": "Initialize an SVM model",
-    "description": "Creates and configures a Support Vector Machine (SVM) model. Parameters such as kernel type, cost, and tolerance can be specified.",
+    "id": "mlm_class_svm",
+    "summary": "Initialize an SVM classification model",
+    "description": "Creates and configures a Support Vector Machine (SVM) classification model. Parameters such as kernel type, cost, and tolerance can be specified.",
     "categories": [
         "machine learning"
     ],
@@ -87,19 +87,10 @@
                     "null"
                 ]
             }
-        },
-        {
-            "name": "classification",
-            "description": "Specifies whether the SVM model is for classification. Defaults to `true`.",
-            "optional": true,
-            "default": true,
-            "schema": {
-                "type": "boolean"
-            }
         }
     ],
     "returns": {
-        "description": "An untrained SVM model instance.",
+        "description": "An untrained SVM classification model instance.",
         "schema": {
             "type": "object",
             "subtype": "ml-model"
