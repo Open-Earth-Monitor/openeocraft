@@ -424,7 +424,7 @@ ml_predict_probability <- function(data, model) {
 
 #* @openeo-process
 ml_uncertainty_class <- function(data,
-                            method = "margin") {
+                            approach = "margin") {
   base::print("ml_uncertainty_class ()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
@@ -438,7 +438,7 @@ ml_uncertainty_class <- function(data,
   # label the probability cube
   data <- sits::sits_uncertainty(
     cube = data,
-    type = method,
+    type = approach,
     memsize = 2L,
     multicores = 2L,
     output_dir = result_dir

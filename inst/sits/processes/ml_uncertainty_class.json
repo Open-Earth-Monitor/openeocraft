@@ -16,8 +16,8 @@
             }
         },
         {
-            "name": "method",
-            "description": "The method to compute uncertainty. Different methods capture various aspects of uncertainty:\n\n- `entropy`: Measures the overall disorder of the probability distribution.\n- `least`: The complement of the maximum predicted probability, reflecting the degree of ambiguity in classification.\n- `margin`: The difference between the top two predicted probabilities, where a smaller margin indicates higher uncertainty.\n- `ratio`: The ratio of the top two predicted probabilities, where a ratio close to 1 indicates high uncertainty.",
+            "name": "approach",
+            "description": "The approach to compute uncertainty. Different approaches capture various aspects of uncertainty:\n\n- `entropy`: Measures the overall disorder of the probability distribution.\n- `least`: The complement of the maximum predicted probability, reflecting the degree of ambiguity in classification.\n- `margin`: The difference between the top two predicted probabilities, where a smaller margin indicates higher uncertainty.\n- `ratio`: The ratio of the top two predicted probabilities, where a ratio close to 1 indicates high uncertainty.",
             "optional": true,
             "default": "margin",
             "schema": {
