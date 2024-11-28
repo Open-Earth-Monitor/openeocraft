@@ -421,6 +421,31 @@ ml_predict_probability <- function(data, model) {
   data
 }
 
+
+#* @openeo-process
+ml_uncertainty_class <- function(data,
+                            method = "margin") {
+  base::print("ml_uncertainty_class ()")
+  # Get current context of evaluation environment
+  env <- openeocraft::current_env()
+  # Preparing parameters
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Create result directory
+  result_dir <- base::file.path(job_dir, "temp")
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir)
+  }
+  # label the probability cube
+  data <- sits::sits_uncertainty(
+    cube = data,
+    type = method,
+    memsize = 2L,
+    multicores = 2L,
+    output_dir = result_dir
+  )
+  data
+}
+
 #* @openeo-process
 ml_smooth_class <- function(data,
                             window_size = 7L,
