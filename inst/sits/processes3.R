@@ -99,6 +99,32 @@ mlm_class_svm <- function(kernel = "radial",
   )
 }
 
+#* @openeo-process
+mlm_class_xgboost <- function(learning_rate = 0.15,
+                              min_split_loss = 1,
+                              max_depth = 5,
+                              nfold = 5,
+                              early_stopping_rounds = 20,
+                              random_state = NULL) {
+  base::print("mlm_class_xgboost()")
+  model <- list(
+    train = function(training_set) {
+      model <- sits::sits_xgboost(
+        learning_rate = learning_rate,
+        min_split_loss = min_split_loss,
+        max_depth = max_depth,
+        nfold = nfold,
+        early_stopping_rounds = early_stopping_rounds
+      )
+      if (!base::is.null(random_state)) {
+        base::set.seed(random_state)
+      }
+      sits::sits_train(training_set, model)
+    }
+  )
+
+}
+
 
 #* @openeo-process
 mlm_class_mlp <- function(layers = base::list(512, 512, 512),
