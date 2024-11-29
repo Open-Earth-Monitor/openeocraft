@@ -29,14 +29,11 @@ load_collection <- function(id,
 }
 
 #* @openeo-process
-ml_random_forest <- function(num_trees = 100,
+mlm_class_random_forest <- function(num_trees = 100,
                              max_variables = "sqrt",
-                             random_state = NULL,
-                             classification = TRUE) {
-  base::print("ml_random_forest()")
-  if (!classification) {
-    stop("Regression is not supported", call. = FALSE)
-  }
+                             random_state = NULL) {
+  base::print("mlm_class_random_forest()")
+
   model <- list(
     train = function(training_set) {
       # start preparing max_variables parameter
@@ -71,20 +68,17 @@ ml_random_forest <- function(num_trees = 100,
 }
 
 #* @openeo-process
-ml_svm <- function(kernel = "radial",
+mlm_class_svm <- function(kernel = "radial",
                    degree = 3,
                    coef0 = 0,
                    cost = 10,
                    tolerance = 0.001,
                    epsilon = 0.1,
                    cachesize = 1000,
-                   random_state = NULL,
-                   classification = TRUE) {
-  base::print("ml_svm()")
+                   random_state = NULL) {
+  base::print("mlm_class_svm()")
   formula = sits::sits_formula_linear()
-  if (!classification) {
-    stop("Regression is not supported", call. = FALSE)
-  }
+
   model <- list(
     train = function(training_set) {
       model <- sits::sits_svm(
@@ -105,9 +99,35 @@ ml_svm <- function(kernel = "radial",
   )
 }
 
+#* @openeo-process
+mlm_class_xgboost <- function(learning_rate = 0.15,
+                              min_split_loss = 1,
+                              max_depth = 5,
+                              nfold = 5,
+                              early_stopping_rounds = 20,
+                              random_state = NULL) {
+  base::print("mlm_class_xgboost()")
+  model <- list(
+    train = function(training_set) {
+      model <- sits::sits_xgboost(
+        learning_rate = learning_rate,
+        min_split_loss = min_split_loss,
+        max_depth = max_depth,
+        nfold = nfold,
+        early_stopping_rounds = early_stopping_rounds
+      )
+      if (!base::is.null(random_state)) {
+        base::set.seed(random_state)
+      }
+      sits::sits_train(training_set, model)
+    }
+  )
+
+}
+
 
 #* @openeo-process
-ml_mlp <- function(layers = base::list(512, 512, 512),
+mlm_class_mlp <- function(layers = base::list(512, 512, 512),
                    dropout_rates = base::list(0.2, 0.3, 0.4),
                    optimizer = "adam",
                    learning_rate = 0.001,
@@ -115,12 +135,9 @@ ml_mlp <- function(layers = base::list(512, 512, 512),
                    weight_decay = 0.000001,
                    epochs = 100,
                    batch_size = 64,
-                   random_state = NULL,
-                   classification = TRUE) {
-  base::print("ml_mlp()")
-  if (!classification) {
-    stop("Regression is not supported", call. = FALSE)
-  }
+                   random_state = NULL) {
+  base::print("mlm_class_mlp()")
+
   # start preparing parameters
   optimizer_fn <- switch(
     optimizer,
@@ -162,7 +179,7 @@ ml_mlp <- function(layers = base::list(512, 512, 512),
 }
 
 #* @openeo-process
-ml_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
+mlm_class_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
                        cnn_kernels = base::list(5, 5, 5),
                        cnn_dropout_rates = base::list(0.2, 0.2, 0.2),
                        dense_layer_nodes = 256,
@@ -176,7 +193,7 @@ ml_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
                        epochs = 150,
                        batch_size = 64,
                        random_state = NULL) {
-  base::print("ml_tempcnn()")
+  base::print("mlm_class_tempcnn()")
   # start preparing parameters
   optimizer_fn <- switch(
     optimizer,
@@ -224,7 +241,7 @@ ml_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
 }
 
 #* @openeo-process
-ml_tae <- function(epochs = 150,
+mlm_class_tae <- function(epochs = 150,
                    batch_size = 64,
                    optimizer = "adam",
                    learning_rate = 0.001,
@@ -233,7 +250,7 @@ ml_tae <- function(epochs = 150,
                    lr_decay_epochs = 1,
                    lr_decay_rate = 0.95,
                    random_state = NULL) {
-  base::print("ml_tae()")
+  base::print("mlm_class_tae()")
   # start preparing parameters
   optimizer_fn <- switch(
     optimizer,
@@ -274,7 +291,7 @@ ml_tae <- function(epochs = 150,
 
 
 #* @openeo-process
-ml_lighttae <- function(epochs = 150,
+mlm_class_lighttae <- function(epochs = 150,
                         batch_size = 128,
                         optimizer = "adam",
                         learning_rate = 0.0005,
@@ -283,7 +300,7 @@ ml_lighttae <- function(epochs = 150,
                         lr_decay_epochs = 50,
                         lr_decay_rate = 1,
                         random_state = NULL) {
-  base::print("ml_lighttae()")
+  base::print("mlm_class_lighttae()")
   # start preparing parameters
   optimizer_fn <- switch(
     optimizer,
@@ -397,6 +414,31 @@ ml_predict_probability <- function(data, model) {
     data = data,
     ml_model = model,
     roi = roi,
+    memsize = 2L,
+    multicores = 2L,
+    output_dir = result_dir
+  )
+  data
+}
+
+
+#* @openeo-process
+ml_uncertainty_class <- function(data,
+                            approach = "margin") {
+  base::print("ml_uncertainty_class ()")
+  # Get current context of evaluation environment
+  env <- openeocraft::current_env()
+  # Preparing parameters
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  # Create result directory
+  result_dir <- base::file.path(job_dir, "temp")
+  if (!base::dir.exists(result_dir)) {
+    base::dir.create(result_dir)
+  }
+  # label the probability cube
+  data <- sits::sits_uncertainty(
+    cube = data,
+    type = approach,
     memsize = 2L,
     multicores = 2L,
     output_dir = result_dir

@@ -1,10 +1,9 @@
 {
-    "id": "ml_tempcnn",
-    "summary": "Initialize a Temporal Convolutional Neural Network (TempCNN) model",
+    "id": "mlm_class_tempcnn",
+    "summary": "Initialize a Temporal Convolutional Neural Network (TempCNN) classification model",
     "description": "Creates and configures a Temporal Convolutional Neural Network (TempCNN) model for time-series data. Parameters such as the convolutional architecture, dense layers, optimizer, and learning rate schedule can be specified.",
     "categories": [
-        "machine learning",
-        "time-series"
+        "machine learning"
     ],
     "experimental": true,
     "parameters": [
@@ -177,10 +176,18 @@
         }
     ],
     "returns": {
-        "description": "An untrained TempCNN model instance.",
+        "description": "An untrained TempCNN classification model instance.",
         "schema": {
             "type": "object",
             "subtype": "ml-model"
         }
-    }
+    },
+    "links": [
+        {
+            "href": "https://doi.org/10.3390/rs11050523",
+            "title": "Pelletier, C., Webb, G. I., & Petitjean, F. (2019). Temporal Convolutional Neural Network for the Classification of Satellite Image Time Series",
+            "type": "text/html",
+            "rel": "about"
+        }
+    ]
 }

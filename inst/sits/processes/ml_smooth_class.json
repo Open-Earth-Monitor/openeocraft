@@ -1,7 +1,7 @@
 {
     "id": "ml_smooth_class",
-    "summary": "Apply a smoothing operation to a classified datacube.",
-    "description": "This process applies a smoothing operation to a classified datacube using a sliding window approach. The window size, neighborhood fraction, and smoothness factor determine the extent and behavior of the smoothing.",
+    "summary": "Apply a smoothing operation to a classified probability datacube.",
+    "description": "This process applies a smoothing operation to a classified probability datacube using a sliding window approach. The window size, neighborhood fraction, and smoothness factor determine the extent and behavior of the smoothing.",
     "categories": [
         "machine learning"
     ],
@@ -9,7 +9,7 @@
     "parameters": [
         {
             "name": "data",
-            "description": "The classified datacube to smooth.",
+            "description": "The classified probability datacube to smooth.",
             "schema": {
                 "type": "object",
                 "subtype": "datacube"

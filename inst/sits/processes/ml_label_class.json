@@ -1,7 +1,7 @@
 {
     "id": "ml_label_class",
     "summary": "Assign class labels to a datacube",
-    "description": "This function assigns class labels to the provided dataset based on a machine learning model or rule-based classification. The labeled data can be used for further analysis or modeling.",
+    "description": "This function assigns class labels to the provided dataset based on a machine learning model or rule-based classification.",
     "categories": [
         "machine learning"
     ],
