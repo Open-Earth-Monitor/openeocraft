@@ -2,6 +2,54 @@
 #* @openeo-import math.R
 #* @openeo-import data.R
 
+#* @summary Load a collection
+#*
+#* @description
+#* Loads a collection from the current back-end by its id and returns
+#* it as a processable data cube. The data that is added to the data
+#* cube can be restricted with the parameters `spatial_extent`,
+#* `temporal_extent`, `bands` and `properties`. If no data is available
+#* for the given extents, a `NoDataAvailable` exception is thrown.
+#*
+#* Remarks:
+#* - The bands (and all dimensions that specify nominal dimension labels)
+#* are expected to be ordered as specified in the metadata if the `bands`
+#* parameter is set to `null`.
+#* - If no additional parameter is specified this would imply that the
+#* whole data set is expected to be loaded. Due to the large size of
+#* many data sets, this is not recommended and may be optimized by
+#* back-ends to only load the data that is actually required after
+#* evaluating subsequent processes such as filters. This means that the
+#* values in the data cube should be processed only after the data has
+#* been limited to the required extent and as a consequence also to a
+#* manageable size.
+#*
+#* @categories cubes import
+#*
+#* @param id The collection id.
+#* @param spatial_extent Limits the data to load from the collection
+#* to the specified bounding box or polygons.
+#* - For raster data, the process loads the pixel into the data cube if
+#* the point at the pixel center intersects with the bounding box or any
+#* of the polygons (as defined in the Simple Features standard by the OGC).
+#* - For vector data, the process loads the geometry into the data cube
+#* if the geometry is fully *within* the bounding box or any of the
+#* polygons (as defined in the Simple Features standard by the OGC).
+#* Empty geometries may only be in the data cube if no spatial extent
+#* has been provided.
+#*
+#* The GeoJSON can be one of the following feature types:
+#* - a `Polygon` or `MultiPolygon` geometry,
+#* - a `Feature` with a `Polygon` or `MultiPolygon` geometry, or
+#* - a `FeatureCollection` containing at least one `Feature` with `Polygon`
+#*   or `MultiPolygon` geometries.
+#* - Empty geometries are ignored.
+#*
+#* Set this parameter to `null` to set no limit for the spatial extent.
+#* Be careful with this when loading large datasets! It is recommended to
+#* use this parameter instead of using ``filter_bbox()`` or
+#* ``filter_spatial()`` directly after loading unbounded data.
+#*
 #* @openeo-process
 load_collection <- function(id,
                             spatial_extent = NULL,
@@ -30,30 +78,30 @@ load_collection <- function(id,
 
 #* @openeo-process
 mlm_class_random_forest <- function(num_trees = 100,
-                             max_variables = "sqrt",
-                             random_state = NULL) {
+                                    max_variables = "sqrt",
+                                    random_state = NULL) {
   base::print("mlm_class_random_forest()")
 
   model <- list(
     train = function(training_set) {
       # start preparing max_variables parameter
-      n_bands <- length(sits::sits_bands(training_set))
-      n_times <- length(sits::sits_timeline(training_set))
+      n_bands <- base::length(sits::sits_bands(training_set))
+      n_times <- base::length(sits::sits_timeline(training_set))
       n_features <- n_bands * n_times
-      if (is.character(max_variables)) {
+      if (base::is.character(max_variables)) {
         if (max_variables == "sqrt") {
-          max_variables <- sqrt(n_features)
+          max_variables <- base::sqrt(n_features)
         } else if (max_variables == "log2") {
-          max_variables <- log2(n_features)
+          max_variables <- base::log2(n_features)
         }
-      } else if (is.null(max_variables)) {
+      } else if (base::is.null(max_variables)) {
         max_variables <- n_features
-      } else if (is.numeric(max_variables)) {
+      } else if (base::is.numeric(max_variables)) {
         max_variables <- max_variables
       } else {
         stop("Invalid max_variables parameter", call. = FALSE)
       }
-      max_variables <- max(1, floor(max_variables))
+      max_variables <- base::max(1, base::floor(max_variables))
       # end preparing max_variables parameter
       model <- sits::sits_rfor(
         num_trees = num_trees,
@@ -69,13 +117,13 @@ mlm_class_random_forest <- function(num_trees = 100,
 
 #* @openeo-process
 mlm_class_svm <- function(kernel = "radial",
-                   degree = 3,
-                   coef0 = 0,
-                   cost = 10,
-                   tolerance = 0.001,
-                   epsilon = 0.1,
-                   cachesize = 1000,
-                   random_state = NULL) {
+                          degree = 3,
+                          coef0 = 0,
+                          cost = 10,
+                          tolerance = 0.001,
+                          epsilon = 0.1,
+                          cachesize = 1000,
+                          random_state = NULL) {
   base::print("mlm_class_svm()")
   formula = sits::sits_formula_linear()
 
@@ -127,15 +175,15 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
 
 
 #* @openeo-process
-mlm_class_mlp <- function(layers = base::list(512, 512, 512),
-                   dropout_rates = base::list(0.2, 0.3, 0.4),
-                   optimizer = "adam",
-                   learning_rate = 0.001,
-                   epsilon = 0.00000001,
-                   weight_decay = 0.000001,
-                   epochs = 100,
-                   batch_size = 64,
-                   random_state = NULL) {
+mlm_class_mlp <- function(layers = list(512, 512, 512),
+                          dropout_rates = list(0.2, 0.3, 0.4),
+                          optimizer = "adam",
+                          learning_rate = 0.001,
+                          epsilon = 0.00000001,
+                          weight_decay = 0.000001,
+                          epochs = 100,
+                          batch_size = 64,
+                          random_state = NULL) {
   base::print("mlm_class_mlp()")
 
   # start preparing parameters
@@ -152,7 +200,7 @@ mlm_class_mlp <- function(layers = base::list(512, 512, 512),
     "yogi" = torch::optim_yogi,
     stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
   )
-  opt_hparams <- base::list(
+  opt_hparams <- list(
     lr = learning_rate,
     eps = epsilon,
     weight_decay = weight_decay
@@ -179,20 +227,20 @@ mlm_class_mlp <- function(layers = base::list(512, 512, 512),
 }
 
 #* @openeo-process
-mlm_class_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
-                       cnn_kernels = base::list(5, 5, 5),
-                       cnn_dropout_rates = base::list(0.2, 0.2, 0.2),
-                       dense_layer_nodes = 256,
-                       dense_layer_dropout_rate = 0.5,
-                       optimizer = "adam",
-                       learning_rate = 0.0005,
-                       epsilon = 0.00000001,
-                       weight_decay = 0.000001,
-                       lr_decay_epochs = 1,
-                       lr_decay_rate = 0.95,
-                       epochs = 150,
-                       batch_size = 64,
-                       random_state = NULL) {
+mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
+                              cnn_kernels = list(5, 5, 5),
+                              cnn_dropout_rates = list(0.2, 0.2, 0.2),
+                              dense_layer_nodes = 256,
+                              dense_layer_dropout_rate = 0.5,
+                              optimizer = "adam",
+                              learning_rate = 0.0005,
+                              epsilon = 0.00000001,
+                              weight_decay = 0.000001,
+                              lr_decay_epochs = 1,
+                              lr_decay_rate = 0.95,
+                              epochs = 150,
+                              batch_size = 64,
+                              random_state = NULL) {
   base::print("mlm_class_tempcnn()")
   # start preparing parameters
   optimizer_fn <- switch(
@@ -208,7 +256,7 @@ mlm_class_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
     "yogi" = torch::optim_yogi,
     stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
   )
-  opt_hparams <- base::list(
+  opt_hparams <- list(
     lr = learning_rate,
     eps = epsilon,
     weight_decay = weight_decay
@@ -242,14 +290,14 @@ mlm_class_tempcnn <- function(cnn_layers = base::list(64, 64, 64),
 
 #* @openeo-process
 mlm_class_tae <- function(epochs = 150,
-                   batch_size = 64,
-                   optimizer = "adam",
-                   learning_rate = 0.001,
-                   epsilon = 0.00000001,
-                   weight_decay = 0.000001,
-                   lr_decay_epochs = 1,
-                   lr_decay_rate = 0.95,
-                   random_state = NULL) {
+                          batch_size = 64,
+                          optimizer = "adam",
+                          learning_rate = 0.001,
+                          epsilon = 0.00000001,
+                          weight_decay = 0.000001,
+                          lr_decay_epochs = 1,
+                          lr_decay_rate = 0.95,
+                          random_state = NULL) {
   base::print("mlm_class_tae()")
   # start preparing parameters
   optimizer_fn <- switch(
@@ -265,7 +313,7 @@ mlm_class_tae <- function(epochs = 150,
     "yogi" = torch::optim_yogi,
     stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
   )
-  opt_hparams <- base::list(
+  opt_hparams <- list(
     lr = learning_rate,
     eps = epsilon,
     weight_decay = weight_decay
@@ -292,14 +340,14 @@ mlm_class_tae <- function(epochs = 150,
 
 #* @openeo-process
 mlm_class_lighttae <- function(epochs = 150,
-                        batch_size = 128,
-                        optimizer = "adam",
-                        learning_rate = 0.0005,
-                        epsilon = 0.00000001,
-                        weight_decay = 0.0007,
-                        lr_decay_epochs = 50,
-                        lr_decay_rate = 1,
-                        random_state = NULL) {
+                               batch_size = 128,
+                               optimizer = "adam",
+                               learning_rate = 0.0005,
+                               epsilon = 0.00000001,
+                               weight_decay = 0.0007,
+                               lr_decay_epochs = 50,
+                               lr_decay_rate = 1,
+                               random_state = NULL) {
   base::print("mlm_class_lighttae()")
   # start preparing parameters
   optimizer_fn <- switch(
@@ -315,7 +363,7 @@ mlm_class_lighttae <- function(epochs = 150,
     "yogi" = torch::optim_yogi,
     stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
   )
-  opt_hparams <- base::list(
+  opt_hparams <- list(
     lr = learning_rate,
     eps = epsilon,
     weight_decay = weight_decay
@@ -424,7 +472,7 @@ ml_predict_probability <- function(data, model) {
 
 #* @openeo-process
 ml_uncertainty_class <- function(data,
-                            approach = "margin") {
+                                 approach = "margin") {
   base::print("ml_uncertainty_class ()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
