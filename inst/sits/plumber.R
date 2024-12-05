@@ -8,11 +8,11 @@
 # Load libraries
 library(openeocraft)
 library(plumber)
-library(promises)
-library(coro)
+#library(promises)
+#library(coro)
 
 # Set number of processes to serve the API
-future::plan("multisession")
+#future::plan("multisession")
 async <- function(x) x
 
 # Create an STAC server API object
