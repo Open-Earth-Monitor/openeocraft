@@ -911,3 +911,17 @@ import_model <- function(name, folder) {
   data <- base::readRDS(file)
   data
 }
+
+#* @openeo-process
+save_ml_model <- function(data, name, tasks, options = NULL) {
+  base::print("save_ml_model()")
+  #TO DO
+  "save_ml_model()"
+}
+
+#* @openeo-process
+load_ml_model <- function(name) {
+  base::print("load_ml_model()")
+  #TO DO
+  "load_ml_model()"
+}
