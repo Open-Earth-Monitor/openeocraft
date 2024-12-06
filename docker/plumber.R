@@ -27,7 +27,7 @@ stac_api <- openstac::create_stac(
 )
 
 # Set API database
-file <- system.file("sits/sits.rds", package = "openeocraft")
+file <- system.file("ml/db.rds", package = "openeocraft")
 stac_api <- openstac::set_db(stac_api, driver = "local", file = file)
 
 # Create openEO API object
@@ -42,12 +42,12 @@ api <- create_openeo_v1(
   production = FALSE
 )
 
-set_credentials(api, file = "~/openeo-credentials.rds")
+set_credentials(api, file = "~/openeo-tests/openeo-credentials.rds")
 new_credential(api, user = "rolf", password = "123456")
 new_credential(api, user = "brian", password = "123456")
 
 # Load processes
-processes_file <- system.file("sits/processes3.R", package = "openeocraft")
+processes_file <- system.file("ml/processes.R", package = "openeocraft")
 load_processes(api, processes_file)
 
 #* Enable Cross-origin Resource Sharing

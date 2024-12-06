@@ -8,7 +8,7 @@ con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
 # Define a random forest model
-rf_model_definition <- p$ml_random_forest(
+rf_model_definition <- p$mlm_class_random_forest(
   num_trees = 50,
   random_state = 42
 )
