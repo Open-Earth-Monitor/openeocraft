@@ -17,16 +17,6 @@
             }
         },
         {
-            "name": "options",
-            "description": "Additional parameters to create the file(s).",
-            "schema": {
-                "type": "object",
-                "additionalParameters": false
-            },
-            "default": {},
-            "optional": true
-        },
-        {
             "name": "name",
             "description": "A distinct name of the model.",
             "schema": {

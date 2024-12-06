@@ -8,11 +8,11 @@
 # Load libraries
 library(openeocraft)
 library(plumber)
-#library(promises)
-#library(coro)
+# library(promises)
+# library(coro)
 
 # Set number of processes to serve the API
-#future::plan("multisession")
+# future::plan("multisession")
 async <- function(x) x
 
 # Create an STAC server API object
@@ -32,9 +32,9 @@ stac_api <- openstac::set_db(stac_api, driver = "local", file = file)
 
 # Create openEO API object
 api <- create_openeo_v1(
-  id = "openeo-sits",
-  title = "openEO backend for sits",
-  description = "This is an openEO compliant R backend for sits package.",
+  id = "openeocraft",
+  title = "openEO compliant R backend",
+  description = "OpenEOcraft offers a robust R framework designed for the development and deployment of openEO API applications.",
   backend_version = "0.2.0",
   stac_api = stac_api,
   work_dir = "~/openeo-tests",
