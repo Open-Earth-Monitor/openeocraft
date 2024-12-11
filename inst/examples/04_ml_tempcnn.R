@@ -2,41 +2,14 @@ library(openeo)
 library(sits)
 
 # Connect to the backend
-con <- connect("http://127.0.0.1:8000", user = "brian", password = "123456")
+con <- connect(
+  host = "http://127.0.0.1:8000",
+  user = "<your_user>",
+  password = "<your_password>"
+)
 
 # Access processes
 p <- processes()
-
-# Load the collection
-s2_data <- p$load_collection(
-  id = "AWS/SENTINEL-2-L2A",
-  spatial_extent = list(
-    west = -55.24475,
-    east = -55.09232,
-    north = -11.68720,
-    south = -11.81628
-  ),
-  temporal_extent = list(
-    "2018-09-01",
-    "2019-08-31"
-  ),
-  bands = list("B04", "B08")
-)
-
-# Regularize the cube
-s2_regularized <- p$cube_regularize(
-  data = s2_data,
-  period = "P1M",
-  resolution = 320
-)
-
-# Export the cube
-s2_export <- p$export_cube(
-  data = s2_regularized,
-  name = "s2_cube",
-  folder = "test"
-)
-
 
 tempcnn_model_def <- p$mlm_class_tempcnn(
   cnn_layers = list(64, 64, 64),
@@ -61,7 +34,6 @@ tempcnn_model_fitted <- p$ml_fit(
   training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi),
   target = "label"
 )
-
 
 # Export the trained model
 tempcnn_model <- p$export_model(
