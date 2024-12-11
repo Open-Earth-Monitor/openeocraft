@@ -11,10 +11,10 @@ p <- processes()
 s2_data <- p$load_collection(
   id = "AWS/SENTINEL-2-L2A",
   spatial_extent = list(
-    west = 16.1,
-    east = 16.6,
-    north = 48.6,
-    south = 47.2
+    west = -55.24475,
+    east = -55.09232,
+    north = -11.68720,
+    south = -11.81628
   ),
   temporal_extent = list(
     "2018-09-01",
@@ -58,20 +58,21 @@ tempcnn_model_def <- p$mlm_class_tempcnn(
 # Fit the model using the training dataset
 tempcnn_model_fitted <- p$ml_fit(
   model = tempcnn_model_def,
-  training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi)
+  training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi),
+  target = "label"
 )
 
 
 # Export the trained model
 tempcnn_model <- p$export_model(
-  model = rf_model_fitted,
-  name = "tempcnn_model",
+  model = tempcnn_model_fitted,
+  name = "tempcnn_model_11_12_24",
   folder = "openeocraft-models"
 )
 
 # Run the job
 job <- create_job(
-  graph = rf_model,
+  graph = tempcnn_model,
   title = "Train Temp CNN Model",
   description = "Training a Temp CNN model and exporting it"
 )

@@ -2,7 +2,7 @@ library(openeo)
 library(sits)
 
 # Connect to the backend
-con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
+con <- connect("http://127.0.0.1:8000", user = "brian", password = "123456")
 
 # Access processes
 p <- processes()
@@ -22,8 +22,8 @@ rf_model_fitted <- p$ml_fit(
 # Export the trained model
 rf_model <- p$export_model(
   model = rf_model_fitted,
-  name = "rf_model",
-  folder = "recovered"
+  name = "rf_model_11_12_24",
+  folder = "openeocraft-models"
 )
 
 # Run the job

@@ -42,7 +42,8 @@ api <- create_openeo_v1(
   production = FALSE
 )
 
-set_credentials(api, file = "~/openeo-tests/openeo-credentials.rds")
+#set_credentials(api, file = "~/openeo-tests/openeo-credentials.rds")
+set_credentials(api, file = "~/openeo-credentials.rds")
 new_credential(api, user = "rolf", password = "123456")
 new_credential(api, user = "brian", password = "123456")
 

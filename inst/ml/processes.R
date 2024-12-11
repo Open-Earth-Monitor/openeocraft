@@ -187,7 +187,7 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
   base::print("mlm_class_mlp()")
 
   # start preparing parameters
-  optimizer_fn <- switch(
+  optimizer_fn <- base::switch(
     optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
@@ -243,7 +243,7 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
                               random_state = NULL) {
   base::print("mlm_class_tempcnn()")
   # start preparing parameters
-  optimizer_fn <- switch(
+  optimizer_fn <- base::switch(
     optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
@@ -300,7 +300,7 @@ mlm_class_tae <- function(epochs = 150,
                           random_state = NULL) {
   base::print("mlm_class_tae()")
   # start preparing parameters
-  optimizer_fn <- switch(
+  optimizer_fn <- base::switch(
     optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
@@ -350,7 +350,7 @@ mlm_class_lighttae <- function(epochs = 150,
                                random_state = NULL) {
   base::print("mlm_class_lighttae()")
   # start preparing parameters
-  optimizer_fn <- switch(
+  optimizer_fn <- base::switch(
     optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
