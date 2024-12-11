@@ -1,16 +1,3 @@
-# ---- helper functions ----
-
-run_job <- function(pg, title = "title", description = "description") {
-  job <- create_job(
-    graph = pg,
-    title = title,
-    description = description
-  )
-  job <- start_job(job)
-  job
-}
-
-
 # ---- example 1 - cube regularization  and export to workspace----
 
 library(openeo)
@@ -42,9 +29,16 @@ s2_reg <- p$export_cube(
     resolution = 320
   ),
   name = "s2_cube",
-  folder = "openeocraft-test"
+  folder = "openeocraft-cubes"
 )
 
-job <- run_job(s2_reg, "S2 regularize and export", "Regularize and export Sentinel 2 data")
+
+# Run the job
+job <- create_job(
+  graph = s2_reg,
+  title = "S2 regularize and export",
+  description = "Regularize and export Sentinel 2 data"
+)
+job <- start_job(job)
 
 describe_job(job)

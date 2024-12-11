@@ -66,7 +66,7 @@ tempcnn_model_fitted <- p$ml_fit(
 # Export the trained model
 tempcnn_model <- p$export_model(
   model = tempcnn_model_fitted,
-  name = "tempcnn_model_12_24",
+  name = "tempcnn_model_11_12_24",
   folder = "openeocraft-models"
 )
 
