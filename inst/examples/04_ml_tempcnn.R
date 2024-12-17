@@ -4,8 +4,8 @@ library(sits)
 # Connect to the backend
 con <- connect(
   host = "http://127.0.0.1:8000",
-  user = "<your_user>",
-  password = "<your_password>"
+  user = "brian",
+  password = "123456"
 )
 
 # Access processes
@@ -38,7 +38,7 @@ tempcnn_model_fitted <- p$ml_fit(
 # Export the trained model
 tempcnn_model <- p$export_model(
   model = tempcnn_model_fitted,
-  name = "tempcnn_model_11_12_24",
+  name = "tempcnn_model_12_12_24",
   folder = "openeocraft-models"
 )
 

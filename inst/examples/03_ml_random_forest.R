@@ -9,7 +9,7 @@ p <- processes()
 
 # Define a random forest model
 rf_model_definition <- p$mlm_class_random_forest(
-  num_trees = 50,
+  num_trees = 100,
   random_state = 42
 )
 
@@ -22,7 +22,7 @@ rf_model_fitted <- p$ml_fit(
 # Export the trained model
 rf_model <- p$export_model(
   model = rf_model_fitted,
-  name = "rf_model_11_12_24",
+  name = "rf_model_12_12_24",
   folder = "openeocraft-models"
 )
 

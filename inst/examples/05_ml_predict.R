@@ -12,7 +12,7 @@ s2_cube <- p$import_cube(
 )
 
 rf_model <- p$import_model(
-  name = "rf_model_11_12_24",
+  name = "rf_model_12_12_24",
   folder = "openeocraft-models"
 )
 
@@ -24,7 +24,7 @@ data <- p$ml_predict(
 labels_cube <- p$export_cube(
   data = data,
   name = "labels_cube",
-  folder = "openeocraft-cubes-labels"
+  folder = "openeocraft-cubes-pred"
 )
 
 
