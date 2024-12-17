@@ -125,7 +125,7 @@ mlm_class_svm <- function(kernel = "radial",
                           cachesize = 1000,
                           random_state = NULL) {
   base::print("mlm_class_svm()")
-  formula = sits::sits_formula_linear()
+  formula <- sits::sits_formula_linear()
 
   model <- list(
     train = function(training_set) {
@@ -170,7 +170,6 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
       sits::sits_train(training_set, model)
     }
   )
-
 }
 
 
@@ -187,8 +186,7 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
   base::print("mlm_class_mlp()")
 
   # start preparing parameters
-  optimizer_fn <- base::switch(
-    optimizer,
+  optimizer_fn <- base::switch(optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
     "adabelief" = torch::optim_adabelief,
@@ -243,8 +241,7 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
                               random_state = NULL) {
   base::print("mlm_class_tempcnn()")
   # start preparing parameters
-  optimizer_fn <- base::switch(
-    optimizer,
+  optimizer_fn <- base::switch(optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
     "adabelief" = torch::optim_adabelief,
@@ -300,8 +297,7 @@ mlm_class_tae <- function(epochs = 150,
                           random_state = NULL) {
   base::print("mlm_class_tae()")
   # start preparing parameters
-  optimizer_fn <- base::switch(
-    optimizer,
+  optimizer_fn <- base::switch(optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
     "adabelief" = torch::optim_adabelief,
@@ -350,8 +346,7 @@ mlm_class_lighttae <- function(epochs = 150,
                                random_state = NULL) {
   base::print("mlm_class_lighttae()")
   # start preparing parameters
-  optimizer_fn <- base::switch(
-    optimizer,
+  optimizer_fn <- base::switch(optimizer,
     "adam" = torch::optim_adamw,
     "adabound" = torch::optim_adabound,
     "adabelief" = torch::optim_adabelief,
@@ -388,7 +383,7 @@ mlm_class_lighttae <- function(epochs = 150,
 }
 
 #* @openeo-process
-ml_fit <- function(model, training_set, target="label") {
+ml_fit <- function(model, training_set, target = "label") {
   base::print("ml_fit()")
   training_set <- jsonlite::unserializeJSON(training_set)
   # base::saveRDS(training_set, "~/predictors.rds")
@@ -589,11 +584,11 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
   # sits apply re-implementation
   sits:::sits_apply.raster_cube
   .sits_apply <- function(data, out_band, expr) {
-    window_size = 1L
-    memsize = 2L
-    multicores = 2L
-    normalized = TRUE
-    progress = FALSE
+    window_size <- 1L
+    memsize <- 2L
+    multicores <- 2L
+    normalized <- TRUE
+    progress <- FALSE
     sits:::.check_is_raster_cube(data)
     sits:::.check_that(sits:::.cube_is_regular(data))
     sits:::.check_int_parameter(window_size, min = 1, is_odd = TRUE)
@@ -667,7 +662,7 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
     data = data,
     out_band = target_band,
     expr = base::bquote((.(base::as.name(nir)) - .(base::as.name(red))) /
-                          (.(base::as.name(nir)) + .(base::as.name(red))))
+      (.(base::as.name(nir)) + .(base::as.name(red))))
   )
   data
 }
@@ -915,13 +910,61 @@ import_model <- function(name, folder) {
 #* @openeo-process
 save_ml_model <- function(data, name, tasks, options = NULL) {
   base::print("save_ml_model()")
-  #TO DO
-  "save_ml_model()"
+
+  # Initialize environment and host
+  env <- openeocraft::current_env()
+  host <- openeocraft::get_host(env$api, env$req)
+
+  # Get directories
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+  result_dir <- job_dir # they are the same
+  obj_dir <- base::file.path(result_dir, ".obj")
+
+  # Create result directory if it doesn't exist
+  if (!base::dir.exists(obj_dir)) {
+    base::dir.create(obj_dir, recursive = TRUE)
+  }
+
+  if (!base::dir.exists(obj_dir)) {
+    openeocraft::api_stop(500, "Could not create the folder")
+  }
+
+  # Save RDS object representation
+  file <- base::file.path(obj_dir, base::paste0(name, ".rds"))
+  base::saveRDS(data, file)
+
+  # Prepare the collection dictionary
+  assets <- list()
+  collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+
+  # Add `name` as `id` and tasks to the collection
+  collection$id <- name
+  collection$tasks <- tasks
+
+  # If options is not NULL, flatten its keys into the collection
+  if (!is.null(options) && is.list(options)) {
+    for (key in names(options)) {
+      collection[[key]] <- options[[key]]
+    }
+  }
+
+
+  collection$assets <- assets
+
+  # Save the collection JSON in the job directory
+  collection_json_path <- base::file.path(job_dir, "_collection.json")
+  jsonlite::write_json(
+    x = collection,
+    path = collection_json_path,
+    auto_unbox = TRUE
+  )
+
+  return(TRUE)
 }
 
 #* @openeo-process
 load_ml_model <- function(name) {
   base::print("load_ml_model()")
-  #TO DO
+  # TO DO
   "load_ml_model()"
 }
