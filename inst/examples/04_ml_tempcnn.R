@@ -11,6 +11,10 @@ con <- connect(
 # Access processes
 p <- processes()
 
+# Load sits tibble Training data
+data_deforestation_rondonia <- readRDS("./inst/examples/samples_deforestation_rondonia.rds")
+
+# Define the Temporal CNN model
 tempcnn_model_def <- p$mlm_class_tempcnn(
   cnn_layers = list(64, 64, 64),
   cnn_kernels = list(5, 5, 5),
@@ -31,14 +35,14 @@ tempcnn_model_def <- p$mlm_class_tempcnn(
 # Fit the model using the training dataset
 tempcnn_model_fitted <- p$ml_fit(
   model = tempcnn_model_def,
-  training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi),
+  training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
   target = "label"
 )
 
 # Export the trained model
 tempcnn_model <- p$export_model(
   model = tempcnn_model_fitted,
-  name = "tempcnn_model_12_12_24",
+  name = "tempcnn_model_08_01_25",
   folder = "openeocraft-models"
 )
 

@@ -12,7 +12,7 @@ s2_cube <- p$import_cube(
 )
 
 rf_model <- p$import_model(
-  name = "rf_model_12_12_24",
+  name = "rf_model_08_01_25",
   folder = "openeocraft-models"
 )
 
