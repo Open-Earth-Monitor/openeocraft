@@ -17,6 +17,7 @@ api_credential.openeo_v1 <- function(api, req, res) {
     saveRDS(credentials, file)
   } else {
     token <- credentials$users[[user]]$token
+    # TODO: check token renewal
     if (credentials$tokens[[token]]$expiry > Sys.time()) {
       old_token <- credentials$users[[user]]$token
       credentials$tokens[[old_token]] <- NULL
