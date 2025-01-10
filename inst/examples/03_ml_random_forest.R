@@ -13,16 +13,21 @@ rf_model_definition <- p$mlm_class_random_forest(
   random_state = 42
 )
 
+# Load sits tibble Training data
+data_deforestation_rondonia <- readRDS("./inst/examples/samples_deforestation_rondonia.rds")
+
+
+
 # Fit the model using the training dataset
 rf_model_fitted <- p$ml_fit(
   model = rf_model_definition,
-  training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi)
+  training_set = jsonlite::serializeJSON(data_deforestation_rondonia)
 )
 
 # Export the trained model
 rf_model <- p$export_model(
   model = rf_model_fitted,
-  name = "rf_model_12_12_24",
+  name = "rf_model_08_01_25",
   folder = "openeocraft-models"
 )
 

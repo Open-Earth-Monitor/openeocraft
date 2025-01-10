@@ -11,17 +11,19 @@ s2_reg <- p$export_cube(
     data = p$load_collection(
       id = "AWS/SENTINEL-2-L2A",
       spatial_extent = list(
-        west = -55.24475,
-        east = -55.09232,
-        north = -11.68720,
-        south = -11.81628
+        west = -63.63661, #  northern part of rondonia in Brazil
+        east = -63.41824,
+        north = -8.43097,
+        south = -8.648347
       ),
       temporal_extent = list(
-        "2018-09-01",
-        "2019-08-31"
+        "2022-01-01",
+        "2022-12-31"
       ),
       bands = list(
+        "B02",
         "B04",
+        "B8A",
         "B08"
       )
     ),
