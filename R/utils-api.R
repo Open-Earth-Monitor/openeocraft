@@ -241,7 +241,7 @@ get_token <- function(req) {
 }
 #' @export
 get_token_user <- function(api, token) {
-  if (is.null(token)) {
+  if (!length(token)) {
     api_stop(401, "Token is missing")
   }
   file <- api_attr(api, "credentials")

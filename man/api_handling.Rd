@@ -58,19 +58,19 @@ api_setup_plumber(
 
 api_credential(api, req, res)
 
-api_wellknown(api, req)
+api_wellknown(api, req, res)
 
-api_landing_page(api, req)
+api_landing_page(api, req, res)
 
-api_conformance(api, req)
+api_conformance(api, req, res)
 
-api_processes(api, req, check_auth = FALSE)
+api_processes(api, req, res, check_auth = FALSE)
 
 api_result(api, req, res)
 
-api_jobs_list(api, req)
+api_jobs_list(api, req, res)
 
-api_job_info(api, req, job_id)
+api_job_info(api, req, res, job_id)
 
 api_job_create(api, req, res)
 }

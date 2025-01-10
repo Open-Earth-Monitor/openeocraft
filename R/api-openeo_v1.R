@@ -28,7 +28,7 @@ api_credential.openeo_v1 <- function(api, req, res) {
   list(access_token = credentials$users[[user]]$token)
 }
 #' @export
-api_wellknown.openeo_v1 <- function(api, req) {
+api_wellknown.openeo_v1 <- function(api, req, res) {
   host <- get_host(api, req)
   doc <- update_wellknown_version(
     doc = list(),
@@ -47,7 +47,7 @@ api_wellknown.openeo_v1 <- function(api, req) {
   doc
 }
 #' @export
-api_landing_page.openeo_v1 <- function(api, req) {
+api_landing_page.openeo_v1 <- function(api, req, res) {
   # TODO: support to billing key
   doc <- list(
     type = "Catalog",
@@ -98,12 +98,12 @@ api_landing_page.openeo_v1 <- function(api, req) {
   doc
 }
 #' @export
-api_conformance.openeo_v1 <- function(api, req) {
+api_conformance.openeo_v1 <- function(api, req, res) {
   doc <- list(conformsTo = api$conforms_to)
   doc
 }
 #' @export
-api_processes.openeo_v1 <- function(api, req, check_auth = FALSE) {
+api_processes.openeo_v1 <- function(api, req, res, check_auth = FALSE) {
   if (check_auth) {
     token <- req$header$token
     get_token_user(api, token)
@@ -167,7 +167,7 @@ api_result.openeo_v1 <- function(api, req, res) {
   data_serializer(result, res)
 }
 #' @export
-api_jobs_list.openeo_v1 <- function(api, req) {
+api_jobs_list.openeo_v1 <- function(api, req, res) {
   token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- get_token_user(api, token)
   jobs <- job_read_rds(api, user)
@@ -181,7 +181,7 @@ api_jobs_list.openeo_v1 <- function(api, req) {
   jobs
 }
 #' @export
-api_job_info.openeo_v1 <- function(api, req, job_id) {
+api_job_info.openeo_v1 <- function(api, req, res, job_id) {
   token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
   user <- get_token_user(api, token)
   jobs <- job_read_rds(api, user)

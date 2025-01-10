@@ -198,22 +198,22 @@ api_credential <- function(api, req, res) {
 }
 #' @rdname api_handling
 #' @export
-api_wellknown <- function(api, req) {
+api_wellknown <- function(api, req, res) {
   UseMethod("api_wellknown", api)
 }
 #' @rdname api_handling
 #' @export
-api_landing_page <- function(api, req) {
+api_landing_page <- function(api, req, res) {
   UseMethod("api_landing_page", api)
 }
 #' @rdname api_handling
 #' @export
-api_conformance <- function(api, req) {
+api_conformance <- function(api, req, res) {
   UseMethod("api_conformance", api)
 }
 #' @rdname api_handling
 #' @export
-api_processes <- function(api, req, check_auth = FALSE) {
+api_processes <- function(api, req, res, check_auth = FALSE) {
   UseMethod("api_processes", api)
 }
 #' @rdname api_handling
@@ -223,12 +223,12 @@ api_result <- function(api, req, res) {
 }
 #' @rdname api_handling
 #' @export
-api_jobs_list <- function(api, req) {
+api_jobs_list <- function(api, req, res) {
   UseMethod("api_jobs_list", api)
 }
 #' @rdname api_handling
 #' @export
-api_job_info <- function(api, req, job_id) {
+api_job_info <- function(api, req, res, job_id) {
   UseMethod("api_job_info", api)
 }
 #' @rdname api_handling
