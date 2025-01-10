@@ -219,11 +219,13 @@ new_credential <- function(api, user, password) {
   )
   saveRDS(credentials, file)
 }
-
+empty_credentials <- function() {
+  list(users = list(), tokens = list())
+}
 #' @export
 set_credentials <- function(api, file) {
   if (!file.exists(file))
-    saveRDS(list(users = list(), tokens = list()), file)
+    saveRDS(empty_credentials(), file)
   api_attr(api, "credentials") <- file
   invisible(api)
 }
@@ -245,8 +247,13 @@ get_token_user <- function(api, token) {
     api_stop(401, "Token is missing")
   }
   file <- api_attr(api, "credentials")
-  stopifnot(!is.null(file) || file.exists(file))
-  credentials <- readRDS(file)
+  if (is.null(file)) {
+    credentials <- empty_credentials()
+  } else if (file.exists(file)) {
+    credentials <- readRDS(file)
+  } else {
+    stop("Credential file not found", call. = FALSE)
+  }
   if (!token %in% names(credentials$tokens)) {
     api_stop(401, "Invalid token")
   }

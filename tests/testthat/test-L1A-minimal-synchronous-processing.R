@@ -32,18 +32,18 @@ api <- create_openeo_v1(
   production = FALSE
 )
 
-# Set the credentials
-set_credentials(api, file = "~/openeo-credentials.rds")
-
 # Load processes
 processes_file <- system.file("ml/processes.R", package = "openeocraft")
 load_processes(api, processes_file)
 
 test_that("POST /result	Is supported (with authentication)", {
+  # Call without token
   req <- mock_req("/result", method = "POST")
   res <- mock_res()
-  testthat::expect_error(api_result(api, req, res), "Token is missing")
+  expect_error(api_result(api, req, res), "Token is missing")
+
+  # Call with invalid token
   req <- mock_req("/result", HTTP_AUTHORIZATION = "Test", method = "POST")
   res <- mock_res()
-  testthat::expect_error(api_result(api, req, res), "Invalid token")
+  expect_error(api_result(api, req, res), "Invalid token")
 })
