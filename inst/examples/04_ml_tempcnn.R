@@ -4,7 +4,7 @@ library(sits)
 # Connect to the backend
 con <- connect(
   host = "http://127.0.0.1:8000",
-  user = "brian",
+  user = "rolf",
   password = "123456"
 )
 
@@ -12,7 +12,7 @@ con <- connect(
 p <- processes()
 
 # Load sits tibble Training data
-data_deforestation_rondonia <- readRDS("./inst/examples/samples_deforestation_rondonia.rds")
+data_deforestation_rondonia <- readRDS("./inst/examples/filtered_rondonia_data.rds")
 
 # Define the Temporal CNN model
 tempcnn_model_def <- p$mlm_class_tempcnn(
@@ -42,7 +42,7 @@ tempcnn_model_fitted <- p$ml_fit(
 # Export the trained model
 tempcnn_model <- p$export_model(
   model = tempcnn_model_fitted,
-  name = "tempcnn_model_08_01_25",
+  name = "tempcnn_model_15_01_25",
   folder = "openeocraft-models"
 )
 
@@ -55,5 +55,4 @@ job <- create_job(
 job <- start_job(job)
 
 # Display job information
-job
 describe_job(job)

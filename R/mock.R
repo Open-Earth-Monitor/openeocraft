@@ -1,3 +1,7 @@
+# Define expected versions
+expected_api_version <- "1.2.0"
+expected_stac_version <- "1.0.0"
+
 #' @export
 mock_req <- function(..., method = "GET") {
   dots <- list(...)
@@ -106,5 +110,79 @@ mock_search <- function(api,
     ids = ids,
     collections = collections,
     page = page
+  )
+}
+
+#' @export
+mock_api_file_formats <- function(api, req, res) {
+  list(
+    input = list(
+      GeoTIFF = list(
+        description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
+        gis_data_types = list("raster"),
+        parameters = list(),
+        title = "GeoTiff"
+      ),
+      GeoJSON = list(
+        description = "GeoJSON allows sending vector data as part of your JSON request. GeoJSON is always in EPSG:4326.",
+        gis_data_types = list("vector"),
+        parameters = list(),
+        title = "GeoJSON"
+      ),
+      JSON = list(
+        description = "JSON is a generic data serialization format. Being generic, it allows to represent various data types (raster, vector, table, etc.).",
+        gis_data_types = list("raster", "vector"),
+        parameters = list(),
+        title = "JavaScript Object Notation (JSON)"
+      )
+    ),
+    output = list(
+      GeoTIFF = list(
+        description = "Cloud Optimized Geotiff is one of the most widely supported formats and thus a popular choice for further dissemination. This implementation stores all bands in one file, and creates one file per timestamp in your datacube.",
+        gis_data_types = list("raster"),
+        parameters = list(
+          ZLEVEL = list(
+            default = 6,
+            description = "Specifies the compression level used for DEFLATE compression.",
+            type = "integer"
+          ),
+          colormap = list(
+            default = NULL,
+            description = "Allows specifying a colormap for single-band GeoTIFFs.",
+            type = c("object", "null")
+          )
+        ),
+        title = "GeoTiff"
+      ),
+      JSON = list(
+        description = "JSON is a generic data serialization format. Being generic, it allows to represent various data types (raster, vector, table, etc.).",
+        gis_data_types = list("raster", "vector"),
+        parameters = list(),
+        title = "JavaScript Object Notation (JSON)"
+      ),
+      netCDF = list(
+        description = "netCDF files allow to accurately represent an openEO datacube and its metadata.",
+        gis_data_types = list("raster"),
+        parameters = list(
+          filename_prefix = list(
+            default = NULL,
+            description = "Specifies the filename prefix when outputting multiple files.",
+            type = "string"
+          )
+        ),
+        title = "Network Common Data Form"
+      )
+    )
+  )
+}
+
+#' @export
+mock_well_known_response <- function(api) {
+  req <- mock_req("/.well-known/openeo", method = "GET")
+  res <- mock_res()
+  list(
+    url = "http://0.0.0.0:8000/",
+    api_version = expected_api_version,
+    production = FALSE
   )
 }
