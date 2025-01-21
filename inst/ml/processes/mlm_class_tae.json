@@ -1,0 +1,117 @@
+{
+    "id": "mlm_class_tae",
+    "summary": "Initialize a Temporal Attention Encoder (TAE) classification model",
+    "description": "Creates and configures a Temporal Attention Encoder (TAE) classification model. TAE leverages temporal attention mechanisms to process and analyze sequential data effectively. Parameters such as optimizer, learning rate, and decay schedules can be customized.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "epochs",
+            "description": "The number of training epochs. Defaults to 150.",
+            "optional": true,
+            "default": 150,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "batch_size",
+            "description": "The size of batches for training. Defaults to 64.",
+            "optional": true,
+            "default": 64,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "optimizer",
+            "description": "The optimizer to use for training. Defaults to 'adam'. Supported values include 'adam', 'adabound', 'adabelief', 'madagrad', 'nadam', 'qhadam', 'radam', 'swats', and 'yogi'.",
+            "optional": true,
+            "default": "adam",
+            "schema": {
+                "type": "string",
+                "enum": [
+                    "adam",
+                    "adabound",
+                    "adabelief",
+                    "madagrad",
+                    "nadam",
+                    "qhadam",
+                    "radam",
+                    "swats",
+                    "yogi"
+                ]
+            }
+        },
+        {
+            "name": "learning_rate",
+            "description": "The initial learning rate for training. Defaults to 0.001.",
+            "optional": true,
+            "default": 0.001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "epsilon",
+            "description": "The epsilon value for numerical stability in optimizers. Defaults to 1e-8.",
+            "optional": true,
+            "default": 0.00000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "weight_decay",
+            "description": "The weight decay (L2 penalty) value for regularization. Defaults to 0.000001.",
+            "optional": true,
+            "default": 0.000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "lr_decay_epochs",
+            "description": "The number of epochs after which the learning rate is decayed. Defaults to 1.",
+            "optional": true,
+            "default": 1,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "lr_decay_rate",
+            "description": "The rate at which the learning rate is decayed after the specified number of epochs. Defaults to 0.95.",
+            "optional": true,
+            "default": 0.95,
+            "schema": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained Temporal Attention Encoder (TAE) classification model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    },
+    "links": [
+        {
+            "href": "https://doi.org/10.1109/CVPR42600.2020.01234",
+            "title": "V. Garnot, L. Landrieu, S. Giordano, and N. Chehata (2020), Satellite Image Time Series Classification With Pixel-Set Encoders and Temporal Self-Attention",
+            "type": "text/html",
+            "rel": "about"
+        }
+    ]
+}

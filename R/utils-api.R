@@ -17,9 +17,6 @@
 #'   error message to be returned to the user by the `api_error_handler`
 #'   function.
 #'
-#' \item `api_stopifnot`: Throws an error if the provided expression
-#'   is evaluated as `FALSE`.
-#'
 #' \item `get_host`: Get the API host address from an `req` object.
 #'
 #' \item `get_path`: Get the path from an `req` object.
@@ -42,16 +39,13 @@
 #'   header in CORS requests. Defaults to '*'.
 #'
 #' @param err The error object containing information about the
-#'   encountered error. If the error is thrown by `api_stopifnot` or
-#'   `api_stop` functions, this object has 'status' and 'message' fields
+#'   encountered error. If the error is thrown by `api_stop`
+#'   function, this object has 'status' and 'message' fields
 #'   that are used to produce the HTTP response error.
 #'
 #' @param status The HTTP status code to set for the response. This just
 #'   works if the `api_error_handler` function is handling errors in
 #'   `plumber`.
-#'
-#' @param expr The expression to evaluate. If the expression evaluates
-#'   to FALSE, an error will be raised.
 #'
 #' @param ... Additional arguments to be passed to error handling functions.
 #'
@@ -91,14 +85,6 @@ api_error_handler <- function(req, res, err) {
 #' @export
 api_stop <- function(status, ...) {
   stop(errorCondition(paste0(...), status = status))
-}
-#' @rdname api_helpers
-#' @export
-api_stopifnot <- function(expr, status, ...) {
-  message <- paste0(...)
-  if (!nzchar(message))
-    message <- paste(deparse(substitute(expr)), "is not TRUE")
-  if (!expr) api_stop(status, message)
 }
 #' @rdname api_helpers
 #' @export
@@ -224,14 +210,22 @@ new_credential <- function(api, user, password) {
   file <- api_attr(api, "credentials")
   stopifnot(!is.null(file) || file.exists(file))
   credentials <- readRDS(file)
-  credentials$users[[user]] <- list(user = user, password = password)
+  current_value <- list()
+  if (user %in% names(credentials$users))
+    current_value <- credentials$users[[user]]
+  credentials$users[[user]] <- utils::modifyList(
+    x = current_value,
+    val = list(user = user, password = password)
+  )
   saveRDS(credentials, file)
 }
-
+empty_credentials <- function() {
+  list(users = list(), tokens = list())
+}
 #' @export
 set_credentials <- function(api, file) {
   if (!file.exists(file))
-    saveRDS(list(users = list(), tokens = list()), file)
+    saveRDS(empty_credentials(), file)
   api_attr(api, "credentials") <- file
   invisible(api)
 }
@@ -239,28 +233,41 @@ new_token <- function(credentials, user, valid_days = 30) {
   token <- ids::random_id()
   expiry <- Sys.time() + valid_days * 60 * 60 * 24
   credentials$users[[user]]$token <- token
-  credentials$users[[user]]$expiry <- expiry
-  credentials$tokens[[token]] <- user
+  credentials$tokens[[token]]$expiry <- expiry
+  credentials$tokens[[token]]$user <- user
   credentials
 }
 #' @export
-token_user <- function(api, token) {
+get_token <- function(req) {
+  gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+}
+#' @export
+get_token_user <- function(api, token) {
+  if (!length(token)) {
+    api_stop(401, "Token is missing")
+  }
   file <- api_attr(api, "credentials")
-  stopifnot(!is.null(file) || file.exists(file))
-  credentials <- readRDS(file)
+  if (is.null(file)) {
+    credentials <- empty_credentials()
+  } else if (file.exists(file)) {
+    credentials <- readRDS(file)
+  } else {
+    stop("Credential file not found", call. = FALSE)
+  }
   if (!token %in% names(credentials$tokens)) {
     api_stop(401, "Invalid token")
   }
-  user <- credentials$tokens[[token]]
-  if (Sys.time() > credentials$users[[user]]$expiry) {
+  if (Sys.time() > credentials$tokens[[token]]$expiry) {
     api_stop(401, "Token expired")
   }
+  user <- credentials$tokens[[token]]$user
   user
 }
 api_workdir <- function(api) {
   api$work_dir
 }
-user_workspace <- function(api, user) {
+#' @export
+api_user_workspace <- function(api, user) {
   if (!dir.exists(api_workdir(api))) {
     dir.create(api_workdir(api))
     dir.create(file.path(api_workdir(api), "workspace"))
@@ -270,4 +277,108 @@ user_workspace <- function(api, user) {
     dir.create(workspace_dir)
   }
   workspace_dir
+}
+create_env <- function(api, user, job, req) {
+  list(
+    openeocraft = TRUE,
+    api = api,
+    user = user,
+    job = job,
+    req = req
+  )
+}
+#' Get Supported File Formats
+#'
+#' This function returns a list of supported input and output file formats
+#' for GIS data. Each format includes details such as title, description,
+#' GIS data types, and parameters.
+#'
+#' @return A list containing two elements:
+#' \describe{
+#'   \item{input}{A list of supported input formats.}
+#'   \item{output}{A list of supported output formats.}
+#' }
+#' @export
+file_formats <- function() {
+  # Define the output formats
+  outputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Export to GeoTiff.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    ),
+    NetCDF = list(
+      title = "Network Common Data Form",
+      description = "Export to NetCDF.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "NetCDF"
+        )
+      )
+    ),
+    RDS = list(
+      title = "R Data Serialization",
+      description = "Export to RDS.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "RDS"
+        )
+      )
+    ),
+    JSON = list(
+      title = "JSON Data Serialization",
+      description = "Export to JSON.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "JSON"
+        )
+      )
+    )
+  )
+
+  # Define the input formats
+  inputFormats <- list(
+    GTiff = list(
+      title = "GeoTiff",
+      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    )
+  )
+
+  # return the list of supported formats
+  list(
+    input = inputFormats,
+    output = outputFormats
+  )
+}
+
+#' @export
+make_job_files_url <- function(host, user, job_id, file) {
+  token <- base64enc::base64encode(charToRaw(user))
+  file <- file.path("/files/jobs", job_id, file)
+  paste0(host, file, "?token=", token)
+}
+#' @export
+make_workspace_files_url <- function(host, user, folder, file) {
+  token <- base64enc::base64encode(charToRaw(user))
+  file <- file.path("/files/root", folder, file)
+  paste0(host, file, "?token=", token)
 }

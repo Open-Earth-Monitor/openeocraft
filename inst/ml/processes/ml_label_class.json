@@ -1,0 +1,50 @@
+{
+    "id": "ml_label_class",
+    "summary": "Assign class labels to a datacube",
+    "description": "This function assigns class labels to the provided dataset based on a machine learning model or rule-based classification.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+   "parameters": [
+        {
+            "name": "data",
+            "description": "The datacube to which class labels will be assigned.",
+            "schema": {
+                "type": "object",
+                "subtype": "datacube",
+                "dimensions": [
+                    {
+                        "type": "geometry"
+                    },
+                    {
+                        "type": "bands"
+                    },
+                    {
+                        "type": "time",
+                        "optional": true
+                    }
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "A datacube with assigned class labels. The result includes the original dataset with an additional dimension or attribute representing the predicted class labels.",
+        "schema": {
+            "type": "object",
+            "subtype": "datacube",
+            "dimensions": [
+                {
+                    "type": "geometry"
+                },
+                {
+                    "type": "bands"
+                },
+                {
+                    "type": "label",
+                    "description": "Class labels assigned to the data"
+                }
+            ]
+        }
+    }
+}

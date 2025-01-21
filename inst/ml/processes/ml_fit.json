@@ -1,0 +1,63 @@
+{
+    "id": "ml_fit",
+    "summary": "Train a machine learning model",
+    "description": "Fits a machine learning model to a dataset. This process involves analyzing training data to learn patterns and relationships.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "model",
+            "description": "The machine learning model to train. Should be an instance of a compatible model such as Random Forest.",
+            "schema": {
+                "type": "object",
+                "subtype": "ml-model"
+            }
+        },
+        {
+            "name": "training_set",
+            "description": "The dataset used to train the model. Contains both independent variables and the dependent variable for analysis.",
+            "schema": [
+                {
+                    "type": "object",
+                    "subtype": "datacube",
+                    "dimensions": [
+                        {
+                            "type": "geometry"
+                        },
+                        {
+                            "type": "bands"
+                        }
+                    ]
+                },
+                {
+                    "type": "object",
+                    "subtype": "datacube",
+                    "dimensions": [
+                        {
+                            "type": "geometry"
+                        },
+                        {
+                            "type": "other"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "target",
+            "description": "The name of the dependent variable (label) in the dataset.",
+            "schema": {
+                "type": "string"
+            }
+        }
+    ],
+    "returns": {
+        "description": "A trained model object that can be used for predictions or further analysis. The model object can also be saved with ``save_ml_model()`` and restored with ``load_ml_model()``.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    }
+}

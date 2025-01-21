@@ -1,0 +1,66 @@
+{
+    "id": "mlm_class_random_forest",
+    "summary": "Initialize a Random Forest classification model",
+    "description": "Creates and configures a Random Forest classification model. Parameters such as the number of trees and maximum depth can be specified.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "num_trees",
+            "description": "The number of trees in the Random Forest.",
+            "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 100
+            }
+        },
+        {
+            "name": "max_variables",
+            "description": "Specifies how many split variables will be used at a node.\n\nThe following options are available:\n\n- *integer*: The given number of variables are considered for each split.\n- `log2`: The logarithm with base 2 of the number of variables are considered for each split.\n- `sqrt`: The square root of the number of variables are considered for each split. This is often the default for classification.",
+            "optional": true,
+            "default": "sqrt",
+            "schema": [
+                {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "log2",
+                        "sqrt"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "random_state",
+            "description": "A randomization seed to use for the random sampling in training. If not given or `null`, no seed is used and results may differ on subsequent use.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained Random Forest classification model instance.",
+      "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    },
+    "links": [
+        {
+            "href": "https://doi.org/10.1023/A:1010933404324",
+            "title": "Breiman (2001): Random Forests",
+            "type": "text/html",
+            "rel": "about"
+        }
+    ]
+}

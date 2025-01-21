@@ -1,0 +1,138 @@
+{
+    "id": "ml_mlp",
+    "summary": "Initialize a Multi-Layer Perceptron (MLP) model",
+    "description": "Creates and configures a Multi-Layer Perceptron (MLP) model. Parameters such as the architecture, optimizer, learning rate, and other training options can be specified.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "layers",
+            "description": "A list specifying the number of neurons in each layer of the MLP. Defaults to [512, 512, 512].",
+            "optional": true,
+            "default": [512, 512, 512],
+            "schema": {
+                "type": "array",
+                "items": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "minItems": 1
+            }
+        },
+        {
+            "name": "dropout_rates",
+            "description": "A list of dropout rates for each layer, corresponding to the layers. Must match the number of layers. Defaults to [0.2, 0.3, 0.4].",
+            "optional": true,
+            "default": [0.2, 0.3, 0.4],
+            "schema": {
+                "type": "array",
+                "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                },
+                "minItems": 1
+            }
+        },
+        {
+            "name": "optimizer",
+            "description": "The optimizer to use for training. Defaults to 'adam'. Supported values include 'adam', 'adabound', 'adabelief', 'madagrad', 'nadam', 'qhadam', 'radam', 'swats', and 'yogi'.",
+            "optional": true,
+            "default": "adam",
+            "schema": {
+                "type": "string",
+                "enum": [
+                    "adam",
+                    "adabound",
+                    "adabelief",
+                    "madagrad",
+                    "nadam",
+                    "qhadam",
+                    "radam",
+                    "swats",
+                    "yogi"
+                ]
+            }
+        },
+        {
+            "name": "learning_rate",
+            "description": "The initial learning rate for training. Defaults to 0.001.",
+            "optional": true,
+            "default": 0.001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "epsilon",
+            "description": "The epsilon value for numerical stability in optimizers. Defaults to 1e-8.",
+            "optional": true,
+            "default": 0.00000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "weight_decay",
+            "description": "The weight decay (L2 penalty) value for regularization. Defaults to 1e-6.",
+            "optional": true,
+            "default": 0.000001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "epochs",
+            "description": "The number of training epochs. Defaults to 100.",
+            "optional": true,
+            "default": 100,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "batch_size",
+            "description": "The size of batches for training. Defaults to 64.",
+            "optional": true,
+            "default": 64,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "random_state",
+            "description": "A randomization seed to use for the random sampling in training. If not given or `null`, no seed is used and results may differ on subsequent use.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        },
+        {
+            "name": "classification",
+            "description": "Specifies whether the MLP model is for classification. Defaults to `true`.",
+            "optional": true,
+            "default": true,
+            "schema": {
+                "type": "boolean"
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained MLP model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    }
+}

@@ -4,7 +4,7 @@
 \alias{job_create}
 \title{Create job}
 \usage{
-job_create(api, user, job)
+job_create(api, req, res, user, job)
 }
 \arguments{
 \item{req}{the request body containing job details}

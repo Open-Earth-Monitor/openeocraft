@@ -1,0 +1,86 @@
+{
+    "id": "mlm_class_xgboost",
+    "summary": "Initialize an XGBoost classification model",
+    "description": "Creates and configures an XGBoost classification model. Parameters such as learning rate, max depth, and early stopping rounds can be specified.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "learning_rate",
+            "description": "The step size shrinkage used to prevent overfitting during training. A smaller value makes the optimization more robust but requires more iterations.",
+            "schema": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0,
+                "default": 0.15
+            }
+        },
+        {
+            "name": "min_split_loss",
+            "description": "The minimum loss reduction required to make a further split in a leaf node. Higher values prevent overly small splits.",
+            "schema": {
+                "type": "number",
+                "minimum": 0.0,
+                "default": 1.0
+            }
+        },
+        {
+            "name": "max_depth",
+            "description": "The maximum depth of a tree. Increasing this value makes the model more complex and potentially overfit.",
+            "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 5
+            }
+        },
+        {
+            "name": "nfold",
+            "description": "The number of folds used in cross-validation for model tuning.",
+            "optional": true,
+            "default": 5,
+            "schema": {
+                "type": "integer",
+                "minimum": 2
+            }
+        },
+        {
+            "name": "early_stopping_rounds",
+            "description": "The number of rounds of training after which to stop if the validation score does not improve.",
+            "optional": true,
+            "default": 20,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "random_state",
+            "description": "A randomization seed to ensure reproducibility. If not given or `null`, results may vary between runs.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained XGBoost classification model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    },
+    "links": [
+        {
+            "href": "https://doi.org/10.1145/2939672.2939785",
+            "title": "Chen and Guestrin (2016): XGBoost: A Scalable Tree Boosting System",
+            "type": "text/html",
+            "rel": "about"
+        }
+    ]
+}
