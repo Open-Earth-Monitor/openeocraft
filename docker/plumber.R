@@ -122,7 +122,7 @@ async(function(req, res) {
 #* @get /jobs/<job_id:str>
 async(function(req, res, job_id) {
   print("GET /jobs/<jobid>")
-  doc <- api_job_info(api, req, job_id)
+  doc <- api_job_info(api, req, res, job_id)
   doc
 })
 
