@@ -300,11 +300,13 @@ create_env <- function(api, user, job, req) {
 #' }
 #' @export
 file_formats <- function() {
+  # TODO: improve file formats API enabling the registration of
+  #   additional formats
   # Define the output formats
   outputFormats <- list(
-    GTiff = list(
+    GeoTiff = list(
       title = "GeoTiff",
-      description = "Export to GeoTiff.",
+      description = "Export data to GeoTiff.",
       gis_data_types = list("raster"),
       parameters = list(
         format = list(
@@ -315,7 +317,7 @@ file_formats <- function() {
     ),
     NetCDF = list(
       title = "Network Common Data Form",
-      description = "Export to NetCDF.",
+      description = "Export data to NetCDF.",
       gis_data_types = list("raster"),
       parameters = list(
         format = list(
@@ -324,6 +326,43 @@ file_formats <- function() {
         )
       )
     ),
+    JSON = list(
+      title = "JSON Data Serialization",
+      description = "Export data to JSON.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "JSON"
+        )
+      )
+    )
+  )
+
+  # Define the input formats
+  inputFormats <- list(
+    GeoTiff = list(
+      title = "GeoTiff",
+      description = "GeoTiff is one of the most widely supported raster formats. This backend allows reading from GeoTiff to create raster data cubes.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    )
+  )
+
+  # return the list of supported formats
+  list(
+    input = inputFormats,
+    output = outputFormats
+  )
+}
+
+file_formats_auth <- function(doc) {
+  outputFormats <- list(
     RDS = list(
       title = "R Data Serialization",
       description = "Export to RDS.",
@@ -349,24 +388,12 @@ file_formats <- function() {
   )
 
   # Define the input formats
-  inputFormats <- list(
-    GTiff = list(
-      title = "GeoTiff",
-      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "GeoTiff"
-        )
-      )
-    )
-  )
+  inputFormats <- list()
 
   # return the list of supported formats
   list(
-    input = inputFormats,
-    output = outputFormats
+    input = utils::modifyList(doc$input, inputFormats),
+    output = utils::modifyList(doc$output, outputFormats)
   )
 }
 

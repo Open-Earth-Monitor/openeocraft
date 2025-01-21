@@ -117,7 +117,7 @@ api_processes.openeo_v1 <- function(api, req, res, check_auth = FALSE) {
 #' @rdname api_handling
 #' @export
 api_result.openeo_v1 <- function(api, req, res) {
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  token <- get_token(req)
   user <- get_token_user(api, token)
   pg <- req$body
 
@@ -227,4 +227,14 @@ api_job_create.openeo_v1 <- function(api, req, res) {
   res$setHeader("OpenEO-Identifier", job_id)
   res$status <- 201
   list()
+}
+#' @export
+api_file_formats.openeo_v1 <- function(api, req, res) {
+  doc <- file_formats()
+  token <- get_token(req)
+  if (length(token)) {
+    user <- get_token_user(api, token)
+    doc <- file_formats_auth(doc)
+  }
+  doc
 }

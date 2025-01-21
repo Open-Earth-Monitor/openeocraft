@@ -112,7 +112,7 @@ async(function(req, res) {
 #* @get /jobs
 async(function(req, res) {
   print("GET /jobs")
-  doc <- api_jobs_list(api, req)
+  doc <- api_jobs_list(api, req, res)
   doc
 })
 
@@ -205,8 +205,9 @@ async(function(req, res, job_id, offset, level, limit) {
 #* @serializer unboxedJSON
 #* @get /file_formats
 async(function(req, res) {
-  print("file_formats")
-  file_formats()
+  print("GET /file_formats")
+  doc <- api_file_formats(api, req, res)
+  doc
 })
 
 # NOTE:
@@ -231,14 +232,14 @@ function(pr) {
 #* @serializer unboxedJSON
 #* @get /
 async(function(req, res) {
-  api_landing_page(api, req)
+  api_landing_page(api, req, res)
 })
 
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
 async(function(req, res) {
-  api_wellknown(api, req)
+  api_wellknown(api, req, res)
 })
 
 #* Workspace job files handling

@@ -236,6 +236,11 @@ api_job_info <- function(api, req, res, job_id) {
 api_job_create <- function(api, req, res) {
   UseMethod("api_job_create", api)
 }
+#' @rdname api_handling
+#' @export
+api_file_formats <- function(api, req, res) {
+  UseMethod("api_file_formats", api)
+}
 # TODO:
 # - Supported UDF runtimes `GET /udf_runtime`
 # - Supported secondary web service protocols `GET /service_types`

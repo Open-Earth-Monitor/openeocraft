@@ -15,6 +15,7 @@
 \alias{api_jobs_list}
 \alias{api_job_info}
 \alias{api_job_create}
+\alias{api_file_formats}
 \title{Handle API requests}
 \usage{
 \method{api_result}{openeo_v1}(api, req, res)
@@ -73,6 +74,8 @@ api_jobs_list(api, req, res)
 api_job_info(api, req, res, job_id)
 
 api_job_create(api, req, res)
+
+api_file_formats(api, req, res)
 }
 \arguments{
 \item{api}{An object representing the API. This object is typically

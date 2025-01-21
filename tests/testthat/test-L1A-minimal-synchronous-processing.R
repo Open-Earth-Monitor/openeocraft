@@ -6,16 +6,7 @@
 # POST /result	Rejects processing if a payment is required.
 
 # Create openEO API object
-api <- create_openeo_v1(
-  id = "openeocraft",
-  title = "openEO compliant R backend",
-  description = "OpenEOcraft offers a robust R framework designed for the development and deployment of openEO API applications.",
-  backend_version = "0.2.0",
-  stac_api = NULL,
-  work_dir = getwd(),
-  conforms_to = NULL,
-  production = FALSE
-)
+api <- mock_create_openeo_v1()
 
 test_that("POST /result	Is supported (with authentication)", {
   # Call without token
