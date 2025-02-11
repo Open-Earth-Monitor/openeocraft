@@ -65,7 +65,9 @@ load_rlang <- function(api) {
   invisible(NULL)
 }
 run_pgraph <- function(api, req, user, job, pg) {
-  if ("process" %in% names(pg))
+  if (is.null(pg))
+    return(NULL)
+  if ("process" %in% names(pg) )
     pg <- pg$process
   expr <- pgraph_expr(pg)
   # TODO: need to define a scope with api and user objects

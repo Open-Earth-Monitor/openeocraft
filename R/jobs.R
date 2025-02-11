@@ -40,6 +40,15 @@ job_upd_status <- function(api, user, job_id, status) {
   job_save_rds(api, user, job, jobs)
   job
 }
+
+job_get <- function(api, user, job_id) {
+  jobs <- job_read_rds(api, user)
+  if (!job_id %in% names(jobs)) {
+    api_stop(500, "Could not find sync job id")
+  }
+  job <- jobs[[job_id]]
+  job
+}
 job_delete_rds <- function(api, user, job, jobs) {
   if (!job$id %in% names(jobs))
     return(invisible(NULL))

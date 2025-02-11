@@ -173,7 +173,7 @@ api_jobs_list.openeo_v1 <- function(api, req, res) {
   jobs <- job_read_rds(api, user)
   jobs <- list(
     jobs = unname(lapply(jobs, \(job) {
-      job[c("id", "status", "created")]
+      job[c("id", "title", "status", "created")]
     })),
     # TODO: populate this link with some function like we do in other endpoints
     links = list()
@@ -198,6 +198,9 @@ api_job_info.openeo_v1 <- function(api, req, res, job_id) {
 api_job_create.openeo_v1 <- function(api, req, res) {
   token <- get_token(req)
   user <- get_token_user(api, token)
+  if (is.null(req$body)) {
+    api_stop(400, "Missing job information")
+  }
   job_info <- req$body
   # TODO: create job_check
   #job_info_check(job_info)
