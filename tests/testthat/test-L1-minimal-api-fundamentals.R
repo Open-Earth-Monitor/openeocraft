@@ -40,18 +40,17 @@ test_that("HTTPS: HTTPS is enforced for all requests", {
 
 
 test_that("Error Handling: Returns valid HTTP error codes", {
-  error_codes <- c(400, 401, 403, 404, 500, 503)
+  error_codes <- c(400L, 401L, 403L, 404L, 500L, 503L)
   for (code in error_codes) {
     result <- list(status = code)
-    expect_true(result$status >= 400 && result$status <= 599)
+    expect_true(result$status >= 400L && result$status <= 599L)
   }
 })
 
 test_that("Error Handling: Returns JSON object with code and message", {
-  error_response <- list(code = 404, message = "Not Found")
+  error_response <- list(code = 404L, message = "Not Found")
   json_response <- jsonlite::toJSON(error_response, auto_unbox = TRUE)
   parsed_response <- jsonlite::fromJSON(json_response)
-
   expect_true("code" %in% names(parsed_response))
   expect_true("message" %in% names(parsed_response))
 })

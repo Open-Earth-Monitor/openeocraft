@@ -233,6 +233,11 @@ api_job_info <- function(api, req, res, job_id) {
 }
 #' @rdname api_handling
 #' @export
+api_job_delete <- function(api, req, res, job_id) {
+  UseMethod("api_job_delete", api)
+}
+#' @rdname api_handling
+#' @export
 api_job_create <- function(api, req, res) {
   UseMethod("api_job_create", api)
 }

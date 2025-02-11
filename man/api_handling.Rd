@@ -14,6 +14,7 @@
 \alias{api_result}
 \alias{api_jobs_list}
 \alias{api_job_info}
+\alias{api_job_delete}
 \alias{api_job_create}
 \alias{api_file_formats}
 \title{Handle API requests}
@@ -72,6 +73,8 @@ api_result(api, req, res)
 api_jobs_list(api, req, res)
 
 api_job_info(api, req, res, job_id)
+
+api_job_delete(api, req, res, job_id)
 
 api_job_create(api, req, res)
 

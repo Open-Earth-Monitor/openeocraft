@@ -69,7 +69,7 @@ api_cors_handler <- function(req, res, origin = "*", methods = "*") {
     res$setHeader("Access-Control-Allow-Methods", methods)
     res$setHeader("Access-Control-Allow-Headers",
                   req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-    res$status <- 200
+    res$status <- 200L
     return(list())
   }
 }
@@ -244,7 +244,7 @@ get_token <- function(req) {
 #' @export
 get_token_user <- function(api, token) {
   if (!length(token)) {
-    api_stop(401, "Token is missing")
+    api_stop(401L, "Token is missing")
   }
   file <- api_attr(api, "credentials")
   if (is.null(file)) {
@@ -255,10 +255,10 @@ get_token_user <- function(api, token) {
     stop("Credential file not found", call. = FALSE)
   }
   if (!token %in% names(credentials$tokens)) {
-    api_stop(401, "Invalid token")
+    api_stop(401L, "Invalid token")
   }
   if (Sys.time() > credentials$tokens[[token]]$expiry) {
-    api_stop(401, "Token expired")
+    api_stop(401L, "Token expired")
   }
   user <- credentials$tokens[[token]]$user
   user

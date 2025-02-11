@@ -17,7 +17,7 @@
   i <- base::match(time, .data_timeline(data))
   if (base::any(base::is.na(i))) {
     time <- base::paste0(time[base::is.na(i)], collapse = ",")
-    openeocraft::api_stop(404, "Time(s) ", time, " not found")
+    openeocraft::api_stop(404L, "Time(s) ", time, " not found")
   }
   if ("bands" %in% base::names(stars::st_dimensions(data)))
     return(data[,,,,i])
@@ -28,7 +28,7 @@
   j <- base::match(band, .data_bands(data))
   if (base::any(base::is.na(j))) {
     band <- base::paste0(band[base::is.na(j)], collapse = ",")
-    openeocraft::api_stop(404, "Band(s) ", band, " not found")
+    openeocraft::api_stop(404L, "Band(s) ", band, " not found")
   }
   dplyr::select(data, dplyr::all_of(j))
 }

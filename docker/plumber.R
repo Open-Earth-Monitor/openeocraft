@@ -248,13 +248,13 @@ async(function(req, res, job_id, asset) {
   print("GET /files/jobs/<jobid>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
-    api_stop(401, "URL token parameter is missing")
+    api_stop(401L, "URL token parameter is missing")
   }
   token <- req$args$token
   user <- rawToChar(base64enc::base64decode(token))
   path <- file.path(api_user_workspace(api, user), "jobs", job_id, file)
   if (!file.exists(path)) {
-    api_stop(404, "File not found")
+    api_stop(404L, "File not found")
   }
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
@@ -267,13 +267,13 @@ async(function(req, res, folder, asset) {
   print("GET /files/root/<folder>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
-    api_stop(401, "URL token parameter is missing")
+    api_stop(401L, "URL token parameter is missing")
   }
   token <- req$args$token
   user <- rawToChar(base64enc::base64decode(token))
   path <- file.path(api_user_workspace(api, user), "root", folder, file)
   if (!file.exists(path)) {
-    api_stop(404, "File not found")
+    api_stop(404L, "File not found")
   }
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)

@@ -171,7 +171,7 @@ job_create <- function(api, req, res, user, job) {
   host <- get_host(api, req)
   res$setHeader("Location", make_url(host, "/jobs/", job_id))
   res$setHeader("OpenEO-Identifier", job_id)
-  res$status <- 201
+  res$status <- 201L
   list()
 }
 #' @export
@@ -223,14 +223,14 @@ job_start <- function(api, req, res, user, job_id) {
   jobs <- job_read_rds(api, user)
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
-    api_stop(404, "Job not found")
+    api_stop(404L, "Job not found")
   }
   # TODO: get process from job_id
   procs <- procs_read_rds(api)
   if (!is.null(procs[[job_id]])) {
     # TODO: check if there is another message to finished state!
     if (procs[[job_id]]$is_alive() || jobs[[job_id]]$status == "finished") {
-      return(list(id = job_id, message = "Job already started", code = 200))
+      return(list(id = job_id, message = "Job already started", code = 200L))
     }
   }
 
@@ -242,7 +242,7 @@ job_start <- function(api, req, res, user, job_id) {
   proc <- job_async(api, req, user, job_id)
   procs[[job_id]] <- proc
   procs_save_rds(api, procs)
-  res$status <- 202
+  res$status <- 202L
   list()
 }
 
@@ -255,7 +255,7 @@ job_info <- function(api, user, job_id) {
 
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
-    api_stop(404, "Job not found")
+    api_stop(404L, "Job not found")
   }
 
   # Retrieve the job from the jobs_list
@@ -280,7 +280,7 @@ job_update <- function(api, user, job_id, job) {
 
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
-    api_stop(404, "Job not found")
+    api_stop(404L, "Job not found")
   }
 
   # Retrieve the job from the jobs_list
@@ -295,7 +295,7 @@ job_update <- function(api, user, job_id, job) {
   # Update the job in the jobs_list
   job_save_rds(api, user, job, jobs)
 
-  list(id = job_id, message = "Job updated", code = 200)
+  list(id = job_id, message = "Job updated", code = 200L)
 }
 
 
@@ -307,13 +307,12 @@ job_delete <- function(api, user, job_id) {
   jobs <- job_read_rds(api, user)
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
-    api_stop(404, "Job not found")
+    api_stop(404L, "Job not found")
   }
   removed_job <- jobs[[job_id]]
   job_delete_rds(api, user, removed_job, jobs)
   # Delete the folder associated with the job_id
   job_del_dir(api, user, job_id)
-  list(message = "Job deleted", code = 200, deleted_job = removed_job$id)
 }
 # Get an estimate for a job
 #' @export
@@ -330,12 +329,12 @@ job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) 
   offset <- as.integer(offset)
   if (is.na(offset)) offset <- 0
   if (!level %in% level_list) {
-    api_stop(400, "level must be one of ",
+    api_stop(400L, "level must be one of ",
              paste0("'", level_list, "'", collapse = ", "))
   }
   limit <- as.integer(limit)
   if (limit < 1) {
-    api_stop(400, "limit parameter must be >= 1")
+    api_stop(400L, "limit parameter must be >= 1")
   }
   logs <- logs_read_rds(api, user, job_id)
   levels <- vapply(logs, \(log) log$level, character(1))
@@ -349,7 +348,7 @@ job_get_results <- function(api, user, job_id) {
   jobs <- job_read_rds(api, user)
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
-    api_stop(404, "Job not found")
+    api_stop(404L, "Job not found")
   }
   job <- jobs[[job_id]]
   if (job$status == .job_status_error) {
@@ -357,7 +356,7 @@ job_get_results <- function(api, user, job_id) {
   }
   results_path <- file.path(job_get_dir(api, user, job_id))
   if (!dir.exists(results_path)) {
-    api_stop(404, "No results found")
+    api_stop(404L, "No results found")
   }
   if (job$status != "finished") {
     return(job_empty_collection(api, user, job))
@@ -382,6 +381,6 @@ job_empty_collection <- function(api, user, job) {
 }
 job_info_check <- function(job_info) {
   if (!all(c("title", "description", "process") %in% names(job_info))) {
-    api_stop(400, "Invalid job data")
+    api_stop(400L, "Invalid job data")
   }
 }

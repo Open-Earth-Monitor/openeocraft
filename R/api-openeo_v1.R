@@ -9,7 +9,7 @@ api_credential.openeo_v1 <- function(api, req, res) {
   credentials <- readRDS(file)
   if (!user %in% names(credentials$users) ||
       credentials$users[[user]]$password != password) {
-    api_stop(403, "User or password does not match")
+    api_stop(403L, "User or password does not match")
   }
   # user is logged
   if (!"token" %in% names(credentials$users[[user]])) {
@@ -168,7 +168,7 @@ api_result.openeo_v1 <- function(api, req, res) {
 }
 #' @export
 api_jobs_list.openeo_v1 <- function(api, req, res) {
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  token <- get_token(req)
   user <- get_token_user(api, token)
   jobs <- job_read_rds(api, user)
   jobs <- list(
@@ -182,27 +182,39 @@ api_jobs_list.openeo_v1 <- function(api, req, res) {
 }
 #' @export
 api_job_info.openeo_v1 <- function(api, req, res, job_id) {
-  token <- gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+  token <- get_token(req)
   user <- get_token_user(api, token)
   jobs <- job_read_rds(api, user)
   # Check if the job_id exists in the jobs_list
   if (!(job_id %in% names(jobs))) {
-    api_stop(404, "Job not found")
+    api_stop(404L, "Job not found")
   }
   # Retrieve the job from the jobs_list
   job <- jobs[[job_id]]
+  res$status <- 200L
   # TODO: populate links?
   job
+}
+#' @export
+api_job_delete.openeo_v1 <- function(api, req, res, job_id) {
+  token <- get_token(req)
+  user <- get_token_user(api, token)
+  job_delete(api, user, job_id)
+  res$status <- 204L
+  list()
 }
 #' @export
 api_job_create.openeo_v1 <- function(api, req, res) {
   token <- get_token(req)
   user <- get_token_user(api, token)
   if (is.null(req$body)) {
-    api_stop(400, "Missing job information")
+    api_stop(400L, "Missing job information")
   }
   job_info <- req$body
   # TODO: create job_check
+  if (!"process" %in% names(job_info)) {
+    api_stop(400L, "Invalid job information")
+  }
   #job_info_check(job_info)
   job_id <- random_id(16L)
   job <- list(
@@ -228,7 +240,7 @@ api_job_create.openeo_v1 <- function(api, req, res) {
   host <- get_host(api, req)
   res$setHeader("Location", make_url(host, "/jobs/", job_id))
   res$setHeader("OpenEO-Identifier", job_id)
-  res$status <- 201
+  res$status <- 201L
   list()
 }
 #' @export
