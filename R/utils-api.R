@@ -269,12 +269,12 @@ api_workdir <- function(api) {
 #' @export
 api_user_workspace <- function(api, user) {
   if (!dir.exists(api_workdir(api))) {
-    dir.create(api_workdir(api))
-    dir.create(file.path(api_workdir(api), "workspace"))
+    dir.create(api_workdir(api), recursive = TRUE)
+    dir.create(file.path(api_workdir(api), "workspace"), recursive = TRUE)
   }
   workspace_dir <- file.path(api_workdir(api), "workspace", user)
   if (!dir.exists(workspace_dir)) {
-    dir.create(workspace_dir)
+    dir.create(workspace_dir, recursive = TRUE)
   }
   workspace_dir
 }

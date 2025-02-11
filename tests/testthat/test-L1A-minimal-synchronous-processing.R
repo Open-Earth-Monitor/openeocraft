@@ -18,4 +18,9 @@ test_that("POST /result	Is supported (with authentication)", {
   req <- mock_req("/result", HTTP_AUTHORIZATION = "Test", method = "POST")
   res <- mock_res()
   expect_error(api_result(api, req, res), "Invalid token")
+
+  # Call with valid token
+  req <- mock_req("/result", HTTP_AUTHORIZATION = "5aad11e1d49b880a4468e1b252944e22", method = "POST")
+  res <- mock_res()
+  expect_true(is.environment(api_result(api, req, res)))
 })
