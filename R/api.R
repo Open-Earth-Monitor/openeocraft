@@ -243,6 +243,11 @@ api_job_create <- function(api, req, res) {
 }
 #' @rdname api_handling
 #' @export
+api_job_start <- function(api, req, res, job_id) {
+  UseMethod("api_job_start", api)
+}
+#' @rdname api_handling
+#' @export
 api_file_formats <- function(api, req, res) {
   UseMethod("api_file_formats", api)
 }

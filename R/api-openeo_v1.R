@@ -205,6 +205,12 @@ api_job_delete.openeo_v1 <- function(api, req, res, job_id) {
 }
 #' @export
 api_job_create.openeo_v1 <- function(api, req, res) {
+  # TODO: create job_check
+  # job_prepare(api, user, job)
+  # - fill defaults
+  # - check consistency of the provided fields
+  # - also check plan
+
   token <- get_token(req)
   user <- get_token_user(api, token)
   if (is.null(req$body)) {
@@ -241,6 +247,36 @@ api_job_create.openeo_v1 <- function(api, req, res) {
   res$setHeader("Location", make_url(host, "/jobs/", job_id))
   res$setHeader("OpenEO-Identifier", job_id)
   res$status <- 201L
+  list()
+}
+#' @export
+api_job_start.openeo_v1 <- function(api, req, res, job_id) {
+  token <- get_token(req)
+  user <- get_token_user(api, token)
+  jobs <- job_read_rds(api, user)
+  # Check if the job_id exists in the jobs_list
+  if (!(job_id %in% names(jobs))) {
+    api_stop(404L, "Job not found")
+  }
+  # TODO: get process from job_id
+  procs <- procs_read_rds(api)
+  if (!is.null(procs[[job_id]])) {
+    # TODO: check if there is another message to finished state!
+    if (procs[[job_id]]$is_alive() || jobs[[job_id]]$status == "finished") {
+      return(list(id = job_id, message = "Job already started", code = 200L))
+    }
+  }
+
+  # TODO: implement queue: check for maximum number of workers
+  # procs_alive(procs) -> manage process not alive
+  # define in the api how many workers to start?
+  # length(procs)
+  # length(procs) >= workers (per user?) --> wait
+  proc <- job_async(api, req, user, job_id)
+
+  procs[[job_id]] <- proc
+  procs_save_rds(api, procs)
+  res$status <- 202L
   list()
 }
 #' @export

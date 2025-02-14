@@ -16,6 +16,7 @@
 \alias{api_job_info}
 \alias{api_job_delete}
 \alias{api_job_create}
+\alias{api_job_start}
 \alias{api_file_formats}
 \title{Handle API requests}
 \usage{
@@ -77,6 +78,8 @@ api_job_info(api, req, res, job_id)
 api_job_delete(api, req, res, job_id)
 
 api_job_create(api, req, res)
+
+api_job_start(api, req, res, job_id)
 
 api_file_formats(api, req, res)
 }

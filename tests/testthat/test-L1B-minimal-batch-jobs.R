@@ -16,7 +16,34 @@ mock_job <- '{
       "string"
     ],
     "deprecated": false,
-    "process_graph": {}
+    "process_graph": {
+      "dc": {
+        "process_id": "load_collection",
+        "arguments": {
+          "id": "Sentinel-2",
+          "spatial_extent": {
+            "west": 16.1,
+            "east": 16.6,
+            "north": 48.6,
+            "south": 47.2
+          },
+          "temporal_extent": [
+            "2018-01-01",
+            "2018-02-01"
+          ]
+        }
+      },
+      "save": {
+        "process_id": "save_result",
+        "arguments": {
+          "data": {
+            "from_node": "dc"
+          },
+          "format": "GTiff"
+        },
+        "result": true
+      }
+    }
   },
   "log_level": "warning"
 }'

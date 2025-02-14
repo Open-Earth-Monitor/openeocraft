@@ -60,6 +60,10 @@ mock_create_openeo_v1 <- function() {
   # Mock get mock users and  the mock token
   set_credentials(api, file = system.file("mock/mock-credentials.rds", package = "openeocraft"))
 
+  # Mock processes
+  processes_file <- system.file("mock/mock-processes.R", package = "openeocraft")
+  load_processes(api, processes_file)
+
   api
 }
 
