@@ -19,11 +19,15 @@ Description: |
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Depends:
     R (>= 3.5)
 Imports:
     plumber,
-    sits,
     jsonlite,
-    base64enc
+    base64enc,
+    callr,
+    swagger
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

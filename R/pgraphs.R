@@ -8,14 +8,14 @@ is_pnode <- function(node) {
   return(TRUE)
 }
 
-is_pgraph <- function(p) {
-  if (!is.list(p) || is.null(names(p)))
+is_pgraph <- function(pg) {
+  if (!is.list(pg) || is.null(names(pg)))
     return(FALSE)
-  if (!"process_graph" %in% names(p))
+  if (!"process_graph" %in% names(pg))
     return(FALSE)
-  if (!all(vapply(p$process_graph, is_pnode, logical(1))))
+  if (!all(vapply(pg$process_graph, is_pnode, logical(1))))
     return(FALSE)
-  if (base::sum(vapply(p$process_graph, pgraph_result, logical(1))) != 1)
+  if (sum(vapply(pg$process_graph, pgraph_result, logical(1))) != 1)
     return(FALSE)
   return(TRUE)
 }
@@ -46,8 +46,13 @@ arg_switch <- function(x, ...) {
   switch(arg_type(x), ..., stop("Not supported argument type."))
 }
 
-starting_pnode <- function(p) {
-  for (node in p$process_graph)
+list_expr <- function(args, env) {
+  args <- pnode_args(args, env = env)
+  as.call(c(as.name("list"), args))
+}
+
+starting_pnode <- function(pg) {
+  for (node in pg$process_graph)
     if (pgraph_result(node))
       return(node)
 }
@@ -57,7 +62,7 @@ pnode_args <- function(args, env) {
     arg_switch(
       arg,
       null = , character = , numeric = , logical = arg,
-      array = , object = pnode_args(arg, env = env),
+      array = , object = list_expr(arg, env = env),
       result_reference = {
         node <- get(arg$from_node, envir = env, inherits = FALSE)
         pnode_expr(node, env = env)
@@ -73,34 +78,29 @@ pnode_expr <- function(node, env) {
   as_call(node$process_id, args = args)
 }
 
-pgraph_result <- function(p) {
-  !is.null(p$result) && p$result
+pgraph_result <- function(pg) {
+  !is.null(pg$result) && pg$result
 }
 
-pgraph_params <- function(p) {
+pgraph_params <- function(pg) {
   unlist(
-    lapply(p$parameters, function(x) param(x$name, x$default)),
+    lapply(pg$parameters, function(x) param(x$name, x$default)),
     recursive = FALSE,
     use.names = TRUE
   )
 }
 
-pgraph_expr <- function(p, parent = NULL) {
-  stopifnot(is_pgraph(p))
+pgraph_expr <- function(pg, parent = NULL) {
+  stopifnot(is_pgraph(pg))
   if (is.null(parent))
     parent <- emptyenv()
-  pnode <- starting_pnode(p)
-  env <- list2env(p$process_graph, parent = parent)
+  pnode <- starting_pnode(pg)
+  env <- list2env(pg$process_graph, parent = parent)
   pnode_expr(pnode, env = env)
 }
 
-pgraph_fn <- function(p, parent = NULL) {
-  par <- pgraph_params(p)
-  expr <- pgraph_expr(p, parent = parent)
+pgraph_fn <- function(pg, parent = NULL) {
+  par <- pgraph_params(pg)
+  expr <- pgraph_expr(pg, parent = parent)
   make_fn(par, body = expr, env = parent.frame())
-}
-
-run_pgraph <- function(api, p) {
-  expr <- pgraph_expr(p)
-  eval(expr, envir = get_namespace(api))
 }

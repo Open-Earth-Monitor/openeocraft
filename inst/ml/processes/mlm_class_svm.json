@@ -1,0 +1,99 @@
+{
+    "id": "mlm_class_svm",
+    "summary": "Initialize an SVM classification model",
+    "description": "Creates and configures a Support Vector Machine (SVM) classification model. Parameters such as kernel type, cost, and tolerance can be specified.",
+    "categories": [
+        "machine learning"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "kernel",
+            "description": "The kernel type to be used in the SVM. Supported values are 'linear', 'poly', 'radial', and 'sigmoid'. Defaults to 'radial'.",
+            "optional": true,
+            "default": "radial",
+            "schema": {
+                "type": "string",
+                "enum": ["linear", "poly", "radial", "sigmoid"]
+            }
+        },
+        {
+            "name": "degree",
+            "description": "The degree of the polynomial kernel function. Ignored by kernels other than 'poly'. Defaults to 3.",
+            "optional": true,
+            "default": 3,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "coef0",
+            "description": "The independent term in kernel functions. Used by 'poly' and 'sigmoid' kernels. Defaults to 0.",
+            "optional": true,
+            "default": 0,
+            "schema": {
+                "type": "number"
+            }
+        },
+        {
+            "name": "cost",
+            "description": "The penalty parameter C of the error term. A higher value encourages fewer margin violations. Defaults to 10.",
+            "optional": true,
+            "default": 10,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "tolerance",
+            "description": "Tolerance for stopping criterion. Defaults to 0.001.",
+            "optional": true,
+            "default": 0.001,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "epsilon",
+            "description": "Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no penalty is associated in the training loss function. Defaults to 0.1.",
+            "optional": true,
+            "default": 0.1,
+            "schema": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        {
+            "name": "cachesize",
+            "description": "The size of the kernel cache in megabytes. Defaults to 1000 MB.",
+            "optional": true,
+            "default": 1000,
+            "schema": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        {
+            "name": "random_state",
+            "description": "A randomization seed to use for the random sampling in training. If not given or `null`, no seed is used and results may differ on subsequent use.",
+            "optional": true,
+            "default": null,
+            "schema": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "An untrained SVM classification model instance.",
+        "schema": {
+            "type": "object",
+            "subtype": "ml-model"
+        }
+    }
+}

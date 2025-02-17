@@ -5,6 +5,26 @@ OpenEOcraft offers a robust R framework designed for the development and deploym
 <p class="caption">
 
 
+## Easy Deployment locally
+If you have R installed and the relevant packages like plumber, sits, torch, jsonlite, etc, you can run the server locally. 
+You first need to clone the repository via this command:
+
+```bash
+git clone https://github.com/Open-Earth-Monitor/openeocraft.git
+```
+
+then you can change to that directory
+
+```bash
+cd openeocraft
+```
+
+Run it using Rscript :
+
+```bash
+Rscript docker/server.R
+```
+
 ## Easy Deployment with Docker
 If you want to change the source code then this approach is recommended.
 You first need to clone the repository via this command:
@@ -16,7 +36,7 @@ git clone https://github.com/Open-Earth-Monitor/openeocraft.git
 then you can change to that directory
 
 ```bash
-cd openeosits
+cd openeocraft
 ```
 
 Run it :

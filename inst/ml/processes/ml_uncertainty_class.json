@@ -1,0 +1,41 @@
+{
+    "id": "ml_uncertainty_class",
+    "summary": "Estimate uncertainty of classification outputs based on probabilities.",
+    "description": "Computes uncertainty measures for classification outputs using the provided method. The uncertainty is estimated based on class probability distributions.",
+    "categories": [
+        "machine learning",
+        "uncertainty analysis"
+    ],
+    "parameters": [
+        {
+            "name": "data",
+            "description": "The input datacube containing classification probabilities for each class.",
+            "schema": {
+                "type": "object",
+                "subtype": "datacube"
+            }
+        },
+        {
+            "name": "approach",
+            "description": "The approach to compute uncertainty. Different approaches capture various aspects of uncertainty:\n\n- `entropy`: Measures the overall disorder of the probability distribution.\n- `least`: The complement of the maximum predicted probability, reflecting the degree of ambiguity in classification.\n- `margin`: The difference between the top two predicted probabilities, where a smaller margin indicates higher uncertainty.\n- `ratio`: The ratio of the top two predicted probabilities, where a ratio close to 1 indicates high uncertainty.",
+            "optional": true,
+            "default": "margin",
+            "schema": {
+                "type": "string",
+                "enum": [
+                    "entropy",
+                    "least",
+                    "margin",
+                    "ratio"
+                ]
+            }
+        }
+    ],
+    "returns": {
+        "description": "A datacube with uncertainty scores for each pixel, reflecting the confidence of the classification.",
+        "schema": {
+            "type": "object",
+            "subtype": "datacube"
+        }
+    }
+}

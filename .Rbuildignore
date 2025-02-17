@@ -1,3 +1,5 @@
 ^openeocraft\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+workspace
+docker
