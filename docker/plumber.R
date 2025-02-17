@@ -112,7 +112,7 @@ async(function(req, res) {
 #* @get /jobs
 async(function(req, res) {
   print("GET /jobs")
-  doc <- api_jobs_list(api, req)
+  doc <- api_jobs_list(api, req, res)
   doc
 })
 
@@ -163,12 +163,10 @@ async(function(req, res, job_id) {
 #* @post /jobs/<job_id:str>/results
 async(function(req, res, job_id) {
   print("POST /jobs/<jobid>/results")
-  token <- get_token(req)
-  user <- get_token_user(api, token)
-  job_start(api, req, res, user, job_id)
+  api_job_start(api, req, res, job_id)
 })
 
-#* Start a batch job
+#* Lists batch job results
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>/results
@@ -205,8 +203,9 @@ async(function(req, res, job_id, offset, level, limit) {
 #* @serializer unboxedJSON
 #* @get /file_formats
 async(function(req, res) {
-  print("file_formats")
-  file_formats()
+  print("GET /file_formats")
+  doc <- api_file_formats(api, req, res)
+  doc
 })
 
 # NOTE:
@@ -231,14 +230,14 @@ function(pr) {
 #* @serializer unboxedJSON
 #* @get /
 async(function(req, res) {
-  api_landing_page(api, req)
+  api_landing_page(api, req, res)
 })
 
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
 async(function(req, res) {
-  api_wellknown(api, req)
+  api_wellknown(api, req, res)
 })
 
 #* Workspace job files handling
@@ -247,13 +246,13 @@ async(function(req, res, job_id, asset) {
   print("GET /files/jobs/<jobid>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
-    api_stop(401, "URL token parameter is missing")
+    api_stop(401L, "URL token parameter is missing")
   }
   token <- req$args$token
   user <- rawToChar(base64enc::base64decode(token))
   path <- file.path(api_user_workspace(api, user), "jobs", job_id, file)
   if (!file.exists(path)) {
-    api_stop(404, "File not found")
+    api_stop(404L, "File not found")
   }
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
@@ -266,13 +265,13 @@ async(function(req, res, folder, asset) {
   print("GET /files/root/<folder>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
-    api_stop(401, "URL token parameter is missing")
+    api_stop(401L, "URL token parameter is missing")
   }
   token <- req$args$token
   user <- rawToChar(base64enc::base64decode(token))
   path <- file.path(api_user_workspace(api, user), "root", folder, file)
   if (!file.exists(path)) {
-    api_stop(404, "File not found")
+    api_stop(404L, "File not found")
   }
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)

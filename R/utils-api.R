@@ -69,7 +69,7 @@ api_cors_handler <- function(req, res, origin = "*", methods = "*") {
     res$setHeader("Access-Control-Allow-Methods", methods)
     res$setHeader("Access-Control-Allow-Headers",
                   req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-    res$status <- 200
+    res$status <- 200L
     return(list())
   }
 }
@@ -244,7 +244,7 @@ get_token <- function(req) {
 #' @export
 get_token_user <- function(api, token) {
   if (!length(token)) {
-    api_stop(401, "Token is missing")
+    api_stop(401L, "Token is missing")
   }
   file <- api_attr(api, "credentials")
   if (is.null(file)) {
@@ -255,10 +255,10 @@ get_token_user <- function(api, token) {
     stop("Credential file not found", call. = FALSE)
   }
   if (!token %in% names(credentials$tokens)) {
-    api_stop(401, "Invalid token")
+    api_stop(401L, "Invalid token")
   }
   if (Sys.time() > credentials$tokens[[token]]$expiry) {
-    api_stop(401, "Token expired")
+    api_stop(401L, "Token expired")
   }
   user <- credentials$tokens[[token]]$user
   user
@@ -269,12 +269,12 @@ api_workdir <- function(api) {
 #' @export
 api_user_workspace <- function(api, user) {
   if (!dir.exists(api_workdir(api))) {
-    dir.create(api_workdir(api))
-    dir.create(file.path(api_workdir(api), "workspace"))
+    dir.create(api_workdir(api), recursive = TRUE)
+    dir.create(file.path(api_workdir(api), "workspace"), recursive = TRUE)
   }
   workspace_dir <- file.path(api_workdir(api), "workspace", user)
   if (!dir.exists(workspace_dir)) {
-    dir.create(workspace_dir)
+    dir.create(workspace_dir, recursive = TRUE)
   }
   workspace_dir
 }
@@ -300,11 +300,13 @@ create_env <- function(api, user, job, req) {
 #' }
 #' @export
 file_formats <- function() {
+  # TODO: improve file formats API enabling the registration of
+  #   additional formats
   # Define the output formats
   outputFormats <- list(
-    GTiff = list(
+    GeoTiff = list(
       title = "GeoTiff",
-      description = "Export to GeoTiff.",
+      description = "Export data to GeoTiff.",
       gis_data_types = list("raster"),
       parameters = list(
         format = list(
@@ -315,7 +317,7 @@ file_formats <- function() {
     ),
     NetCDF = list(
       title = "Network Common Data Form",
-      description = "Export to NetCDF.",
+      description = "Export data to NetCDF.",
       gis_data_types = list("raster"),
       parameters = list(
         format = list(
@@ -324,6 +326,43 @@ file_formats <- function() {
         )
       )
     ),
+    JSON = list(
+      title = "JSON Data Serialization",
+      description = "Export data to JSON.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "JSON"
+        )
+      )
+    )
+  )
+
+  # Define the input formats
+  inputFormats <- list(
+    GeoTiff = list(
+      title = "GeoTiff",
+      description = "GeoTiff is one of the most widely supported raster formats. This backend allows reading from GeoTiff to create raster data cubes.",
+      gis_data_types = list("raster"),
+      parameters = list(
+        format = list(
+          type = "string",
+          description = "GeoTiff"
+        )
+      )
+    )
+  )
+
+  # return the list of supported formats
+  list(
+    input = inputFormats,
+    output = outputFormats
+  )
+}
+
+file_formats_auth <- function(doc) {
+  outputFormats <- list(
     RDS = list(
       title = "R Data Serialization",
       description = "Export to RDS.",
@@ -349,24 +388,12 @@ file_formats <- function() {
   )
 
   # Define the input formats
-  inputFormats <- list(
-    GTiff = list(
-      title = "GeoTiff",
-      description = "Geotiff is one of the most widely supported formats. This backend allows reading from Geotiff to create raster data cubes.",
-      gis_data_types = list("raster"),
-      parameters = list(
-        format = list(
-          type = "string",
-          description = "GeoTiff"
-        )
-      )
-    )
-  )
+  inputFormats <- list()
 
   # return the list of supported formats
   list(
-    input = inputFormats,
-    output = outputFormats
+    input = utils::modifyList(doc$input, inputFormats),
+    output = utils::modifyList(doc$output, outputFormats)
   )
 }
 

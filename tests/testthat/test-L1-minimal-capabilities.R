@@ -22,23 +22,9 @@ api <- create_openeo_v1(
   production = FALSE
 )
 
-mock_root_response <- mock_landing_page(api)
+api <- mock_api_setup_plumber(api, wellknown_versions = list())
 
-# Add required endpoints
-mock_root_response$endpoints <- list(
-  list(
-    path = "/collections",
-    methods = c("GET")
-  ),
-  list(
-    path = "/processes",
-    methods = c("GET")
-  ),
-  list(
-    path = "/jobs",
-    methods = c("GET", "POST", "DELETE")
-  )
-)
+mock_root_response <- mock_landing_page(api)
 
 # Execute the function to get the actual response data
 mock_well_known_response <- mock_well_known_response(api)
