@@ -1,12 +1,6 @@
 # Mock API object
 api <- mock_create_openeo_v1()
-api_attr(api, "processes") <- list(
-  list(id = "ndvi", summary = "NDVI calculation"),
-  list(id = "evi", summary = "EVI calculation")
-)
-token <- "5aad11e1d49b880a4468e1b252944e22"
-
-# --- GET /processes ---
+token <- readLines(file(system.file("mock/token", package = "openeocraft")))
 
 test_that("GET /processes: Valid response with at least processes as an array", {
   req <- mock_req("/processes", method = "GET")
@@ -43,6 +37,8 @@ test_that("GET /processes > limit parameter: All processes are returned if no li
   result <- api_processes(api, req, res)
 
   expect_gte(length(result$processes), 1)
+
+  # TODO: implement limit parameter
 })
 
 test_that("GET /processes > processes: Missing properties in process objects are not set to null if not valid according to OpenAPI schema", {
