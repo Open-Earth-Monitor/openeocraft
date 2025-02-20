@@ -148,7 +148,7 @@ job_create <- function(api, req, res, user, job) {
   # - fill defaults
   # - check consistency of the provided fields
   # - also check plan
-  job_id <- random_id()
+  job_id <- random_id(16L)
   job <- list(
     id = job_id,
     title = job$title,
