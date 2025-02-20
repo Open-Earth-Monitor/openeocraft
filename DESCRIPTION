@@ -27,9 +27,6 @@ Imports:
     jsonlite,
     base64enc,
     callr,
-    ids,
-    dplyr,
-    stars,
     swagger
 Suggests: 
     testthat (>= 3.0.0)

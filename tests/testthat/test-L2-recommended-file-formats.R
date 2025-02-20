@@ -1,9 +1,4 @@
-# Functionality Description
-# GET /file_formats:
-# - File format names aligned with GDAL
-# - Each format has a description describing their structure and relation to data cubes
-
-# Create openEO API object
+# Mock API object
 api <- mock_create_openeo_v1()
 
 # GDAL Supported Formats (Example Subset for Test)
@@ -21,7 +16,7 @@ test_that("GET /file_formats: File format names aligned with GDAL", {
   }
 })
 
-test_that("GET /file_formats: Each format has a description describing their structure and relation to data cubes", {
+test_that("GET /file_formats: Each format has a description", {
   req <- mock_req("/file_formats", method = "GET")
   res <- mock_res()
   result <- api_file_formats(api, req, res)
@@ -29,7 +24,7 @@ test_that("GET /file_formats: Each format has a description describing their str
   has_valid_description <- function(description) {
     # TODO: improve this -- what is a valid description according to spec?
     # grepl("data", description, ignore.case = TRUE)
-    nchar(description) > 10
+    nchar(description) > 10L
   }
 
   for (format_name in names(result$input)) {

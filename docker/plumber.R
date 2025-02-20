@@ -163,12 +163,10 @@ async(function(req, res, job_id) {
 #* @post /jobs/<job_id:str>/results
 async(function(req, res, job_id) {
   print("POST /jobs/<jobid>/results")
-  token <- get_token(req)
-  user <- get_token_user(api, token)
-  job_start(api, req, res, user, job_id)
+  api_job_start(api, req, res, job_id)
 })
 
-#* Start a batch job
+#* Lists batch job results
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>/results
