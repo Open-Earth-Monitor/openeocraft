@@ -83,12 +83,12 @@ library(sits)
 con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
 p <- processes()
 
-rf_model <- p$export_model(
+rf_model <- p$export_ml_model(
   model = p$ml_fit(
     model = p$mlm_class_random_forest(
       num_trees = 50,
       max_variables = "sqrt",
-      random_state = 42
+      seed = 42
     ),
     training_set = jsonlite::serializeJSON(sits::samples_modis_ndvi)
   ),
@@ -114,7 +114,7 @@ labels_cube <- p$export_cube(
       name = "s2_cube",
       folder = "test"
     ),
-    model = p$import_model(
+    model = p$import_ml_model(
       name = "rf_model",
       folder = "test"
     )
@@ -182,5 +182,3 @@ res <- list_results(job)
 
 # TODO not working -- get stuck!
 openeo::compute_result(cube, output_file = "i_dont_know", format = "GTiff")
-
-

@@ -56,7 +56,7 @@
             }
         },
         {
-            "name": "random_state",
+            "name": "seed",
             "description": "A randomization seed to ensure reproducibility. If not given or `null`, results may vary between runs.",
             "optional": true,
             "default": null,

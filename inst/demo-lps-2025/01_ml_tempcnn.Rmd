@@ -1,0 +1,119 @@
+---
+title: "Temporal CNN Model Training with OpenEO"
+author: "OpenEO Craft"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Introduction
+
+This notebook demonstrates how to train a Temporal CNN (TempCNN) model using OpenEO processes. The example uses deforestation data from Rondonia to train a deep learning model for time series classification.
+
+# Setup and Connection
+
+First, we load the required libraries and connect to the OpenEO backend:
+
+```{r}
+library(openeo)
+library(sits)
+
+# Connect to the backend
+con <- connect(
+  host = "http://127.0.0.1:8000",
+  user = "brian",
+  password = "123456"
+)
+
+# Access processes
+p <- processes()
+```
+
+# Load Training Data
+
+We load the pre-processed training data for deforestation in Rondonia:
+
+```{r}
+# Load sits tibble Training data
+data_deforestation_rondonia <- readRDS("./filtered_rondonia_data.rds")
+```
+
+# Define the Temporal CNN Model
+
+Here we define the architecture and hyperparameters for our TempCNN model:
+
+```{r}
+# Define the Temporal CNN model
+tempcnn_model_def <- p$mlm_class_tempcnn(
+  cnn_layers = list(64, 64, 64),
+  cnn_kernels = list(5, 5, 5),
+  cnn_dropout_rates = list(0.2, 0.2, 0.2),
+  dense_layer_nodes = 256,
+  dense_layer_dropout_rate = 0.5,
+  optimizer = "adam",
+  learning_rate = 0.0005,
+  epsilon = 0.00000001,
+  weight_decay = 0.000001,
+  lr_decay_epochs = 1,
+  lr_decay_rate = 0.95,
+  epochs = 150,
+  batch_size = 64,
+  seed = 42
+)
+```
+
+# Model Training
+
+Now we fit the model using our training dataset:
+
+```{r}
+# Fit the model using the training dataset
+tempcnn_model_fitted <- p$ml_fit(
+  model = tempcnn_model_def,
+  training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
+  target = "label"
+)
+```
+
+# Export the Trained Model
+
+Finally, we export the trained model for future use:
+
+```{r}
+# Export the trained model
+tempcnn_model <- p$export_ml_model(
+  model = tempcnn_model_fitted,
+  name = "tempcnn_model_20_05_25",
+  folder = "openeocraft-models"
+)
+
+# Run the job
+job <- create_job(
+  graph = tempcnn_model,
+  title = "Train Temp CNN Model",
+  description = "Training a Temp CNN model and exporting it"
+)
+job <- start_job(job)
+
+# Display job information
+describe_job(job)
+```
+
+# Conclusion
+
+This notebook demonstrated how to:
+1. Connect to an OpenEO backend
+2. Load and prepare training data
+3. Define a Temporal CNN model architecture
+4. Train the model
+5. Export the trained model for future use
+
+The trained model can now be used for making predictions on new time series data. 

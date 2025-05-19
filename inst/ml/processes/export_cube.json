@@ -3,7 +3,8 @@
     "summary": "Export a data cube to the user workspace",
     "description": "Saves a specified data cube to the user's workspace with a given name in the specified folder. This allows the data cube to be stored and accessed later.",
     "categories": [
-        "cube"
+        "cube",
+        "export"
     ],
     "experimental": true,
     "parameters": [

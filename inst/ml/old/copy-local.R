@@ -1,6 +1,6 @@
 library(openeo)
 
-con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
+con <- connect("http://127.0.0.1:8000", user = "brian", password = "123456")
 
 p <- processes()
 x <- p$save_result(

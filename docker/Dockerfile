@@ -1,4 +1,4 @@
-FROM r-base:4.3.0
+FROM r-base:4.5.0
 
 # install system dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common cmake g++ git supervisor wget
@@ -18,7 +18,8 @@ RUN Rscript -e "install.packages(c('plumber', 'sf', 'rstac','sits', 'stars', 'js
 RUN mkdir -p /opt/dockerfiles/ && mkdir -p /var/openeo/workspace/ && mkdir -p /var/openeo/workspace/data/
 
 # install packages from local directory
-COPY ./ /opt/dockerfiles/
+COPY ../ /opt/dockerfiles/
+RUN R -e "remotes::install_github('Open-Earth-Monitor/openstac', ref = 'dev')"
 RUN R -e "remotes::install_local('/opt/dockerfiles', dependencies = TRUE, upgrade = 'always', verbose = TRUE)"
 
 # check installed packages
