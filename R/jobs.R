@@ -139,6 +139,7 @@ log_append <- function(api, user, job_id, code, level, message, ...) {
   )
   logs_save_rds(api, user, job_id, logs)
 }
+
 #' @export
 job_sync <- function(api, req, user, job_id) {
   job <- job_upd_status(api, user, job_id, "running")

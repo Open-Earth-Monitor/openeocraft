@@ -79,7 +79,7 @@ load_collection <- function(id,
 #* @openeo-process
 mlm_class_random_forest <- function(num_trees = 100,
                                     max_variables = "sqrt",
-                                    random_state = NULL) {
+                                    seed = NULL) {
   base::print("mlm_class_random_forest()")
 
   model <- list(
@@ -103,12 +103,9 @@ mlm_class_random_forest <- function(num_trees = 100,
       }
       max_variables <- base::max(1, base::floor(max_variables))
       # end preparing max_variables parameter
-      model <- sits::sits_rfor(
-        num_trees = num_trees,
-        mtry = max_variables
-      )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      model <- sits::sits_rfor(num_trees = num_trees, mtry = max_variables)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -123,7 +120,7 @@ mlm_class_svm <- function(kernel = "radial",
                           tolerance = 0.001,
                           epsilon = 0.1,
                           cachesize = 1000,
-                          random_state = NULL) {
+                          seed = NULL) {
   base::print("mlm_class_svm()")
   formula <- sits::sits_formula_linear()
 
@@ -139,8 +136,8 @@ mlm_class_svm <- function(kernel = "radial",
         tolerance = tolerance,
         epsilon = epsilon
       )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -153,7 +150,7 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
                               max_depth = 5,
                               nfold = 5,
                               early_stopping_rounds = 20,
-                              random_state = NULL) {
+                              seed = NULL) {
   base::print("mlm_class_xgboost()")
   model <- list(
     train = function(training_set) {
@@ -164,8 +161,8 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
         nfold = nfold,
         early_stopping_rounds = early_stopping_rounds
       )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -182,7 +179,7 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
                           weight_decay = 0.000001,
                           epochs = 100,
                           batch_size = 64,
-                          random_state = NULL) {
+                          seed = NULL) {
   base::print("mlm_class_mlp()")
 
   # start preparing parameters
@@ -196,7 +193,10 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
     "radam" = torch::optim_radam,
     "swats" = torch::optim_swats,
     "yogi" = torch::optim_yogi,
-    stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
+    stop(
+      "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+      call. = FALSE
+    )
   )
   opt_hparams <- list(
     lr = learning_rate,
@@ -216,8 +216,8 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
         epochs = epochs,
         batch_size = batch_size
       )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -238,7 +238,7 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
                               lr_decay_rate = 0.95,
                               epochs = 150,
                               batch_size = 64,
-                              random_state = NULL) {
+                              seed = NULL) {
   base::print("mlm_class_tempcnn()")
   # start preparing parameters
   optimizer_fn <- base::switch(optimizer,
@@ -251,7 +251,10 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
     "radam" = torch::optim_radam,
     "swats" = torch::optim_swats,
     "yogi" = torch::optim_yogi,
-    stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
+    stop(
+      "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+      call. = FALSE
+    )
   )
   opt_hparams <- list(
     lr = learning_rate,
@@ -277,8 +280,8 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
         epochs = epochs,
         batch_size = batch_size
       )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -294,7 +297,7 @@ mlm_class_tae <- function(epochs = 150,
                           weight_decay = 0.000001,
                           lr_decay_epochs = 1,
                           lr_decay_rate = 0.95,
-                          random_state = NULL) {
+                          seed = NULL) {
   base::print("mlm_class_tae()")
   # start preparing parameters
   optimizer_fn <- base::switch(optimizer,
@@ -307,7 +310,10 @@ mlm_class_tae <- function(epochs = 150,
     "radam" = torch::optim_radam,
     "swats" = torch::optim_swats,
     "yogi" = torch::optim_yogi,
-    stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
+    stop(
+      "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+      call. = FALSE
+    )
   )
   opt_hparams <- list(
     lr = learning_rate,
@@ -325,8 +331,8 @@ mlm_class_tae <- function(epochs = 150,
         lr_decay_epochs = lr_decay_epochs,
         lr_decay_rate = lr_decay_rate
       )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -343,7 +349,7 @@ mlm_class_lighttae <- function(epochs = 150,
                                weight_decay = 0.0007,
                                lr_decay_epochs = 50,
                                lr_decay_rate = 1,
-                               random_state = NULL) {
+                               seed = NULL) {
   base::print("mlm_class_lighttae()")
   # start preparing parameters
   optimizer_fn <- base::switch(optimizer,
@@ -356,7 +362,10 @@ mlm_class_lighttae <- function(epochs = 150,
     "radam" = torch::optim_radam,
     "swats" = torch::optim_swats,
     "yogi" = torch::optim_yogi,
-    stop("Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ", call. = FALSE)
+    stop(
+      "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+      call. = FALSE
+    )
   )
   opt_hparams <- list(
     lr = learning_rate,
@@ -374,8 +383,8 @@ mlm_class_lighttae <- function(epochs = 150,
         lr_decay_epochs = lr_decay_epochs,
         lr_decay_rate = lr_decay_rate
       )
-      if (!base::is.null(random_state)) {
-        base::set.seed(random_state)
+      if (!base::is.null(seed)) {
+        base::set.seed(seed)
       }
       sits::sits_train(training_set, model)
     }
@@ -435,8 +444,8 @@ ml_predict <- function(data, model) {
 }
 
 #* @openeo-process
-ml_predict_probability <- function(data, model) {
-  base::print("ml_predict_probability()")
+ml_predict_probabilities <- function(data, model) {
+  base::print("ml_predict_probabilities()")
   # Model should aware about the right `dimensions` parameter
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
@@ -466,8 +475,7 @@ ml_predict_probability <- function(data, model) {
 
 
 #* @openeo-process
-ml_uncertainty_class <- function(data,
-                                 approach = "margin") {
+ml_uncertainty_class <- function(data, approach = "margin") {
   base::print("ml_uncertainty_class ()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
@@ -569,7 +577,10 @@ cube_regularize <- function(data, resolution, period) {
 }
 
 #* @openeo-process
-ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
+ndvi <- function(data,
+                 nir = "nir",
+                 red = "red",
+                 target_band = NULL) {
   base::print("ndvi()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
@@ -604,7 +615,9 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
     base::names(expr) <- out_band
     if (out_band %in% bands) {
       if (sits:::.check_messages()) {
-        warning(sits:::.conf("messages", "sits_apply_out_band"), call. = FALSE)
+        warning(sits:::.conf("messages", "sits_apply_out_band"),
+          call. = FALSE
+        )
       }
       return(data)
     }
@@ -614,9 +627,7 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
       expr = expr
     )
     overlap <- base::ceiling(window_size / 2) - 1
-    block <- sits:::.raster_file_blocksize(
-      sits:::.raster_open_rast(sits:::.tile_path(data))
-    )
+    block <- sits:::.raster_file_blocksize(sits:::.raster_open_rast(sits:::.tile_path(data)))
     job_memsize <- sits:::.jobs_memsize(
       job_size = sits:::.block_size(block = block, overlap = overlap),
       npaths = base::length(in_bands) + 1,
@@ -653,16 +664,22 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
       )
       return(output_feature)
     }, progress = progress)
-    sits:::.cube_merge_tiles(
-      dplyr::bind_rows(list(features_cube, features_band))
-    )
+    sits:::.cube_merge_tiles(dplyr::bind_rows(list(features_cube, features_band)))
   }
   #
   data <- .sits_apply(
     data = data,
     out_band = target_band,
-    expr = base::bquote((.(base::as.name(nir)) - .(base::as.name(red))) /
-      (.(base::as.name(nir)) + .(base::as.name(red))))
+    expr = base::bquote((.(
+      base::as.name(nir)
+    ) - .(
+      base::as.name(red)
+    )) /
+      (.(
+        base::as.name(nir)
+      ) + .(
+        base::as.name(red)
+      )))
   )
   data
 }
@@ -845,8 +862,8 @@ import_cube <- function(name, folder) {
 }
 
 #* @openeo-process
-export_model <- function(model, name, folder) {
-  base::print("export_model()")
+export_ml_model <- function(model, name, folder) {
+  base::print("export_ml_model()")
   env <- openeocraft::current_env()
   host <- openeocraft::get_host(env$api, env$req)
   # Get workspace directory
@@ -886,8 +903,8 @@ export_model <- function(model, name, folder) {
 }
 
 #* @openeo-process
-import_model <- function(name, folder) {
-  base::print("import_model()")
+import_ml_model <- function(name, folder) {
+  base::print("import_ml_model()")
   # Get current context of evaluation environment
   env <- openeocraft::current_env()
   # Get workspace directory

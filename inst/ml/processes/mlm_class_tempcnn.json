@@ -163,7 +163,7 @@
             }
         },
         {
-            "name": "random_state",
+            "name": "seed",
             "description": "Seed for the random number generator. If `null`, no seed is used, and results may vary.",
             "optional": true,
             "default": null,
