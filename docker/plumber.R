@@ -13,7 +13,6 @@ library(plumber)
 
 # Set number of processes to serve the API
 # future::plan("multisession")
-async <- function(x) x
 
 # Create an STAC server API object
 stac_api <- openstac::create_stac(
@@ -42,7 +41,7 @@ api <- create_openeo_v1(
   production = FALSE
 )
 
-#set_credentials(api, file = "~/openeo-tests/openeo-credentials.rds")
+# set_credentials(api, file = "~/openeo-tests/openeo-credentials.rds")
 set_credentials(api, file = "~/openeo-credentials.rds")
 new_credential(api, user = "rolf", password = "123456")
 new_credential(api, user = "brian", password = "123456")
@@ -54,159 +53,161 @@ load_processes(api, processes_file)
 #* Enable Cross-origin Resource Sharing
 #* @filter cors
 function(req, res) {
+  print("CORS filter")
   api_cors_handler(req, res, origin = "*", methods = "*")
 }
 
 #* HTTP Basic authentication
 #* @get /credentials/basic
-async(function(req, res) {
+function(req, res) {
+  print("GET /credentials/basic")
   api_credential(api, req, res)
-})
+}
 
 #* Lists api processes
 #* @serializer unboxedJSON
 #* @get /conformance
-async(function(req, res) {
-  print("conformance")
+function(req, res) {
+  print("GET /conformance")
   api_conformance(api, req)
-})
+}
 
 #* Basic metadata for all datasets
 #* @serializer unboxedJSON
 #* @get /collections
-async(function(req, res) {
-  print("collections")
+function(req, res) {
+  print("GET /collections")
   openstac::api_collections(api$stac_api, req)
-})
+}
 
 #* Full metadata for a specific dataset
 #* @param collection_id Collection identifier
 #* @serializer unboxedJSON
 #* @get /collections/<collection_id>
-async(function(req, res, collection_id) {
-  print("collections/<col_id>")
+function(req, res, collection_id) {
+  print("GET /collections/<col_id>")
   doc <- openstac::api_collection(api$stac_api, collection_id, req)
   doc <- delete_link(doc, rel = "item")
   doc
-})
+}
 
 #* Lists api processes
 #* @serializer unboxedJSON
 #* @get /processes
-async(function(req, res) {
-  print("processes")
+function(req, res) {
+  print("GET /processes")
   doc <- api_processes(api, req, check_auth = FALSE)
   doc
-})
+}
 
 #* Process and download data synchronously
 #* @post /result
-async(function(req, res) {
-  print("result")
+function(req, res) {
+  print("POST /result")
   doc <- api_result(api, req, res)
   doc
-})
+}
 
 #* List all batch jobs
 #* @serializer unboxedJSON
 #* @get /jobs
-async(function(req, res) {
+function(req, res) {
   print("GET /jobs")
   doc <- api_jobs_list(api, req, res)
   doc
-})
+}
 
 #* Get batch job metadata
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>
-async(function(req, res, job_id) {
+function(req, res, job_id) {
   print("GET /jobs/<jobid>")
   doc <- api_job_info(api, req, res, job_id)
   doc
-})
+}
 
 #* Create a new batch job
 #* @serializer unboxedJSON
 #* @post /jobs
-async(function(req, res) {
+function(req, res) {
   print("POST /jobs")
   api_job_create(api, req, res)
-})
+}
 
 #* Delete a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @delete /jobs/<job_id:str>
-async(function(req, res, job_id) {
+function(req, res, job_id) {
   print("DELETE /jobs/<jobid>")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_delete(api, user, job_id)
-})
+}
 
 #* Update a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @patch /jobs/<job_id:str>
-async(function(req, res, job_id) {
+function(req, res, job_id) {
   print("PATCH /jobs/<jobid>")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job <- req$body
   job_update(api, user, job_id, job)
-})
+}
 
 #* Start a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @post /jobs/<job_id:str>/results
-async(function(req, res, job_id) {
+function(req, res, job_id) {
   print("POST /jobs/<jobid>/results")
   api_job_start(api, req, res, job_id)
-})
+}
 
 #* Lists batch job results
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id:str>/results
-async(function(req, res, job_id) {
+function(req, res, job_id) {
   print("GET /jobs/<jobid>/results")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_get_results(api, user, job_id)
-})
+}
 
 #* Get an estimate for a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/estimate
-async(function(req, res, job_id) {
+function(req, res, job_id) {
   print("GET /jobs/<jobid>/estimate")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_estimate(api, user, job_id)
-})
+}
 
 #* Logs for a batch job
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/logs
-async(function(req, res, job_id, offset, level, limit) {
+function(req, res, job_id, offset, level, limit) {
   print("GET /jobs/<jobid>/logs")
   token <- get_token(req)
   user <- get_token_user(api, token)
   job_logs(api, user, job_id, offset, level, limit)
-})
+}
 
 #* List supported file formats
 #* @serializer unboxedJSON
 #* @get /file_formats
-async(function(req, res) {
+function(req, res) {
   print("GET /file_formats")
   doc <- api_file_formats(api, req, res)
   doc
-})
+}
 
 # NOTE:
 #  this must be placed after endpoints to be shown in
@@ -216,6 +217,7 @@ async(function(req, res) {
 #* Setup plumber router
 #* @plumber
 function(pr) {
+  print("Setting up server...")
   api_setup_plumber(
     api = api,
     pr = pr,
@@ -229,20 +231,22 @@ function(pr) {
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /
-async(function(req, res) {
+function(req, res) {
+  print("GET /")
   api_landing_page(api, req, res)
-})
+}
 
 #* Information about the back-end
 #* @serializer unboxedJSON
 #* @get /.well-known/openeo
-async(function(req, res) {
+function(req, res) {
+  print("GET /.well-known/openeo")
   api_wellknown(api, req, res)
-})
+}
 
 #* Workspace job files handling
 #* @get /files/jobs/<job_id>/<asset>
-async(function(req, res, job_id, asset) {
+function(req, res, job_id, asset) {
   print("GET /files/jobs/<jobid>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
@@ -257,11 +261,11 @@ async(function(req, res, job_id, asset) {
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
   res
-})
+}
 
 #* Workspace root files handling
 #* @get /files/root/<folder>/<asset>
-async(function(req, res, folder, asset) {
+function(req, res, folder, asset) {
   print("GET /files/root/<folder>/<asset>")
   file <- gsub("^([^?]+)?", "\\1", asset)
   if (!"token" %in% names(req$args)) {
@@ -276,4 +280,4 @@ async(function(req, res, folder, asset) {
   res$setHeader("Content-Type", ext_content_type(path))
   res$body <- readBin(path, what = "raw", n = file.info(path)$size)
   res
-})
+}
