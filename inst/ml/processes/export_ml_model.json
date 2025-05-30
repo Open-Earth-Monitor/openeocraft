@@ -1,9 +1,9 @@
 {
-    "id": "export_model",
+    "id": "export_ml_model",
     "summary": "Export a model to the user workspace",
     "description": "Saves a specified model to the user's workspace with a given name in the specified folder. This allows the model to be stored and accessed later.",
     "categories": [
-        "cube"
+        "machine learning"
     ],
     "experimental": true,
     "parameters": [

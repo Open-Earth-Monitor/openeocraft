@@ -4,7 +4,7 @@ library(sits)
 # Connect to the backend
 con <- connect(
   host = "http://127.0.0.1:8000",
-  user = "rolf",
+  user = "brian",
   password = "123456"
 )
 
@@ -29,7 +29,7 @@ tempcnn_model_def <- p$mlm_class_tempcnn(
   lr_decay_rate = 0.95,
   epochs = 150,
   batch_size = 64,
-  random_state = 42
+  seed = 42
 )
 
 # Fit the model using the training dataset
@@ -40,9 +40,9 @@ tempcnn_model_fitted <- p$ml_fit(
 )
 
 # Export the trained model
-tempcnn_model <- p$export_model(
+tempcnn_model <- p$export_ml_model(
   model = tempcnn_model_fitted,
-  name = "tempcnn_model_15_01_25",
+  name = "tempcnn_model_20_05_25",
   folder = "openeocraft-models"
 )
 
