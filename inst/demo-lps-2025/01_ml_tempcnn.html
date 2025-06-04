@@ -11,7 +11,7 @@
 
 <meta name="author" content="OpenEO Craft" />
 
-<meta name="date" content="2025-05-30" />
+<meta name="date" content="2025-06-04" />
 
 <title>Temporal CNN Model Training with OpenEO</title>
 
@@ -1560,7 +1560,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">Temporal CNN Model Training with
 OpenEO</h1>
 <h4 class="author">OpenEO Craft</h4>
-<h4 class="date">2025-05-30</h4>
+<h4 class="date">2025-06-04</h4>
 
 </div>
 
@@ -1602,54 +1602,88 @@ Rondonia:</p>
 <h1>Define the Temporal CNN Model</h1>
 <p>Here we define the architecture and hyperparameters for our TempCNN
 model:</p>
+<p>tempcnn_model_def &lt;- p$mlm_class_tempcnn( cnn_layers = list(64,
+64, 64), cnn_kernels = list(5, 5, 5), cnn_dropout_rates = list(0.2, 0.2,
+0.2), dense_layer_nodes = 256, dense_layer_dropout_rate = 0.5, optimizer
+= “adam”, learning_rate = 0.0005, epsilon = 0.00000001, weight_decay =
+0.000001, lr_decay_epochs = 1, lr_decay_rate = 0.95, epochs = 150,
+batch_size = 64, seed = 42 )</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Define the Temporal CNN model</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>tempcnn_model_def <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">mlm_class_tempcnn</span>(</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">cnn_layers =</span> <span class="fu">list</span>(<span class="dv">64</span>, <span class="dv">64</span>, <span class="dv">64</span>),</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">cnn_kernels =</span> <span class="fu">list</span>(<span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">5</span>),</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">cnn_dropout_rates =</span> <span class="fu">list</span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>, <span class="fl">0.2</span>),</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">dense_layer_nodes =</span> <span class="dv">256</span>,</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">dense_layer_dropout_rate =</span> <span class="fl">0.5</span>,</span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">optimizer =</span> <span class="st">&quot;adam&quot;</span>,</span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  <span class="at">learning_rate =</span> <span class="fl">0.0005</span>,</span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  <span class="at">epsilon =</span> <span class="fl">0.00000001</span>,</span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  <span class="at">weight_decay =</span> <span class="fl">0.000001</span>,</span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>  <span class="at">lr_decay_epochs =</span> <span class="dv">1</span>,</span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>  <span class="at">lr_decay_rate =</span> <span class="fl">0.95</span>,</span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>  <span class="at">epochs =</span> <span class="dv">150</span>,</span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>  <span class="at">batch_size =</span> <span class="dv">64</span>,</span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">42</span></span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>tempcnn_model_init <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">mlm_class_tempcnn</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">optimizer =</span> <span class="st">&quot;adam&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">learning_rate =</span> <span class="fl">0.0005</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">42</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="model-training" class="section level1">
 <h1>Model Training</h1>
 <p>Now we fit the model using our training dataset:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Fit the model using the training dataset</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>tempcnn_model_fitted <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">ml_fit</span>(</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">model =</span> tempcnn_model_def,</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>tempcnn_model <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">ml_fit</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">model =</span> tempcnn_model_init,</span>
 <span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">training_set =</span> jsonlite<span class="sc">::</span><span class="fu">serializeJSON</span>(data_deforestation_rondonia),</span>
 <span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">target =</span> <span class="st">&quot;label&quot;</span></span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>)</span></code></pre></div>
 </div>
-<div id="export-the-trained-model" class="section level1">
-<h1>Export the Trained Model</h1>
-<p>Finally, we export the trained model for future use:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Export the trained model</span></span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>tempcnn_model <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">export_ml_model</span>(</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">model =</span> tempcnn_model_fitted,</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">name =</span> <span class="st">&quot;tempcnn_model_20_05_25&quot;</span>,</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">folder =</span> <span class="st">&quot;openeocraft-models&quot;</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co"># Run the job</span></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>job <span class="ot">&lt;-</span> <span class="fu">create_job</span>(</span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  <span class="at">graph =</span> tempcnn_model,</span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;Train Temp CNN Model&quot;</span>,</span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>  <span class="at">description =</span> <span class="st">&quot;Training a Temp CNN model and exporting it&quot;</span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>)</span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>job <span class="ot">&lt;-</span> <span class="fu">start_job</span>(job)</span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co"># Display job information</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="fu">describe_job</span>(job)</span></code></pre></div>
+<div id="save-the-trained-model" class="section level1">
+<h1>Save the Trained Model</h1>
+<p>Finally, we save the trained model for future use:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Save the trained model</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>tempcnn_model_exp <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">save_ml_model</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">data =</span> tempcnn_model,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">name =</span> <span class="st">&quot;tempcnn_rondonia_v1&quot;</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">tasks =</span> <span class="fu">list</span>(<span class="st">&quot;classification&quot;</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="load-sentinel-2-collection" class="section level1">
+<h1>Load Sentinel 2 Collection</h1>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Load</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>datacube <span class="ot">=</span> p<span class="sc">$</span><span class="fu">load_collection</span>(<span class="at">id =</span> <span class="st">&quot;mpc/sentinel-2-l2a&quot;</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                                  <span class="at">spatial_extent =</span> <span class="fu">list</span>(<span class="at">west =</span> <span class="sc">-</span><span class="fl">63.9</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>                                                        <span class="at">east =</span>  <span class="sc">-</span><span class="fl">62.9</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>                                                        <span class="at">south =</span> <span class="sc">-</span><span class="fl">9.14</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>                                                        <span class="at">north =</span> <span class="sc">-</span><span class="fl">8.14</span>),</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>                                  <span class="at">temporal_extent =</span> <span class="fu">c</span>(<span class="st">&quot;2022-01-01&quot;</span>, <span class="st">&quot;2022-12-31&quot;</span>))</span></code></pre></div>
+</div>
+<div id="regularize-the-data" class="section level1">
+<h1>Regularize the data</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>datacube <span class="ot">=</span> p<span class="sc">$</span><span class="fu">cube_regularize</span>(<span class="at">data =</span> datacube, </span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                             <span class="at">period =</span> <span class="st">&quot;P1M&quot;</span>, </span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>                             <span class="at">resolution =</span> <span class="st">&quot;300&quot;</span>)</span></code></pre></div>
+</div>
+<div id="calculate-ndvi" class="section level1">
+<h1>Calculate NDVI</h1>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>datacube <span class="ot">=</span> p<span class="sc">$</span><span class="fu">ndvi</span>(<span class="at">data =</span> datacube, </span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>                  <span class="at">red =</span> <span class="st">&quot;B04&quot;</span>, </span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>                  <span class="at">nir =</span> <span class="st">&quot;B08&quot;</span>, </span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>                  <span class="at">target_band =</span> <span class="st">&quot;NDVI&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="ml-prediction" class="section level1">
+<h1>ML Prediction</h1>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>data <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">ml_predict</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">data =</span> datacube,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">model =</span> tempcnn_model</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="save-the-prediction-results" class="section level1">
+<h1>Save the prediction results</h1>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>ml_job <span class="ot">&lt;-</span> p<span class="sc">$</span><span class="fu">save_result</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">format =</span> <span class="st">&quot;GTiff&quot;</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="run-the-job" class="section level1">
+<h1>Run the job</h1>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>job <span class="ot">&lt;-</span> <span class="fu">create_job</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">graph =</span> ml_job,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;Train Temp CNN Model&quot;</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">description =</span> <span class="st">&quot;Training a Temp CNN model and exporting it&quot;</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>job <span class="ot">&lt;-</span> <span class="fu">start_job</span>(job)</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co"># Display job information</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="fu">describe_job</span>(job)</span></code></pre></div>
 `
 <script>
 if (!window.customElements || !window.customElements.get('openeo-job')) {{
@@ -1676,7 +1710,7 @@ margin: 1em 0;
 }
 </style>
 <openeo-job style="font-family: sans-serif;" class="rmd">
-<script type="application/json">{"currency":null,"job":{"id":"cc07eed1f6a89213f2303317dd3c80d9","title":"Train Temp CNN Model","description":"Training a Temp CNN model and exporting it","process":{"id":{},"description":{},"summary":{},"process_graph":{"mlm_class_tempcnn_QFPFD8223N":{"process_id":"mlm_class_tempcnn","arguments":{"cnn_layers":[64,64,64],"cnn_kernels":[5,5,5],"cnn_dropout_rates":[0.2,0.2,0.2],"dense_layer_nodes":256,"dense_layer_dropout_rate":0.5,"optimizer":"adam","learning_rate":0.0005,"epsilon":1e-08,"weight_decay":1e-06,"lr_decay_epochs":1,"lr_decay_rate":0.95,"epochs":150,"batch_size":64,"seed":42}},"ml_fit_WRXCP5573R":{"process_id":"ml_fit","arguments":{"model":{"from_node":"mlm_class_tempcnn_QFPFD8223N"},"target":"label"}},"export_ml_model_LTMWN6898Z":{"process_id":"export_ml_model","arguments":{"model":{"from_node":"ml_fit_WRXCP5573R"},"name":"tempcnn_model_20_05_25","folder":"openeocraft-models"},"result":true}},"parameters":[],"returns":{"schema":{"type":"string"}}},"status":"running","created":"2025-05-30 13:36:34","plan":{},"budget":{},"log_level":{},"links":[]}}</script>
+<script type="application/json">{"currency":null,"job":{"id":"715f24a3397156b7b404b65e2b2ddbda","title":"Train Temp CNN Model","description":"Training a Temp CNN model and exporting it","process":{"id":{},"description":{},"summary":{},"process_graph":{"load_collection_DQOOO2199O":{"process_id":"load_collection","arguments":{"id":"mpc/sentinel-2-l2a","spatial_extent":{"west":-63.9,"east":-62.9,"south":-9.14,"north":-8.14},"temporal_extent":["2022-01-01","2022-12-31"]}},"cube_regularize_MEGPM4289Z":{"process_id":"cube_regularize","arguments":{"data":{"from_node":"load_collection_DQOOO2199O"},"period":"P1M","resolution":300}},"ndvi_EATET0563N":{"process_id":"ndvi","arguments":{"data":{"from_node":"cube_regularize_MEGPM4289Z"},"nir":"B08","red":"B04","target_band":"NDVI"}},"mlm_class_tempcnn_NVHNS2707M":{"process_id":"mlm_class_tempcnn","arguments":{"cnn_layers":[64,64,64],"cnn_kernels":[5,5,5],"cnn_dropout_rates":[0.2,0.2,0.2],"dense_layer_nodes":256,"dense_layer_dropout_rate":0.5,"optimizer":"adam","learning_rate":0.0005,"epsilon":1e-08,"weight_decay":1e-06,"lr_decay_epochs":1,"lr_decay_rate":0.95,"epochs":150,"batch_size":64,"seed":42}},"ml_fit_YFEDD9744R":{"process_id":"ml_fit","arguments":{"model":{"from_node":"mlm_class_tempcnn_NVHNS2707M"},"target":"label"}},"ml_predict_XGOXO3290V":{"process_id":"ml_predict","arguments":{"data":{"from_node":"ndvi_EATET0563N"},"model":{"from_node":"ml_fit_YFEDD9744R"}}},"save_result_VNDFL6610P":{"process_id":"save_result","arguments":{"data":{"from_node":"ml_predict_XGOXO3290V"},"format":"GTiff","options":{}},"result":true}},"parameters":[],"returns":{"schema":{"type":"boolean"}}},"status":"running","created":"2025-06-04 15:07:33","plan":{},"budget":{},"log_level":{},"links":[]}}</script>
 <p></openeo-job>`{=html}</p>
 </div>
 <div id="conclusion" class="section level1">
