@@ -53,7 +53,7 @@ load_processes(api, processes_file)
 #* Enable Cross-origin Resource Sharing
 #* @filter cors
 function(req, res) {
-  print("CORS filter")
+  cat("CORS filter:", req$PATH_INFO, fill = TRUE)
   api_cors_handler(req, res, origin = "*", methods = "*")
 }
 
