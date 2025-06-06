@@ -1,5 +1,5 @@
 {
-    "id": "ml_mlp",
+    "id": "ml_class_mlp",
     "summary": "Initialize a Multi-Layer Perceptron (MLP) model",
     "description": "Creates and configures a Multi-Layer Perceptron (MLP) model. Parameters such as the architecture, optimizer, learning rate, and other training options can be specified.",
     "categories": [

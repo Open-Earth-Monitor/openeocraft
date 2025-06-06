@@ -193,7 +193,7 @@ function(req, res, job_id) {
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/logs
-function(req, res, job_id, offset, level, limit) {
+function(req, res, job_id, offset = 0, level = "info", limit = 10) {
   print("GET /jobs/<jobid>/logs")
   token <- get_token(req)
   user <- get_token_user(api, token)

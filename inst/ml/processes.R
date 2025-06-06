@@ -982,6 +982,31 @@ save_ml_model <- function(data, name, tasks, options = NULL) {
 #* @openeo-process
 load_ml_model <- function(name) {
   base::print("load_ml_model()")
-  # TO DO
-  "load_ml_model()"
+
+  # TO DO : use rstac to load the model, can be in https or in s3 object storage
+  # model metadata is in the collection.json file
+
+  # Initialize environment
+  env <- openeocraft::current_env()
+
+  # Get job directory
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+
+  # Get model file path
+  model_file <- base::file.path(job_dir, ".obj", base::paste0(name, ".rds"))
+
+  # Check if model file exists
+  if (!base::file.exists(model_file)) {
+    openeocraft::api_stop(404, "Model file not found")
+  }
+
+  # Load the model
+  model <- base::readRDS(model_file)
+
+  # Basic validation
+  if (!base::is.list(model)) {
+    openeocraft::api_stop(400, "Invalid model format")
+  }
+
+  model
 }
