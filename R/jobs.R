@@ -157,8 +157,12 @@ job_sync <- function(api, req, user, job_id) {
     if ("code" %in% names(e)) {
       code <- e$code
     }
+
+    process_str <- deparse(job$process, width.cutoff = 500L)
+    error_str <- paste(c(e$message, process_str), collapse = "\n")
+
     job_upd_status(api, user, job_id, .job_status_error)
-    log_append(api, user, job_id, code, "error", e$message)
+    log_append(api, user, job_id, code, "error", error_str)
     invisible(NULL)
   })
 }

@@ -628,14 +628,14 @@ ndvi <- function(data,
     )
     overlap <- base::ceiling(window_size / 2) - 1
     block <- sits:::.raster_file_blocksize(sits:::.raster_open_rast(sits:::.tile_path(data)))
-    job_memsize <- sits:::.jobs_memsize(
-      job_size = sits:::.block_size(block = block, overlap = overlap),
+    job_memsize <- sits:::.jobs_block_memsize(
+      block_size = sits:::.block_size(block = block, overlap = overlap),
       npaths = base::length(in_bands) + 1,
       nbytes = 8,
       proc_bloat = sits:::.conf("processing_bloat_cpu")
     )
     block <- sits:::.jobs_optimal_block(
-      job_memsize = job_memsize,
+      job_block_memsize = job_memsize,
       block = block,
       image_size = sits:::.tile_size(sits:::.tile(data)),
       memsize = memsize,
@@ -643,7 +643,7 @@ ndvi <- function(data,
     )
     block <- sits:::.block_regulate_size(block)
     multicores <- sits:::.jobs_max_multicores(
-      job_memsize = job_memsize,
+      job_block_memsize = job_memsize,
       memsize = memsize,
       multicores = multicores
     )

@@ -69,7 +69,7 @@ function(req, res) {
 #* @get /conformance
 function(req, res) {
   print("GET /conformance")
-  api_conformance(api, req)
+  api_conformance(api, req, res)
 }
 
 #* Basic metadata for all datasets
@@ -96,7 +96,7 @@ function(req, res, collection_id) {
 #* @get /processes
 function(req, res) {
   print("GET /processes")
-  doc <- api_processes(api, req, check_auth = FALSE)
+  doc <- api_processes(api, req, res, check_auth = FALSE)
   doc
 }
 
@@ -132,6 +132,7 @@ function(req, res, job_id) {
 #* @post /jobs
 function(req, res) {
   print("POST /jobs")
+  print(req$body$process)
   api_job_create(api, req, res)
 }
 

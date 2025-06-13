@@ -35,6 +35,7 @@ con <- connect(
 
 # Access processes
 p <- processes()
+p
 ```
 
 # Load Training Data
@@ -95,11 +96,11 @@ Finally, we save the trained model for future use:
 
 ```{r}
 # Save the trained model
-tempcnn_model_exp <- p$save_ml_model(
-  data = tempcnn_model,
-  name = "tempcnn_rondonia_v1",
-  tasks = list("classification")
-)
+#tempcnn_model_exp <- p$save_ml_model(
+#  data = tempcnn_model,
+#  name = "tempcnn_rondonia_v1",
+#  tasks = list("classification")
+#)
 
 ```
 
@@ -108,20 +109,23 @@ tempcnn_model_exp <- p$save_ml_model(
 
 ```{r}
 # Load
-datacube = p$load_collection(id = "mpc/sentinel-2-l2a",
-                                  spatial_extent = list(west = -63.9,
-                                                        east = 	-62.9,
-                                                        south = -9.14,
-                                                        north = -8.14),
-                                  temporal_extent = c("2022-01-01", "2022-12-31"))
+ # datacube = p$load_collection(id = "mpc/sentinel-2-l2a",
+ #                                  spatial_extent = list(west = -63.9,
+ #                                                        east = 	-62.9,
+ #                                                        south = -9.14,
+ #                                                        north = -8.14),
+ #                                  temporal_extent = c("2022-01-01", "2022-12-31"))
+
+datacube = p$import_cube(name = "s2_cube",
+  folder = "openeocraft-cubes")
 ```
 # Regularize the data
 
 
 ```{r}
-datacube = p$cube_regularize(data = datacube, 
-                             period = "P1M", 
-                             resolution = "300")
+# datacube = p$cube_regularize(data = datacube, 
+#                              period = "P16D", 
+#                              resolution = "320")
     
 ```
 
@@ -129,11 +133,12 @@ datacube = p$cube_regularize(data = datacube,
 
 
 ```{r}
-datacube = p$ndvi(data = datacube, 
-                  red = "B04", 
-                  nir = "B08", 
-                  target_band = "NDVI"
-)
+#datacube = p$ndvi(
+#  data = datacube,
+#  red = "B04",
+#  nir = "B08",
+#  target_band = "NDVI"
+#)
 ```
 
 # ML Prediction
