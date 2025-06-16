@@ -628,14 +628,14 @@ ndvi <- function(data,
     )
     overlap <- base::ceiling(window_size / 2) - 1
     block <- sits:::.raster_file_blocksize(sits:::.raster_open_rast(sits:::.tile_path(data)))
-    job_memsize <- sits:::.jobs_memsize(
-      job_size = sits:::.block_size(block = block, overlap = overlap),
+    job_memsize <- sits:::.jobs_block_memsize(
+      block_size = sits:::.block_size(block = block, overlap = overlap),
       npaths = base::length(in_bands) + 1,
       nbytes = 8,
       proc_bloat = sits:::.conf("processing_bloat_cpu")
     )
     block <- sits:::.jobs_optimal_block(
-      job_memsize = job_memsize,
+      job_block_memsize = job_memsize,
       block = block,
       image_size = sits:::.tile_size(sits:::.tile(data)),
       memsize = memsize,
@@ -643,7 +643,7 @@ ndvi <- function(data,
     )
     block <- sits:::.block_regulate_size(block)
     multicores <- sits:::.jobs_max_multicores(
-      job_memsize = job_memsize,
+      job_block_memsize = job_memsize,
       memsize = memsize,
       multicores = multicores
     )
@@ -982,6 +982,31 @@ save_ml_model <- function(data, name, tasks, options = NULL) {
 #* @openeo-process
 load_ml_model <- function(name) {
   base::print("load_ml_model()")
-  # TO DO
-  "load_ml_model()"
+
+  # TO DO : use rstac to load the model, can be in https or in s3 object storage
+  # model metadata is in the collection.json file
+
+  # Initialize environment
+  env <- openeocraft::current_env()
+
+  # Get job directory
+  job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+
+  # Get model file path
+  model_file <- base::file.path(job_dir, ".obj", base::paste0(name, ".rds"))
+
+  # Check if model file exists
+  if (!base::file.exists(model_file)) {
+    openeocraft::api_stop(404, "Model file not found")
+  }
+
+  # Load the model
+  model <- base::readRDS(model_file)
+
+  # Basic validation
+  if (!base::is.list(model)) {
+    openeocraft::api_stop(400, "Invalid model format")
+  }
+
+  model
 }

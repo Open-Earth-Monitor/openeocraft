@@ -102,7 +102,7 @@ procs_save_rds <- function(api, procs) {
   invisible(NULL)
 }
 logs_read_rds <- function(api, user, job_id) {
-  file <- file.path(api_user_workspace(api, user), job_id, "logs.rds")
+  file <- file.path(api_user_workspace(api, user), "jobs", job_id, "logs.rds")
   if (!file.exists(file)) {
     return(list())
   }
@@ -110,7 +110,7 @@ logs_read_rds <- function(api, user, job_id) {
   logs
 }
 logs_save_rds <- function(api, user, job_id, logs) {
-  file <- file.path(api_user_workspace(api, user), job_id, "logs.rds")
+  file <- file.path(api_user_workspace(api, user), "jobs", job_id, "logs.rds")
   tryCatch(saveRDS(logs, file), error = function(e) NULL)
   invisible(NULL)
 }
@@ -157,8 +157,12 @@ job_sync <- function(api, req, user, job_id) {
     if ("code" %in% names(e)) {
       code <- e$code
     }
+
+    process_str <- deparse(job$process, width.cutoff = 500L)
+    error_str <- paste(c(e$message, process_str), collapse = "\n")
+
     job_upd_status(api, user, job_id, .job_status_error)
-    log_append(api, user, job_id, code, "error", e$message)
+    log_append(api, user, job_id, code, "error", error_str)
     invisible(NULL)
   })
 }

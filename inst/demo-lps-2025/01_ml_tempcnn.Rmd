@@ -35,6 +35,7 @@ con <- connect(
 
 # Access processes
 p <- processes()
+p
 ```
 
 # Load Training Data
@@ -50,8 +51,6 @@ data_deforestation_rondonia <- readRDS("./filtered_rondonia_data.rds")
 
 Here we define the architecture and hyperparameters for our TempCNN model:
 
-```{r}
-# Define the Temporal CNN model
 tempcnn_model_def <- p$mlm_class_tempcnn(
   cnn_layers = list(64, 64, 64),
   cnn_kernels = list(5, 5, 5),
@@ -68,6 +67,14 @@ tempcnn_model_def <- p$mlm_class_tempcnn(
   batch_size = 64,
   seed = 42
 )
+
+```{r}
+# Define the Temporal CNN model
+tempcnn_model_init <- p$mlm_class_tempcnn(
+  optimizer = "adam",
+  learning_rate = 0.0005,
+  seed = 42
+)
 ```
 
 # Model Training
@@ -76,28 +83,88 @@ Now we fit the model using our training dataset:
 
 ```{r}
 # Fit the model using the training dataset
-tempcnn_model_fitted <- p$ml_fit(
-  model = tempcnn_model_def,
+tempcnn_model <- p$ml_fit(
+  model = tempcnn_model_init,
   training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
   target = "label"
 )
 ```
 
-# Export the Trained Model
+# Save the Trained Model
 
-Finally, we export the trained model for future use:
+Finally, we save the trained model for future use:
 
 ```{r}
-# Export the trained model
-tempcnn_model <- p$export_ml_model(
-  model = tempcnn_model_fitted,
-  name = "tempcnn_model_20_05_25",
-  folder = "openeocraft-models"
-)
+# Save the trained model
+#tempcnn_model_exp <- p$save_ml_model(
+#  data = tempcnn_model,
+#  name = "tempcnn_rondonia_v1",
+#  tasks = list("classification")
+#)
 
+```
+
+# Load Sentinel 2 Collection
+
+
+```{r}
+# Load
+ # datacube = p$load_collection(id = "mpc/sentinel-2-l2a",
+ #                                  spatial_extent = list(west = -63.9,
+ #                                                        east = 	-62.9,
+ #                                                        south = -9.14,
+ #                                                        north = -8.14),
+ #                                  temporal_extent = c("2022-01-01", "2022-12-31"))
+
+datacube = p$import_cube(name = "s2_cube",
+  folder = "openeocraft-cubes")
+```
+# Regularize the data
+
+
+```{r}
+# datacube = p$cube_regularize(data = datacube, 
+#                              period = "P16D", 
+#                              resolution = "320")
+    
+```
+
+# Calculate NDVI
+
+
+```{r}
+#datacube = p$ndvi(
+#  data = datacube,
+#  red = "B04",
+#  nir = "B08",
+#  target_band = "NDVI"
+#)
+```
+
+# ML Prediction
+
+
+```{r}
+data <- p$ml_predict(
+  data = datacube,
+  model = tempcnn_model
+)
+```
+
+# Save the prediction results
+
+
+```{r}
+ml_job <- p$save_result(
+  data = data,
+  format = "GTiff"
+)
+```
 # Run the job
+
+```{r}
 job <- create_job(
-  graph = tempcnn_model,
+  graph = ml_job,
   title = "Train Temp CNN Model",
   description = "Training a Temp CNN model and exporting it"
 )
