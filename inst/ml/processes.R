@@ -718,7 +718,7 @@ save_result <- function(data, format, options = NULL) {
   for (i in base::seq_len(base::nrow(data))) {
     # Change URLs to allow client access files
     filename <- base::basename(data$file_info[[i]]$path)
-    data$file_info[[i]]$path <- openeocraft::make_files_url(
+    data$file_info[[i]]$path <- openeocraft::make_job_files_url(
       host = host,
       user = env$user,
       job_id = env$job$id,
