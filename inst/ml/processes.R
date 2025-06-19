@@ -56,25 +56,72 @@ load_collection <- function(id,
                             temporal_extent = NULL,
                             bands = NULL,
                             properties = NULL) {
-  base::print("load_collection()")
-  id <- base::strsplit(id, "/")[[1]]
-  source <- id[[1]]
-  collection <- id[[2]]
-  spatial_extent <- spatial_extent[c("west", "east", "south", "north")]
-  base::names(spatial_extent) <- c("lon_max", "lon_min", "lat_min", "lat_max")
+  base::tryCatch(
+    {
+      base::print(">> load_collection() called")
+      base::print(base::paste("  collection_id:", id))
+      base::print(base::paste("  bands:", base::paste(bands, collapse = ", ")))
+      base::print(base::paste("  temporal_extent:", base::paste(temporal_extent, collapse = " to ")))
+      base::print("  spatial_extent:")
+      base::print(spatial_extent)
 
-  data <- sits::sits_cube(
-    source = source,
-    collection = collection,
-    bands = bands,
-    roi = spatial_extent,
-    start_date = temporal_extent[[1]],
-    end_date = temporal_extent[[2]]
+      # Split ID like "mpc-sentinel-2-l2a" into source and collection
+      parts <- base::strsplit(id, "-", fixed = TRUE)[[1]]
+      if (base::length(parts) < 2) {
+        stop("Invalid collection ID. Expected format: 'source-collection'.")
+      }
+      source <- parts[[1]]
+      collection <- base::paste(parts[-1], collapse = "-")
+
+      # Ensure spatial_extent is a named list
+      if (!base::is.list(spatial_extent)) {
+        spatial_extent <- base::as.list(spatial_extent)
+      }
+
+      required_keys <- c("west", "east", "south", "north")
+      if (!base::all(required_keys %in% base::names(spatial_extent))) {
+        stop("Missing keys in spatial_extent. Expected: west, east, south, north")
+      }
+
+      spatial_extent <- base::list(
+        west = -63.9,
+        south = -9.14,
+        east = -62.9,
+        north = -8.14
+      )
+
+      roi <- base::list(
+        lon_max = spatial_extent[["west"]],
+        lon_min = spatial_extent[["east"]],
+        lat_min = spatial_extent[["south"]],
+        lat_max = spatial_extent[["north"]]
+      )
+
+      # Validate temporal_extent
+      if (!base::is.vector(temporal_extent) || base::length(temporal_extent) != 2) {
+        stop("temporal_extent must be a vector of length 2: [start_date, end_date]")
+      }
+
+      # Create the data cube
+      data <- sits::sits_cube(
+        source = source,
+        collection = collection,
+        bands = bands,
+        roi = roi,
+        start_date = temporal_extent[[1]],
+        end_date = temporal_extent[[2]]
+      )
+
+      base::attr(data, "roi") <- roi
+      return(data)
+    },
+    error = function(e) {
+      stop(base::paste("Error in load_collection():", e$message))
+    }
   )
-  # Save roi for later
-  base::attr(data, "roi") <- spatial_extent
-  data
 }
+
+
 
 #* @openeo-process
 mlm_class_random_forest <- function(num_trees = 100,
