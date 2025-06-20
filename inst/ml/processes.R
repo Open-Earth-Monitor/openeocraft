@@ -81,10 +81,12 @@ load_collection <- function(id,
 
       # Create sf polygon for ROI
       bbox <- sf::st_bbox(
-        c(xmin = spatial_extent$west,
+        c(
+          xmin = spatial_extent$west,
           ymin = spatial_extent$south,
           xmax = spatial_extent$east,
-          ymax = spatial_extent$north),
+          ymax = spatial_extent$north
+        ),
         crs = 4326
       )
       roi <- sf::st_as_sfc(bbox)
@@ -99,7 +101,7 @@ load_collection <- function(id,
         source = source,
         collection = collection,
         bands = bands,
-        roi = roi,  # sf polygon object
+        roi = roi, # sf polygon object
         start_date = temporal_extent[[1]],
         end_date = temporal_extent[[2]]
       )

@@ -89,7 +89,6 @@ First, we load the required libraries and connect to the OpenEO backend:
 
 ```{r}
 library(openeo)
-library(sits)
 
 # Connect to the backend
 con <- connect(
@@ -101,6 +100,16 @@ con <- connect(
 # Access processes
 p <- processes()
 p
+
+```
+## Describe processes
+```{r}
+openeo::describe_process("mlm_class_tempcnn")
+```
+
+
+```{r}
+openeo::describe_process("mlm_class_random_forest")
 ```
 
 ## Load Training Data
@@ -109,7 +118,7 @@ We load the pre-processed training data for deforestation in Rondonia:
 
 ```{r}
 # Load sits tibble Training data
-data_deforestation_rondonia <- readRDS("./filtered_rondonia_data.rds")
+data_deforestation_rondonia <- readRDS("./monthly_rondonia_data.rds")
 ```
 
 ## Define the Temporal CNN Model
@@ -143,7 +152,7 @@ tempcnn_model <- p$ml_fit(
 ```{r}
 datacube = p$import_cube(
   name = "s2_cube",
-  folder = "openeocraft-cubes"
+  folder = "openeocraft-cubes-1M"
 )
 ```
 
@@ -159,14 +168,14 @@ datacube = p$import_cube(
  #                                  temporal_extent = c("2022-01-01", "2022-12-31"))
 
 datacube = p$import_cube(name = "s2_cube",
-  folder = "openeocraft-cubes")
+  folder = "openeocraft-cubes-1M")
 ```
 # Regularize the data
 
 
 ```{r}
 # datacube = p$cube_regularize(data = datacube, 
-#                              period = "P16D", 
+#                              period = "P1M", 
 #                              resolution = "320")
     
 ```
@@ -195,7 +204,7 @@ ml_job <- p$save_result(
 job <- create_job(
   graph = ml_job,
   title = "Train Temp CNN Model",
-  description = "Training a Temp CNN model and exporting it"
+  description = "Training a Temp CNN model, Predict with it"
 )
 job <- start_job(job)
 
