@@ -65,7 +65,7 @@ load_collection <- function(id,
       base::print("  spatial_extent:")
       base::print(spatial_extent)
 
-      # Split ID like "mpc-sentinel-2-l2a" into source and collection
+      # Split ID
       parts <- base::strsplit(id, "-", fixed = TRUE)[[1]]
       if (base::length(parts) < 2) {
         stop("Invalid collection ID. Expected format: 'source-collection'.")
@@ -73,41 +73,33 @@ load_collection <- function(id,
       source <- parts[[1]]
       collection <- base::paste(parts[-1], collapse = "-")
 
-      # Ensure spatial_extent is a named list
-      if (!base::is.list(spatial_extent)) {
-        spatial_extent <- base::as.list(spatial_extent)
-      }
-
+      # Validate spatial_extent
       required_keys <- c("west", "east", "south", "north")
       if (!base::all(required_keys %in% base::names(spatial_extent))) {
         stop("Missing keys in spatial_extent. Expected: west, east, south, north")
       }
 
-      spatial_extent <- base::list(
-        west = -63.9,
-        south = -9.14,
-        east = -62.9,
-        north = -8.14
+      # Create sf polygon for ROI
+      bbox <- sf::st_bbox(
+        c(xmin = spatial_extent$west,
+          ymin = spatial_extent$south,
+          xmax = spatial_extent$east,
+          ymax = spatial_extent$north),
+        crs = 4326
       )
-
-      roi <- base::list(
-        lon_max = spatial_extent[["west"]],
-        lon_min = spatial_extent[["east"]],
-        lat_min = spatial_extent[["south"]],
-        lat_max = spatial_extent[["north"]]
-      )
+      roi <- sf::st_as_sfc(bbox)
 
       # Validate temporal_extent
       if (!base::is.vector(temporal_extent) || base::length(temporal_extent) != 2) {
         stop("temporal_extent must be a vector of length 2: [start_date, end_date]")
       }
 
-      # Create the data cube
+      # Create data cube with correct roi format
       data <- sits::sits_cube(
         source = source,
         collection = collection,
         bands = bands,
-        roi = roi,
+        roi = roi,  # sf polygon object
         start_date = temporal_extent[[1]],
         end_date = temporal_extent[[2]]
       )
@@ -120,7 +112,6 @@ load_collection <- function(id,
     }
   )
 }
-
 
 
 #* @openeo-process
