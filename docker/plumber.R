@@ -54,6 +54,7 @@ load_processes(api, processes_file)
 #* @filter cors
 function(req, res) {
   print("CORS filter")
+  print(c(req$REQUEST_METHOD, req$PATH_INFO))
   api_cors_handler(req, res, origin = "*", methods = "*")
 }
 
