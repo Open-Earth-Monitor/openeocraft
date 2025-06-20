@@ -26,11 +26,11 @@ This work presents the design and specification of the ML API processes for the 
 
 The core principles that guided the API development include:
 
-- **Modularity**: Decoupling initialization, action, and management tasks into discrete processes allows users to compose complex pipelines from simple building blocks and swap algorithms without rewriting entire workflows.
-- **Consistency**: Uniform naming conventions, parameter ordering, and behavior across all ML processes minimize surprises for users, enabling learnability and reducing integration friction.
-- **Backend-Agnosticism**: Defining process semantics independently of execution engines empowers back-ends to map ML processes to native libraries (e.g., scikit-learn, XGBoost, Torch, Caret) while preserving a consistent user experience.
-- **Default Parameters**: Processes expose sensible default hyperparameters that cover the majority of common use-cases, so that simple ML tasks work out-of-the-box, reducing configuration errors and accelerating prototyping.
-- **Extensible**: A compact core API covers common ML tasks while supporting extension via community proposals—enabling new algorithms and workflows.
+- **Modularity**
+- **Consistency**
+- **Backend-Agnosticism**
+- **Default Parameters**
+- **Extensible**
 
 ## Model Initialization
 

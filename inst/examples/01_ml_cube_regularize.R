@@ -21,11 +21,11 @@ s2_reg <- p$export_cube(
       temporal_extent = list("2022-01-01", "2022-12-31"),
       bands = list("B02","B03", "B04","B05","B06", "B07", "B08", "B11", "B12","B8A")
     ),
-    period = "P1M",
+    period = "P6M",
     resolution = 320
   ),
   name = "s2_cube",
-  folder = "openeocraft-cubes-1M"
+  folder = "openeocraft-cubes-6M"
 )
 
 
