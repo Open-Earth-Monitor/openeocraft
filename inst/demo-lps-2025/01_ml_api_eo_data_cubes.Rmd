@@ -151,7 +151,7 @@ tempcnn_model <- p$ml_fit(
 
 ```{r}
 datacube = p$load_collection(
-  id = "mpc/sentinel-2-l2a",
+  id = "mpc-sentinel-2-l2a",
   spatial_extent = list(
     west = -63.9,
     east = 	-62.9,
