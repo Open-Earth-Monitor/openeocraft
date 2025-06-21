@@ -87,6 +87,9 @@ function(req, res) {
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
   print("GET /collections/<col_id>")
+  print(as.list(api$stac_api))
+  print(collection_id)
+  print(as.list(req))
   doc <- openstac::api_collection(api$stac_api, collection_id, req)
   doc <- delete_link(doc, rel = "item")
   doc
