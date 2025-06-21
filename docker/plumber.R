@@ -53,12 +53,12 @@ load_processes(api, processes_file)
 #* Enable Cross-origin Resource Sharing
 #* @filter cors
 function(req, res) {
-  print("CORS filter")
-  print(c(req$REQUEST_METHOD, req$PATH_INFO))
+  cat("CORS filter:", req$REQUEST_METHOD, req$PATH_INFO, fill = TRUE)
   api_cors_handler(req, res, origin = "*", methods = "*")
 }
 
 #* HTTP Basic authentication
+#* @serializer unboxedJSON
 #* @get /credentials/basic
 function(req, res) {
   print("GET /credentials/basic")
@@ -78,7 +78,7 @@ function(req, res) {
 #* @get /collections
 function(req, res) {
   print("GET /collections")
-  openstac::api_collections(api$stac_api, req)
+  openstac::api_collections(api$stac_api, req, res)
 }
 
 #* Full metadata for a specific dataset
@@ -87,7 +87,10 @@ function(req, res) {
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
   print("GET /collections/<col_id>")
-  doc <- openstac::api_collection(api$stac_api, collection_id, req)
+  print(as.list(api$stac_api))
+  print(collection_id)
+  print(as.list(req))
+  doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
   doc <- delete_link(doc, rel = "item")
   doc
 }
