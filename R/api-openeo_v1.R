@@ -18,7 +18,7 @@ api_credential.openeo_v1 <- function(api, req, res) {
   } else {
     token <- credentials$users[[user]]$token
     # TODO: check token renewal
-    if (credentials$tokens[[token]]$expiry > Sys.time()) {
+    if (credentials$tokens[[token]]$expiry < Sys.time()) {
       old_token <- credentials$users[[user]]$token
       credentials$tokens[[old_token]] <- NULL
       credentials <- new_token(credentials, user, 30)

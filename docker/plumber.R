@@ -58,6 +58,7 @@ function(req, res) {
 }
 
 #* HTTP Basic authentication
+#* @serializer unboxedJSON
 #* @get /credentials/basic
 function(req, res) {
   print("GET /credentials/basic")
