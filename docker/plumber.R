@@ -77,7 +77,7 @@ function(req, res) {
 #* @get /collections
 function(req, res) {
   print("GET /collections")
-  openstac::api_collections(api$stac_api, req)
+  openstac::api_collections(api$stac_api, req, res)
 }
 
 #* Full metadata for a specific dataset
@@ -89,7 +89,7 @@ function(req, res, collection_id) {
   print(as.list(api$stac_api))
   print(collection_id)
   print(as.list(req))
-  doc <- openstac::api_collection(api$stac_api, collection_id, req)
+  doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
   doc <- delete_link(doc, rel = "item")
   doc
 }
