@@ -4,11 +4,11 @@ Version: 0.2.0
 Authors@R: 
     c(person("Rolf", "Simoes", , "rolf.simoes@opengeohub.org", 
            role = c("aut", "cre"), 
-           comment = c(ORCID = "YOUR-ORCID-ID")),
+           comment = c(ORCID = "0000-0003-0953-4132")),
     person("Brian", "Pondi", , "brian.pondi@uni-muenster.de", 
            role = c("aut"), 
-           comment = c(ORCID = "YOUR-ORCID-ID")),
-    person("OpenGeoHub Foundation", , , "rolf.simoes@opengeohub.org", 
+           comment = c(ORCID = "0009-0008-0367-1690")),
+    person("OpenGeoHub Foundation", , , "support@opengeohub.org", 
            role = c("cph")))
 Description: |
   Provides a comprehensive R framework for crafting and serving openEO API 

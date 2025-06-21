@@ -3,7 +3,8 @@
     "summary": "Import a data cube from the user workspace",
     "description": "Loads a data cube from the user's workspace by specifying its name and folder location. This function allows previously saved data cubes to be accessed for further analysis or processing.",
     "categories": [
-        "cube"
+        "cube",
+        "import"
     ],
     "experimental": true,
     "parameters": [

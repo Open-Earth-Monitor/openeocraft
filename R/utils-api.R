@@ -67,8 +67,10 @@ api_cors_handler <- function(req, res, origin = "*", methods = "*") {
     plumber::forward()
   } else {
     res$setHeader("Access-Control-Allow-Methods", methods)
-    res$setHeader("Access-Control-Allow-Headers",
-                  req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
+    res$setHeader(
+      "Access-Control-Allow-Headers",
+      req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS
+    )
     res$status <- 200L
     return(list())
   }
@@ -95,14 +97,17 @@ api_success <- function(status, ...) {
 #' @export
 get_host <- function(api, req) {
   host <- api_attr(api, "api_base_url")
-  if (!is.null(host))
+  if (!is.null(host)) {
     return(host)
-  if ("HTTP_HOST" %in% names(req))
+  }
+  if ("HTTP_HOST" %in% names(req)) {
     return(paste0(req$rook.url_scheme, "://", req$HTTP_HOST))
+  }
   host <- paste0(req$rook.url_scheme, "://", req$SERVER_NAME)
   if (!is.null(req$SERVER_PORT) && nzchar(req$SERVER_PORT) &&
-      req$SERVER_PORT != "80")
+    req$SERVER_PORT != "80") {
     host <- paste0(host, ":", req$SERVER_PORT)
+  }
   host
 }
 #' @rdname api_helpers
@@ -121,8 +126,9 @@ api_env <- function(api) {
 }
 #' @keywords internal
 api_attr <- function(api, name) {
-  if (exists(name, envir = api_env(api), inherits = FALSE))
+  if (exists(name, envir = api_env(api), inherits = FALSE)) {
     get(name, envir = api_env(api), inherits = FALSE)
+  }
 }
 #' @keywords internal
 `api_attr<-` <- function(api, name, value) {
@@ -211,8 +217,9 @@ new_credential <- function(api, user, password) {
   stopifnot(!is.null(file) || file.exists(file))
   credentials <- readRDS(file)
   current_value <- list()
-  if (user %in% names(credentials$users))
+  if (user %in% names(credentials$users)) {
     current_value <- credentials$users[[user]]
+  }
   credentials$users[[user]] <- utils::modifyList(
     x = current_value,
     val = list(user = user, password = password)
@@ -224,13 +231,14 @@ empty_credentials <- function() {
 }
 #' @export
 set_credentials <- function(api, file) {
-  if (!file.exists(file))
+  if (!file.exists(file)) {
     saveRDS(empty_credentials(), file)
+  }
   api_attr(api, "credentials") <- file
   invisible(api)
 }
 new_token <- function(credentials, user, valid_days = 30) {
-  token <- ids::random_id()
+  token <- random_id(16)
   expiry <- Sys.time() + valid_days * 60 * 60 * 24
   credentials$users[[user]]$token <- token
   credentials$tokens[[token]]$expiry <- expiry

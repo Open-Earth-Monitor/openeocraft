@@ -1,0 +1,9 @@
+.git
+.github
+.Rproj.user
+.DS_Store
+docker/
+tests/
+*.Rproj
+*.md
+!README.md 

@@ -1,5 +1,5 @@
 {
-    "id": "ml_predict_probability",
+    "id": "ml_predict_probabilities",
     "summary": "Predict probability using ML",
     "description": "Applies a machine learning model to a datacube and returns the predicted probability values.",
     "categories": [
