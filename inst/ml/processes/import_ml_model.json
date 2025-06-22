@@ -1,9 +1,9 @@
 {
-    "id": "import_model",
+    "id": "import_ml_model",
     "summary": "Import a model from the user workspace",
     "description": "Loads a model from the user's workspace by specifying its name and folder location. This function allows previously saved models to be accessed for further analysis or processing.",
     "categories": [
-        "cube"
+        "machine learning"
     ],
     "experimental": true,
     "parameters": [

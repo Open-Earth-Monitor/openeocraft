@@ -36,7 +36,7 @@ test_that("GET /file_formats > output: At least one output file format is availa
   res <- mock_res()
   result <- api_file_formats(api, req, res)
 
-  expect_true(length(result$output) > 0)
+  expect_true(length(result$output) > 0L)
 })
 
 test_that("GET /file_formats: File format names are accepted case-insensitively", {

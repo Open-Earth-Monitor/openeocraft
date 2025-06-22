@@ -1,8 +1,8 @@
-version: "3.3"
-
 services:
   openeocraft:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     environment:
       - TZ=Etc/UTC
       - DEBIAN_FRONTEND=noninteractive

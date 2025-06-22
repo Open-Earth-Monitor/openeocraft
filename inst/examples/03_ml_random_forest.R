@@ -2,7 +2,7 @@ library(openeo)
 library(sits)
 
 # Connect to the backend
-con <- connect("http://127.0.0.1:8000", user = "rolf", password = "123456")
+con <- connect("http://127.0.0.1:8000", user = "brian", password = "123456")
 
 # Access processes
 p <- processes()
@@ -10,7 +10,7 @@ p <- processes()
 # Define a random forest model
 rf_model_definition <- p$mlm_class_random_forest(
   num_trees = 100,
-  random_state = 42
+  seed = 42
 )
 
 # Load sits tibble Training data
@@ -25,9 +25,9 @@ rf_model_fitted <- p$ml_fit(
 )
 
 # Export the trained model
-rf_model <- p$export_model(
+rf_model <- p$export_ml_model(
   model = rf_model_fitted,
-  name = "rf_model_15_01_25",
+  name = "rf_model_20_05_25",
   folder = "openeocraft-models"
 )
 
