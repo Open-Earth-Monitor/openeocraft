@@ -16,69 +16,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-# ML API Specification
-
-This work presents the design and specification of the ML API processes for the openEO ecosystem, structured to address four pillars: initialization of model architectures, execution of training/prediction tasks, and management of model artifacts. By decoupling ML logic from backend implementations, the API enables portable workflows that are reusable across infrastructures.
-
-![ML API Architecture](./eo-ml.png)
-
-## Design Principles
-
-The core principles that guided the API development include:
-
-- **Modularity**
-- **Consistency**
-- **Backend-Agnosticism**
-- **Default Parameters**
-- **Extensible**
-
-## Model Initialization
-
-The model initialization phase, facilitated by processes prefixed with `mlm_`, is designed to create untrained model definition objects. Each process name follows the pattern:
-
-```
-mlm_<type>_<model>
-```
-
-where `<type>` is an abbreviated ML action category (e.g., `class` for classification, `regr` for regression, `segm` for segmentation, `gen` for generative, etc.) and `<model>` specifies the particular algorithm (e.g., `random_forest`, `svm`, `xgboost`, `tempcnn`, `tae`, etc.).
-
-| Process Name              | Description                                                               |
-| ------------------------- | ------------------------------------------------------------------------- |
-| `mlm_class_catboost`      | Initializes a CatBoost classification model                               |
-| `mlm_class_mlp`           | Initializes a Multi-Layer Perceptron (MLP) classification model           |
-| `mlm_class_random_forest` | Initializes a Random Forest classification model                          |
-| `mlm_class_svm`           | Initializes a Support Vector Machine (SVM) classification model           |
-| `mlm_class_xgboost`       | Initializes an XGBoost classification model                               |
-| `mlm_class_tempcnn`       | Initializes a Temporal Convolutional Neural Network (TempCNN) model       |
-| `mlm_class_tae`           | Initializes a Temporal Attention Encoder (TAE) model                      |
-| `mlm_class_lighttae`      | Initializes a lightweight version of the Temporal Attention Encoder model |
-| `mlm_regr_svm`            | Initializes a Support Vector Machine regression model                     |
-| `mlm_regr_random_forest`  | Initializes a Random Forest regression model                              |
-
-## Model Actions
-
-Prefixed with `ml_`, model action processes are responsible for executing key ML workflows on model artifacts and EO data cubes. These actions include model training, prediction, uncertainty estimation, and post-processing.
-
-| Process Name               | Description                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------ |
-| `ml_fit`                   | Fits a machine learning model to a data cube of input features and target values           |
-| `ml_predict`               | Applies a trained machine learning model to a data cube of input features                  |
-| `ml_predict_probabilities` | Applies a model to input features and returns predicted class probabilities                |
-| `ml_uncertainty_class`     | Estimates classification uncertainty using methods like margin, ratio, or least-confidence |
-| `ml_smooth_class`          | Applies spatial smoothing to classification probability results using Bayesian inference   |
-| `ml_label_class`           | Converts a probability data cube to a labeled data cube                                    |
-
-## Model Management
-
-Model management processes handle the storage and retrieval of ML artifacts. They enable users to export and import preliminary or private models into their workspace and to export and import models using STAC ML Model extension compliance.
-
-| Process Name      | Description                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| `import_ml_model` | Imports a previously exported machine learning model from a specified workspace location |
-| `export_ml_model` | Exports a machine learning model to a specified workspace location                       |
-| `load_ml_model`   | Loads a machine learning model from a STAC:MLM Item into the current session             |
-| `save_ml_model`   | Saves a machine learning model with STAC MLM Extension compliance                        |
-
 # Temporal CNN Example
 
 This section demonstrates how to train a Temporal CNN (TempCNN) model using OpenEO processes. The example uses deforestation data from Rondonia to train a deep learning model for time series classification.
@@ -118,7 +55,7 @@ We load the pre-processed training data for deforestation in Rondonia:
 
 ```{r}
 # Load sits tibble Training data
-data_deforestation_rondonia <- readRDS("./monthly_rondonia_data.rds")
+data_deforestation_rondonia <- readRDS("./data/monthly_rondonia_data.rds")
 ```
 
 ## Define the Temporal CNN Model
