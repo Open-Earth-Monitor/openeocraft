@@ -97,6 +97,16 @@ load_collection <- function(id,
       }
 
       # Create data cube with correct roi format
+      base::print(base::substitute(
+        sits::sits_cube(
+          source = source,
+          collection = collection,
+          bands = bands,
+          roi = roi, # sf polygon object
+          start_date = temporal_extent[[1]],
+          end_date = temporal_extent[[2]]
+        )
+      ))
       data <- sits::sits_cube(
         source = source,
         collection = collection,
@@ -604,6 +614,18 @@ cube_regularize <- function(data, resolution, period) {
   if (!base::is.null(base::attr(data, "roi"))) {
     roi <- base::attr(data, "roi")
   }
+
+  base::print(base::quote(
+    sits::sits_regularize(
+      cube = data,
+      period = period,
+      res = resolution,
+      output_dir = result_dir,
+      roi = roi,
+      multicores = 2L
+    )
+  ))
+
   # Regularize
   data <- sits::sits_regularize(
     cube = data,
