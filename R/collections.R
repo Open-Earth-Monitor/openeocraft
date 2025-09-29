@@ -17,10 +17,10 @@
 #' @export
 load_collections <- function(api, collections = NULL, stac_api = NULL,
                              catalog_file = NULL) {
-  api_attr(api, "collections") <- list(
-    collections = collections,
-    stac_api = stac_api,
-    catalog_file = catalog_file
-  )
-  invisible(api)
+    api_attr(api, "collections") <- list(
+        collections = collections,
+        stac_api = stac_api,
+        catalog_file = catalog_file
+    )
+    invisible(api)
 }

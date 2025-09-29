@@ -24,8 +24,8 @@ request.}
 \value{
 \code{mock_req()} returns a list representing a plumber request,
 \code{mock_res()} returns an object with minimal \code{setHeader()} and
-\code{getHeader()} methods, and \code{mock_well_known_response()} returns a list that
-mimics the \code{.well-known/openeo} endpoint payload.
+\code{getHeader()} methods, and \code{mock_well_known_response()} returns a
+list that mimics the \code{.well-known/openeo} endpoint payload.
 }
 \description{
 Utilities that emulate plumber request and response objects for tests and

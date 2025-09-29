@@ -35,3 +35,19 @@ Suggests:
     openstac,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Collate:
+    'utils.R'
+    'utils-api.R'
+    'data.R'
+    'decorators.R'
+    'links.R'
+    'namespace.R'
+    'serializers.R'
+    'wellknown.R'
+    'api.R'
+    'api-openeo_v1.R'
+    'collections.R'
+    'jobs.R'
+    'pgraphs.R'
+    'mock.R'
+    'run.R'
