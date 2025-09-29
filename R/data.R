@@ -34,6 +34,19 @@ data_serializer.openeo_tar <- function(x, res) {
   res
 }
 
+#' Translate between file extensions, format identifiers, and MIME types
+#'
+#' @param format A short format identifier such as `"gtiff"`.
+#'
+#' @param filename A file name whose extension should be mapped.
+#'
+#' @return A character vector containing either the matching extension or
+#'   content type.
+#'
+#' @name format_helpers
+NULL
+
+#' @rdname format_helpers
 #' @export
 format_ext <- function(format) {
   switch(format,
@@ -43,6 +56,7 @@ format_ext <- function(format) {
          json = ".json"
   )
 }
+#' @rdname format_helpers
 #' @export
 ext_format <- function(filename) {
   ext <- gsub("\\.([^.]+)$", "\\1", filename)
@@ -53,6 +67,7 @@ ext_format <- function(filename) {
          json = "json"
   )
 }
+#' @rdname format_helpers
 #' @export
 ext_content_type <- function(filename) {
   ext <- gsub(".*\\.([^.]+)$", "\\1", filename)
@@ -60,9 +75,10 @@ ext_content_type <- function(filename) {
          tif = "image/tiff",
          nc = "application/octet-stream",
          rds = "application/rds",
-         json = "application/json",
+         json = "application/json"
   )
 }
+#' @rdname format_helpers
 #' @export
 format_content_type <- function(format) {
   format <- tolower(format)
@@ -73,4 +89,3 @@ format_content_type <- function(format) {
          json = "application/json"
   )
 }
-

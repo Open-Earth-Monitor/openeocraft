@@ -49,6 +49,8 @@ works if the \code{api_error_handler} function is handling errors in
 \code{plumber}.}
 
 \item{...}{Additional arguments to be passed to error handling functions.}
+
+\item{api}{The openeocraft API object used to service the request.}
 }
 \description{
 This set of functions provides HTTP CORS (Cross-Origin Resource Sharing)

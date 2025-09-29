@@ -32,6 +32,8 @@
 #'   construct and send the HTTP response back to the client making
 #'   the request.
 #'
+#' @param api The openeocraft API object used to service the request.
+#'
 #' @param origin The value to set for the 'Access-Control-Allow-Origin'
 #'   header in CORS requests. Defaults to '*'.
 #'
@@ -210,7 +212,34 @@ setup_plumber_docs <- function(api, pr, docs_endpoint, spec_endpoint) {
     tag = "API"
   )
 }
+#' Credential management helpers
+#'
+#' These helpers manage the credential store used by openeocraft during
+#' authentication. They allow you to register credential files with an API
+#' instance, add or update user/password pairs, and resolve bearer tokens
+#' from incoming requests.
+#'
+#' @param api An openeocraft API object.
+#'
+#' @param file Path to an `.rds` file used to persist credential data.
+#'
+#' @param user Username to retrieve or update in the credential store.
+#'
+#' @param password Plain-text password to store for `user`.
+#'
+#' @param req A plumber request object that contains the
+#'   `HTTP_AUTHORIZATION` header.
+#'
+#' @param token Access token extracted from an HTTP request.
+#'
+#' @return `set_credentials()` returns the `api` object invisibly.
+#'   `get_token()` returns the access token extracted from the request.
+#'   `get_token_user()` returns the user associated with a token.
+#'
+#' @name credential_helpers
+NULL
 
+#' @rdname credential_helpers
 #' @export
 new_credential <- function(api, user, password) {
   file <- api_attr(api, "credentials")
@@ -229,6 +258,7 @@ new_credential <- function(api, user, password) {
 empty_credentials <- function() {
   list(users = list(), tokens = list())
 }
+#' @rdname credential_helpers
 #' @export
 set_credentials <- function(api, file) {
   if (!file.exists(file)) {
@@ -245,10 +275,12 @@ new_token <- function(credentials, user, valid_days = 30) {
   credentials$tokens[[token]]$user <- user
   credentials
 }
+#' @rdname credential_helpers
 #' @export
 get_token <- function(req) {
   gsub("^.*//", "", req$HTTP_AUTHORIZATION)
 }
+#' @rdname credential_helpers
 #' @export
 get_token_user <- function(api, token) {
   if (!length(token)) {
@@ -274,6 +306,14 @@ get_token_user <- function(api, token) {
 api_workdir <- function(api) {
   api$work_dir
 }
+#' Resolve or initialise a user workspace directory
+#'
+#' @param api An openeocraft API object that stores the base work directory.
+#'
+#' @param user User identifier whose workspace should be prepared.
+#'
+#' @return Normalised path to the workspace directory.
+#'
 #' @export
 api_user_workspace <- function(api, user) {
   if (!dir.exists(api_workdir(api))) {
@@ -405,12 +445,31 @@ file_formats_auth <- function(doc) {
   )
 }
 
+#' Build signed URLs to artefacts in the workspace
+#'
+#' @param host Service root URL.
+#'
+#' @param user User identifier encoded into the token parameter.
+#'
+#' @param job_id Identifier of the job whose files are requested.
+#'
+#' @param file Relative file path inside the job folder.
+#'
+#' @param folder Root-level folder under `/files/root`.
+#'
+#' @return A character string containing the absolute URL.
+#'
+#' @name workspace_url_helpers
+NULL
+
+#' @rdname workspace_url_helpers
 #' @export
 make_job_files_url <- function(host, user, job_id, file) {
   token <- base64enc::base64encode(charToRaw(user))
   file <- file.path("/files/jobs", job_id, file)
   paste0(host, file, "?token=", token)
 }
+#' @rdname workspace_url_helpers
 #' @export
 make_workspace_files_url <- function(host, user, folder, file) {
   token <- base64enc::base64encode(charToRaw(user))

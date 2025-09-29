@@ -2,6 +2,33 @@
 expected_api_version <- "1.2.0"
 expected_stac_version <- "1.0.0"
 
+ensure_openstac <- function() {
+  if (!requireNamespace("openstac", quietly = TRUE)) {
+    stop("Package 'openstac' is required for this operation.", call. = FALSE)
+  }
+}
+
+#' Mock request/response helpers
+#'
+#' Utilities that emulate plumber request and response objects for tests and
+#' examples.
+#'
+#' @param ... Path segments or named headers used to construct the mock
+#'   request.
+#'
+#' @param method HTTP method to emulate.
+#'
+#' @param api An openeocraft API object.
+#'
+#' @return `mock_req()` returns a list representing a plumber request,
+#'   `mock_res()` returns an object with minimal `setHeader()` and
+#'   `getHeader()` methods, and `mock_well_known_response()` returns a list that
+#'   mimics the `.well-known/openeo` endpoint payload.
+#'
+#' @name mock_helpers
+NULL
+
+#' @rdname mock_helpers
 #' @export
 mock_req <- function(..., method = "GET") {
   dots <- list(...)
@@ -29,6 +56,7 @@ mock_req <- function(..., method = "GET") {
   req
 }
 
+#' @rdname mock_helpers
 #' @export
 mock_res <- function() {
   headers <- new.env()
@@ -100,35 +128,41 @@ mock_result <- function(api) {
 }
 
 mock_collections <- function(api) {
+  ensure_openstac()
   req <- mock_req("/collections", method = "GET")
   res <- mock_res()
-  api_collections(api, req, res)
+  openstac::api_collections(api, req, res)
 }
 
 mock_collection <- function(api, collection_id) {
+  ensure_openstac()
   req <- mock_req("/collections", collection_id, method = "GET")
   res <- mock_res()
-  api_collection(api, req, res, collection_id)
+  openstac::api_collection(api, req, res, collection_id)
 }
 
 mock_items <- function(api, collection_id, limit = 10, bbox, datetime, page = 1) {
+  ensure_openstac()
   req <- mock_req("/collections", collection_id, "items", method = "GET")
   res <- mock_res()
-  api_items(api, req, res, collection_id, limit, bbox, datetime, page)
+  openstac::api_items(api, req, res, collection_id, limit, bbox, datetime, page)
 }
 
 mock_item <- function(api, collection_id, item_id) {
+  ensure_openstac()
   req <- mock_req("/collections", collection_id, "items", item_id, method = "GET")
   res <- mock_res()
-  api_item(api, req, res, collection_id, item_id)
+  openstac::api_item(api, req, res, collection_id, item_id)
 }
 
 mock_search <- function(api, limit = 10, bbox = "", datetime, intersects = "", ids, collections, page = 1) {
+  ensure_openstac()
   req <- mock_req("/search", method = "GET")
   res <- mock_res()
-  api_search(api, req, res, limit, bbox, datetime, intersects, ids, collections, page)
+  openstac::api_search(api, req, res, limit, bbox, datetime, intersects, ids, collections, page)
 }
 
+#' @rdname mock_helpers
 #' @export
 mock_well_known_response <- function(api) {
   req <- mock_req("/.well-known/openeo", method = "GET")
@@ -139,4 +173,3 @@ mock_well_known_response <- function(api) {
     production = FALSE
   )
 }
-

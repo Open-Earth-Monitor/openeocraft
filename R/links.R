@@ -53,6 +53,15 @@ new_link <- function(rel, href, ...) {
   not_null <- !vapply(dots, is.null, logical(1), USE.NAMES = FALSE)
   c(list(rel = rel, href = href), dots[not_null])
 }
+#' Build absolute URLs from host and path fragments
+#'
+#' @param host Base service URL including protocol and host name.
+#'
+#' @param ... Character vectors representing path fragments or named query
+#'   parameters.
+#'
+#' @return A character string containing the composed URL.
+#'
 #' @export
 make_url <- function(host, ...) {
   dots <- c(...)
@@ -177,4 +186,3 @@ link_docs <- function(doc, api, req) {
   )
   doc
 }
-

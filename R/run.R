@@ -1,3 +1,20 @@
+#' Manage the openeocraft process runtime
+#'
+#' These helpers prepare and interact with the sandboxed environment used to
+#' evaluate openEO process graphs.
+#'
+#' @param api An openeocraft API object.
+#'
+#' @param processes_file Path to a file that defines processes via
+#'   decorators.
+#'
+#' @param env A runtime environment produced by `current_env()`.
+#'
+#' @return `load_processes()` returns the API object with its namespace
+#'   populated; `current_env()` returns the current runtime environment; and
+#'   `get_job_dir()` returns the file path backing the active job.
+#'
+#' @name process_runtime
 #' @export
 load_processes <- function(api, processes_file) {
   stopifnot(file.exists(processes_file))
@@ -8,6 +25,7 @@ load_processes <- function(api, processes_file) {
   process_decorators(api, processes_file, decorator = "openeo-process")
   api
 }
+#' @rdname process_runtime
 #' @export
 current_env <- function() {
   n <- sys.nframe()
@@ -22,6 +40,7 @@ current_env <- function() {
   }
   api_stop(500, "invalid evaluation environment")
 }
+#' @rdname process_runtime
 #' @export
 get_job_dir <- function(env = NULL) {
   if (is.null(env)) {

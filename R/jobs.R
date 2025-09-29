@@ -60,6 +60,44 @@ job_delete_rds <- function(api, user, job, jobs) {
     api_stop(500, "Could not save the jobs index file")
   })
 }
+#' Manage job artefacts and metadata
+#'
+#' Helpers to manage stored jobs, update their status, query logs and results,
+#' and compute derived URLs and documents.
+#'
+#' @param api An openeocraft API object.
+#'
+#' @param user The user identifier associated with the job.
+#'
+#' @param job_id Identifier of the job to operate on.
+#'
+#' @param req A plumber request object representing the incoming call.
+#'
+#' @param job A named list describing a job payload.
+#'
+#' @param offset Zero-based offset when paginating job logs.
+#'
+#' @param level Minimum log level to include, one of `"error"`, `"warning"`,
+#'   `"info"`, or `"debug"`.
+#'
+#' @param limit Maximum number of log records to return.
+#'
+#' @return
+#'   * `job_get_dir()` returns the path backing the job workspace.
+#'   * `job_sync()` returns `NULL` invisibly after updating job status.
+#'   * `job_info()` returns a list containing the stored job metadata.
+#'   * `job_update()` returns a confirmation list with a status message.
+#'   * `job_delete()` returns `NULL` invisibly after removing artefacts.
+#'   * `job_estimate()` returns a placeholder list describing cost estimates.
+#'   * `job_logs()` returns a list with the filtered log entries.
+#'   * `job_get_results()` returns either a STAC collection or a placeholder
+#'     document when results are pending.
+#'   * `job_empty_collection()` returns a minimal STAC collection describing the
+#'     job in its current state.
+#'
+#' @name job_helpers
+NULL
+#' @rdname job_helpers
 #' @export
 job_get_dir <- function(api, user, job_id) {
   file.path(api_user_workspace(api, user), "jobs", job_id)
@@ -140,6 +178,7 @@ log_append <- function(api, user, job_id, code, level, message, ...) {
   logs_save_rds(api, user, job_id, logs)
 }
 
+#' @rdname job_helpers
 #' @export
 job_sync <- function(api, req, user, job_id) {
   job <- job_upd_status(api, user, job_id, "running")
@@ -181,9 +220,7 @@ job_async <- function(api, req, user, job_id) {
   ))
   proc
 }
-#' Get job information/metadata
-#'
-#' @param job_id The identifier for the job
+#' @rdname job_helpers
 #' @export
 job_info <- function(api, user, job_id) {
   jobs <- job_read_rds(api, user)
@@ -200,10 +237,7 @@ job_info <- function(api, user, job_id) {
   job
 }
 
-#' Update job
-#'
-#' @param job_id The identifier for the job
-#' @param body The request body containing updates
+#' @rdname job_helpers
 #' @export
 job_update <- function(api, user, job_id, job) {
   # TODO: all checks should be done in api_*() functions level
@@ -234,9 +268,7 @@ job_update <- function(api, user, job_id, job) {
 }
 
 
-#' Delete job
-#'
-#' @param job_id The identifier for the job
+#' @rdname job_helpers
 #' @export
 job_delete <- function(api, user, job_id) {
   jobs <- job_read_rds(api, user)
@@ -249,7 +281,7 @@ job_delete <- function(api, user, job_id) {
   # Delete the folder associated with the job_id
   job_del_dir(api, user, job_id)
 }
-# Get an estimate for a job
+#' @rdname job_helpers
 #' @export
 job_estimate <- function(api, user, job_id) {
   # This would likely call a function to calculate cost or duration based on job details
@@ -257,7 +289,7 @@ job_estimate <- function(api, user, job_id) {
   return(list(message = "The cost estimates will depends on the cloud provider the software is running on"))
 }
 
-# Retrieve logs for a job
+#' @rdname job_helpers
 #' @export
 job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) {
   level_list <- c("error", "warning", "info", "debug")
@@ -277,7 +309,7 @@ job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) 
   list(level = level, logs = logs[selection], links = list())
 }
 
-# Retrieve results for job results
+#' @rdname job_helpers
 #' @export
 job_get_results <- function(api, user, job_id) {
   jobs <- job_read_rds(api, user)
@@ -298,6 +330,7 @@ job_get_results <- function(api, user, job_id) {
   }
   jsonlite::read_json(file.path(results_path, "_collection.json"))
 }
+#' @rdname job_helpers
 #' @export
 job_empty_collection <- function(api, user, job) {
   collection <- list(

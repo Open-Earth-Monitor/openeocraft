@@ -36,6 +36,12 @@ placeholders <- function(x, schema = "openeo") {
   } else
     NULL
 }
+#' Create a random identifier
+#'
+#' @param n Length of the identifier in bytes.
+#'
+#' @return A hexadecimal string.
+#'
 #' @export
 random_id <- function(n) {
   paste(as.raw(sample(256L, n, TRUE) - 1L), collapse = "")
