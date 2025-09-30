@@ -62,15 +62,37 @@ api_landing_page.openeo_v1 <- function(api, req, res) {
         conformsTo = api$conforms_to
     )
     # TODO:
-    # It is highly RECOMMENDED to provide links with the following rel (relation) types:
-    #   - version-history: A link back to the Well-Known URL (including /.well-known/openeo, see the corresponding endpoint for details) to allow clients to work on the most recent version.
-    #   - terms-of-service: A link to the terms of service. If a back-end provides a link to the terms of service, the clients MUST provide a way to read the terms of service and only connect to the back-end after the user agreed to them. The user interface MUST be designed in a way that the terms of service are not agreed to by default, i.e. the user MUST explicitly agree to them.
-    #   - privacy-policy: A link to the privacy policy (GDPR). If a back-end provides a link to a privacy policy, the clients MUST provide a way to read the privacy policy and only connect to the back-end after the user agreed to them. The user interface MUST be designed in a way that the privacy policy is not agreed to by default, i.e. the user MUST explicitly agree to them.
-    #   - service-desc or service-doc: A link to the API definition. Use service-desc for machine-readable API definition and service-doc for human-readable API definition. Required if full OGC API compatibility is desired.
-    #   - conformance: A link to the Conformance declaration (see /conformance). Required if full OGC API compatibility is desired.
-    #   - data: A link to the collections (see /collections). Required if full OGC API compatibility is desired.
+    # It is highly RECOMMENDED to provide links with the following
+    # rel (relation) types:
+    #   - version-history: A link back to the Well-Known URL
+    #     (including /.well-known/openeo, see the corresponding endpoint
+    #     for details) to allow clients to work on the most recent version.
+    #   - terms-of-service: A link to the terms of service. If a back-end
+    #     provides a link to the terms of service, the clients MUST
+    #     provide a way to read the terms of service and only connect to
+    #     the back-end after the user agreed to them. The user interface
+    #     MUST be designed in a way that the terms of service are not
+    #     agreed to by default, i.e. the user MUST explicitly agree to them.
+    #   - privacy-policy: A link to the privacy policy (GDPR). If a
+    #     back-end provides a link to a privacy policy, the clients MUST
+    #     provide a way to read the privacy policy and only connect to
+    #     the back-end after the user agreed to them. The user
+    #     interface MUST be designed in a way that the privacy policy
+    #     is not agreed to by default, i.e. the user MUST explicitly
+    #     agree to them.
+    #   - service-desc or service-doc: A link to the API definition.
+    #     Use service-desc for machine-readable API definition and
+    #     service-doc for human-readable API definition. Required if
+    #     full OGC API compatibility is desired.
+    #   - conformance: A link to the Conformance declaration
+    #     (see /conformance). Required if full OGC API compatibility
+    #     is desired.
+    #   - data: A link to the collections (see /collections). Required
+    #     if full OGC API compatibility is desired.
     #   - create-form: A link to a user registration page.
-    #   - recovery-form: A link to a page where a user can recover a user account (e.g. to reset the password or send a reminder about the username to the user's email account).
+    #   - recovery-form: A link to a page where a user can recover a
+    #     user account (e.g. to reset the password or send a reminder
+    #     about the username to the user's email account).
 
     doc <- link_root(doc, api, req)
     doc <- link_self(doc, api, req, "application/json")
@@ -158,7 +180,6 @@ api_result.openeo_v1 <- function(api, req, res) {
         return(data_serializer(result, res))
     }
 
-    # result_files <- list.files(result_dir, full.names = TRUE)
     tar_file <- file.path(job_dir, "_files.tar")
 
     # TODO: remove directory structure from the tar file
@@ -175,7 +196,8 @@ api_jobs_list.openeo_v1 <- function(api, req, res) {
         jobs = unname(lapply(jobs, \(job) {
             job[c("id", "title", "status", "created")]
         })),
-        # TODO: populate this link with some function like we do in other endpoints
+        # TODO: populate this link with some function like we do
+        #   in other endpoints
         links = list()
     )
     jobs
@@ -221,7 +243,7 @@ api_job_create.openeo_v1 <- function(api, req, res) {
     if (!"process" %in% names(job_info)) {
         api_stop(400L, "Invalid job information")
     }
-    # job_info_check(job_info)
+    # check job --> job_info_check(job_info)
     job_id <- random_id(16L)
     job <- list(
         id = job_id,
@@ -262,16 +284,20 @@ api_job_start.openeo_v1 <- function(api, req, res, job_id) {
     procs <- procs_read_rds(api)
     if (!is.null(procs[[job_id]])) {
         # TODO: check if there is another message to finished state!
-        if (procs[[job_id]]$is_alive() || jobs[[job_id]]$status == "finished") {
-            return(list(id = job_id, message = "Job already started", code = 200L))
+        if (procs[[job_id]]$is_alive() ||
+            jobs[[job_id]]$status == "finished") {
+            return(list(
+                id = job_id,
+                message = "Job already started",
+                code = 200L
+            ))
         }
     }
 
     # TODO: implement queue: check for maximum number of workers
     # procs_alive(procs) -> manage process not alive
     # define in the api how many workers to start?
-    # length(procs)
-    # length(procs) >= workers (per user?) --> wait
+    #  --> wait if length(procs) >= workers (per user?)
     proc <- job_async(api, req, user, job_id)
 
     procs[[job_id]] <- proc
@@ -284,8 +310,7 @@ api_file_formats.openeo_v1 <- function(api, req, res) {
     doc <- file_formats()
     token <- get_token(req)
     if (length(token)) {
-        user <- get_token_user(api, token)
-        doc <- file_formats_auth(doc)
+        doc <- file_formats_auth(doc, api, token)
     }
     doc
 }

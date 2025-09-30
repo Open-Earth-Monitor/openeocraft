@@ -201,7 +201,10 @@ test_that(paste0(
     "GET /jobs/{id} > status: Correctly reports ",
     "status (and progress if supported)"
 ), {
-    req <- mock_req(paste("/jobs", job_id, sep = "/"), method = "GET", HTTP_AUTHORIZATION = token)
+    req <- mock_req(
+        paste("/jobs", job_id, sep = "/"),
+        method = "GET", HTTP_AUTHORIZATION = token
+    )
     res <- mock_res()
     result <- api_job_info(api, req, res, job_id)
     expect_true(

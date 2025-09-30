@@ -75,7 +75,6 @@ timeline_samples <- sits_timeline(data_deforestation_rondonia)
 timeline_samples
 
 # Function to aggregate time series to monthly frequency
-# Function to aggregate time series data to monthly means
 aggregate_to_monthly <- function(ts) {
     Index <- NULL # remove warnings
 

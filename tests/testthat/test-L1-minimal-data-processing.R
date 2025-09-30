@@ -2,8 +2,12 @@
 api <- mock_create_openeo_v1()
 token <- readLines(file(system.file("mock/token", package = "openeocraft")))
 job_id <- NULL
-mock_job <- jsonlite::read_json(system.file("mock/mock-job.json", package = "openeocraft"))
-mock_badjob <- jsonlite::read_json(system.file("mock/mock-badjob.json", package = "openeocraft"))
+mock_job <- jsonlite::read_json(
+    system.file("mock/mock-job.json", package = "openeocraft")
+)
+mock_badjob <- jsonlite::read_json(
+    system.file("mock/mock-badjob.json", package = "openeocraft")
+)
 
 test_that("Synchronous processing is implemented", {
     req <- mock_req("/process", method = "POST", HTTP_AUTHORIZATION = token)

@@ -259,9 +259,11 @@ api_file_formats <- function(api, req, res) {
 # - OpenID Connect authentication `GET /credentials/oidc`
 # - HTTP Basic authentication `GET /credentials/basic`
 # - Information about the authenticated user `GET /me`
-# - (openstac) Metadata filters for a specific dataset `GET /collections/{collection_id}/queryables`
+# - (openstac) Metadata filters for a specific dataset
+#                   `GET /collections/{collection_id}/queryables`
 # - List all user-defined processes `GET /process_graphs`
-# - Full metadata for a user-defined process `GET /process_graphs/{process_graph_id}`
+# - Full metadata for a user-defined process
+#                   `GET /process_graphs/{process_graph_id}`
 # - Validate a user-defined process (graph) `POST /validation`
 # - Store a user-defined process `PUT /process_graphs/{process_graph_id}`
 # - Delete a user-defined process `DELETE /process_graphs/{process_graph_id}`

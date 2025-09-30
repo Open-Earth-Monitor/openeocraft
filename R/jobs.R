@@ -15,8 +15,7 @@ job_read_rds <- function(api, user) {
     if (!file.exists(file)) {
         return(list())
     }
-    jobs <- readRDS(file)
-    return(jobs)
+    readRDS(file)
 }
 job_save_rds <- function(api, user, job, jobs) {
     jobs[[job$id]] <- job
@@ -246,7 +245,7 @@ job_update <- function(api, user, job_id, job) {
     # TODO: all checks should be done in api_*() functions level
     # TODO: implement job_check partial parameter that does the check
     #   job fields independently.
-    # job_check(job, partial = TRUE)
+    # check job --> job_check(job, partial = TRUE)
 
     jobs <- job_read_rds(api, user)
 
@@ -287,14 +286,26 @@ job_delete <- function(api, user, job_id) {
 #' @rdname job_helpers
 #' @export
 job_estimate <- function(api, user, job_id) {
-    # This would likely call a function to calculate cost or duration based on job details
-    # calculate_estimate(job_id) not implemented as depends on the cloud provider the software is running on
-    return(list(message = "The cost estimates will depends on the cloud provider the software is running on"))
+    # This would likely call a function to calculate cost or
+    # duration based on job details calculate_estimate(job_id)
+    # not implemented as depends on the cloud provider the
+    # software is running on
+    list(
+        message = paste0(
+            "The cost estimates will depends on the cloud ",
+            "provider the software is running on"
+        )
+    )
 }
 
 #' @rdname job_helpers
 #' @export
-job_logs <- function(api, user, job_id, offset = 0, level = "info", limit = 10) {
+job_logs <- function(api,
+                     user,
+                     job_id,
+                     offset = 0,
+                     level = "info",
+                     limit = 10) {
     level_list <- c("error", "warning", "info", "debug")
     offset <- as.integer(offset)
     if (is.na(offset)) offset <- 0

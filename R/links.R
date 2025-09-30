@@ -36,14 +36,22 @@ add_link <- function(doc, rel, href, ...) {
 #' @rdname link_functions
 #' @export
 update_link <- function(doc, rel, href, ...) {
-    select <- vapply(doc$links, \(x) !is.null(x$rel) && x$rel != rel, logical(1))
+    select <- vapply(
+        doc$links,
+        \(x) !is.null(x$rel) && x$rel != rel,
+        logical(1)
+    )
     doc$links <- doc$links[select]
     add_link(doc, rel, href, ...)
 }
 #' @rdname link_functions
 #' @export
 delete_link <- function(doc, rel, ...) {
-    select <- vapply(doc$links, \(x) !is.null(x$rel) && x$rel != rel, logical(1))
+    select <- vapply(
+        doc$links,
+        \(x) !is.null(x$rel) && x$rel != rel,
+        logical(1)
+    )
     doc$links <- doc$links[select]
     doc
 }

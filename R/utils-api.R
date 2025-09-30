@@ -309,7 +309,6 @@ api_workdir <- function(api) {
 #' Resolve or initialise a user workspace directory
 #'
 #' @param api An openeocraft API object that stores the base work directory.
-#'
 #' @param user User identifier whose workspace should be prepared.
 #'
 #' @return Normalised path to the workspace directory.
@@ -391,7 +390,11 @@ file_formats <- function() {
     input_formats <- list(
         GeoTiff = list(
             title = "GeoTiff",
-            description = "GeoTiff is one of the most widely supported raster formats. This backend allows reading from GeoTiff to create raster data cubes.",
+            description = paste0(
+                "GeoTiff is one of the most widely supported raster ",
+                "formats. This backend allows reading from GeoTiff to ",
+                "create raster data cubes."
+            ),
             gis_data_types = list("raster"),
             parameters = list(
                 format = list(
@@ -409,7 +412,7 @@ file_formats <- function() {
     )
 }
 
-file_formats_auth <- function(doc) {
+file_formats_auth <- function(doc, api, token) {
     output_formats <- list(
         RDS = list(
             title = "R Data Serialization",
@@ -438,6 +441,12 @@ file_formats_auth <- function(doc) {
     # Define the input formats
     input_formats <- list()
 
+    # Get format options for authenticated users
+    user <- get_token_user(api, token)
+    if (is.character(user)) {
+        input_formats <- list()
+    }
+
     # return the list of supported formats
     list(
         input = utils::modifyList(doc$input, input_formats),
@@ -445,31 +454,28 @@ file_formats_auth <- function(doc) {
     )
 }
 
-#' Build signed URLs to artefacts in the workspace
+#' Build the download URL for a job artifact
 #'
 #' @param host Service root URL.
-#'
 #' @param user User identifier encoded into the token parameter.
-#'
 #' @param job_id Identifier of the job whose files are requested.
-#'
 #' @param file Relative file path inside the job folder.
-#'
-#' @param folder Root-level folder under `/files/root`.
 #'
 #' @return A character string containing the absolute URL.
 #'
-#' @name workspace_url_helpers
-NULL
-
-#' @rdname workspace_url_helpers
 #' @export
 make_job_files_url <- function(host, user, job_id, file) {
     token <- base64enc::base64encode(charToRaw(user))
     file <- file.path("/files/jobs", job_id, file)
     paste0(host, file, "?token=", token)
 }
-#' @rdname workspace_url_helpers
+#' Build the download URL for a workspace artefact
+#'
+#' @inheritParams make_job_files_url
+#' @param folder Root-level folder under `/files/root`.
+#'
+#' @return A character string containing the absolute URL.
+#'
 #' @export
 make_workspace_files_url <- function(host, user, folder, file) {
     token <- base64enc::base64encode(charToRaw(user))

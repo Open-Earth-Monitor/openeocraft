@@ -10,9 +10,15 @@ simulate_request <- function(req_fn) {
 
 test_that("CORS: OPTIONS method supports all headers", {
     result <- simulate_request(function() mock_req("/", method = "OPTIONS"))
-    expect_true("content-type" %in% result$req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-    expect_true("authorization" %in% result$req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-    expect_true("accept" %in% result$req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
+    expect_true(
+        "content-type" %in% result$req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS
+    )
+    expect_true(
+        "authorization" %in% result$req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS
+    )
+    expect_true(
+        "accept" %in% result$req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS
+    )
 })
 
 test_that("CORS: Access-Control-Allow-Origin is correctly set", {
@@ -23,14 +29,23 @@ test_that("CORS: Access-Control-Allow-Origin is correctly set", {
 
 test_that("CORS: Access-Control-Expose-Headers is correctly set", {
     result <- simulate_request(function() mock_req("/", method = "GET"))
-    result$res$setHeader("Access-Control-Expose-Headers", "content-type, authorization, accept")
-    expect_equal(result$res$getHeader("Access-Control-Expose-Headers"), "content-type, authorization, accept")
+    result$res$setHeader(
+        "Access-Control-Expose-Headers",
+        "content-type, authorization, accept"
+    )
+    expect_equal(
+        result$res$getHeader("Access-Control-Expose-Headers"),
+        "content-type, authorization, accept"
+    )
 })
 
 test_that("UTF-8: Charset is UTF-8 for all requests and responses", {
     result <- simulate_request(function() mock_req("/", method = "GET"))
     result$res$setHeader("Content-Type", "application/json; charset=utf-8")
-    expect_equal(result$res$getHeader("Content-Type"), "application/json; charset=utf-8")
+    expect_equal(
+        result$res$getHeader("Content-Type"),
+        "application/json; charset=utf-8"
+    )
 })
 
 test_that("HTTPS: HTTPS is enforced for all requests", {

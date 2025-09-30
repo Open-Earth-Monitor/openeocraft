@@ -144,7 +144,10 @@ mlm_class_random_forest <- function(num_trees = 100,
             }
             max_variables <- base::max(1, base::floor(max_variables))
             # end preparing max_variables parameter
-            model <- sits::sits_rfor(num_trees = num_trees, mtry = max_variables)
+            model <- sits::sits_rfor(
+                num_trees = num_trees,
+                mtry = max_variables
+            )
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
@@ -231,7 +234,9 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
         "swats" = torch::optim_swats,
         "yogi" = torch::optim_yogi,
         stop(
-            "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+            "Unsupported optimizer. currently only 'adam, ",
+            "adabound, adabelief, madagrad, nadam, qhadam, ",
+            "radam, swats, yogi' are supported.",
             call. = FALSE
         )
     )
@@ -288,7 +293,9 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
         "swats" = torch::optim_swats,
         "yogi" = torch::optim_yogi,
         stop(
-            "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+            "Unsupported optimizer. currently only 'adam, ",
+            "adabound, adabelief, madagrad, nadam, qhadam, ",
+            "radam, swats, yogi' are supported.",
             call. = FALSE
         )
     )
@@ -346,7 +353,9 @@ mlm_class_tae <- function(epochs = 150,
         "swats" = torch::optim_swats,
         "yogi" = torch::optim_yogi,
         stop(
-            "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+            "Unsupported optimizer. currently only 'adam, ",
+            "adabound, adabelief, madagrad, nadam, qhadam, ",
+            "radam, swats, yogi' are supported.",
             call. = FALSE
         )
     )
@@ -397,7 +406,9 @@ mlm_class_lighttae <- function(epochs = 150,
         "swats" = torch::optim_swats,
         "yogi" = torch::optim_yogi,
         stop(
-            "Unsupported optimizer. currently only 'adam, adabound, adabelief, madagrad, nadam, qhadam, radam, swats, yogi' are supported.  ",
+            "Unsupported optimizer. currently only 'adam, ",
+            "adabound, adabelief, madagrad, nadam, qhadam, ",
+            "radam, swats, yogi' are supported.",
             call. = FALSE
         )
     )
@@ -428,7 +439,6 @@ mlm_class_lighttae <- function(epochs = 150,
 #* @openeo-process
 ml_fit <- function(model, training_set, target = "label") {
     training_set <- jsonlite::unserializeJSON(training_set)
-    # base::saveRDS(training_set, "~/predictors.rds")
     model$train(training_set)
 }
 
@@ -682,7 +692,7 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
                     normalized = normalized,
                     output_dir = result_dir
                 )
-                return(output_feature)
+                output_feature
             },
             progress = progress
         )
@@ -890,7 +900,6 @@ import_cube <- function(name, folder) {
 #* @openeo-process
 export_ml_model <- function(model, name, folder) {
     env <- openeocraft::current_env()
-    host <- openeocraft::get_host(env$api, env$req)
     # Get workspace directory
     job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
     workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
@@ -952,8 +961,6 @@ import_ml_model <- function(name, folder) {
 save_ml_model <- function(data, name, tasks, options = NULL) {
     # Initialize environment and host
     env <- openeocraft::current_env()
-    host <- openeocraft::get_host(env$api, env$req)
-
     # Get directories
     job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
     result_dir <- job_dir # they are the same

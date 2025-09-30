@@ -35,7 +35,8 @@ empty_name <- function() {
 }
 
 # decorators
-# <decorator-function> := function(<api>, <expr>, [decorator-params...], <proc_file>)
+# <decorator-function> :=
+#    function(<api>, <expr>, [decorator-params...], <proc_file>)
 `openeo-process` <- function(api, expr, ..., file) {
     # extract from list
     expr <- expr[[1]]
@@ -56,7 +57,8 @@ empty_name <- function() {
         process <- list(
             id = fn_name,
             parameters = lapply(seq_along(arg_names), function(i) {
-                if (is.null(arg_defaults[[i]]) || (arg_defaults[[i]] != empty_name())) {
+                if (is.null(arg_defaults[[i]]) ||
+                    (arg_defaults[[i]] != empty_name())) {
                     return(list(
                         name = arg_names[[i]],
                         default = arg_defaults[[i]],
