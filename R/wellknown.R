@@ -40,9 +40,10 @@ add_wellknown_version <- function(doc,
                                   api_version,
                                   url,
                                   production = FALSE, ...) {
-  doc$versions <- c(doc$versions, list(
-    new_wellknown_version(api_version, url, production, ...)))
-  doc
+    doc$versions <- c(doc$versions, list(
+        new_wellknown_version(api_version, url, production, ...)
+    ))
+    doc
 }
 #' @rdname wellknown_functions
 #' @export
@@ -50,16 +51,18 @@ update_wellknown_version <- function(doc,
                                      api_version,
                                      url,
                                      production = FALSE, ...) {
-  select <- vapply(doc$versions, \(x) {
-    !is.null(x$api_version) && x$api_version != api_version
-  }, logical(1))
-  doc$versions <- doc$versions[select]
-  add_wellknown_version(doc, api_version, url, production, ...)
+    select <- vapply(doc$versions, \(x) {
+        !is.null(x$api_version) && x$api_version != api_version
+    }, logical(1))
+    doc$versions <- doc$versions[select]
+    add_wellknown_version(doc, api_version, url, production, ...)
 }
 #' @keywords internal
 new_wellknown_version <- function(api_version, url, production, ...) {
-  dots <- list(...)
-  not_null <- !vapply(dots, is.null, logical(1), USE.NAMES = FALSE)
-  c(list(api_version = api_version, url = url, production = production),
-    dots[not_null])
+    dots <- list(...)
+    not_null <- !vapply(dots, is.null, logical(1), USE.NAMES = FALSE)
+    c(
+        list(api_version = api_version, url = url, production = production),
+        dots[not_null]
+    )
 }

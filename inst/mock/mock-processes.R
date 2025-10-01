@@ -4,11 +4,11 @@ load_collection <- function(id,
                             temporal_extent = NULL,
                             bands = NULL,
                             properties = NULL) {
-  data <- "mock data"
-  data
+    data <- "mock data"
+    data
 }
 
 #* @openeo-process
 save_result <- function(data, format, options = NULL) {
-  return(TRUE)
+    return(TRUE)
 }

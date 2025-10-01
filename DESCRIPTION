@@ -1,33 +1,53 @@
 Package: openeocraft
-Title: R package to craft and serve openEO API applications 
+Title: Craft and Serve openEO API Applications in R
 Version: 0.2.0
-Authors@R: 
-    c(person("Rolf", "Simoes", , "rolf.simoes@opengeohub.org", 
-           role = c("aut", "cre"), 
+Authors@R: c(
+    person("Rolf", "Simoes", email = "rolf.simoes@opengeohub.org",
+           role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0953-4132")),
-    person("Brian", "Pondi", , "brian.pondi@uni-muenster.de", 
-           role = c("aut"), 
+    person("Brian", "Pondi", email = "brian.pondi@uni-muenster.de",
+           role = "aut",
            comment = c(ORCID = "0009-0008-0367-1690")),
-    person("OpenGeoHub Foundation", , , "support@opengeohub.org", 
-           role = c("cph")))
-Description: |
-  Provides a comprehensive R framework for crafting and serving openEO API 
-  applications. The openeocraft package facilitates the creation of RESTful 
-  openEO web services through a friendly and extensible interface. The 
-  package is based on Plumber and is designed for ease of use, scalability, 
-  and flexibility.
+    person(given = "OpenGeoHub Foundation",
+           email = "support@opengeohub.org",
+           role = "cph"))
+Author: Rolf Simoes [aut, cre], Brian Pondi [aut], OpenGeoHub Foundation [cph]
+Maintainer: Rolf Simoes <rolf.simoes@opengeohub.org>
+Description: Provides an R framework for crafting and serving openEO API
+    applications by building on the plumber package. The friendly and
+    extensible interface helps create RESTful openEO web services that
+    prioritise ease of use, scalability, and flexibility.
 License: MIT + file LICENSE
+URL: https://github.com/Open-Earth-Monitor/openeocraft
+BugReports: https://github.com/Open-Earth-Monitor/openeocraft/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends:
-    R (>= 3.5)
+    R (>= 4.1.0)
 Imports:
     plumber,
     jsonlite,
     base64enc,
     callr,
     swagger
-Suggests: 
+Suggests:
+    openstac,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Collate:
+    'utils.R'
+    'utils-api.R'
+    'data.R'
+    'decorators.R'
+    'links.R'
+    'namespace.R'
+    'serializers.R'
+    'wellknown.R'
+    'api.R'
+    'api-openeo_v1.R'
+    'collections.R'
+    'jobs.R'
+    'pgraphs.R'
+    'mock.R'
+    'run.R'

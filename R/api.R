@@ -121,21 +121,21 @@ create_api <- function(api_class,
                        work_dir,
                        conforms_to,
                        production, ...) {
-  structure(
-    list(
-      id = id,
-      title = title,
-      description = description,
-      backend_version = backend_version,
-      api_version = api_version,
-      stac_api = stac_api,
-      work_dir = path.expand(work_dir),
-      conforms_to = unique(as.list(conforms_to)),
-      production = production, ...
-    ),
-    class = api_class,
-    env = new.env(hash = TRUE, parent = parent.frame())
-  )
+    structure(
+        list(
+            id = id,
+            title = title,
+            description = description,
+            backend_version = backend_version,
+            api_version = api_version,
+            stac_api = stac_api,
+            work_dir = path.expand(work_dir),
+            conforms_to = unique(as.list(conforms_to)),
+            production = production, ...
+        ),
+        class = api_class,
+        env = new.env(hash = TRUE, parent = parent.frame())
+    )
 }
 #' @rdname api_handling
 #' @export
@@ -147,24 +147,24 @@ create_openeo_v1 <- function(id,
                              work_dir,
                              conforms_to = NULL,
                              production = FALSE, ...) {
-  # A list of all conformance classes specified in a standard that the
-  # server conforms to.
-  openeo_v1_conforms_to <- list(
-    "https://api.openeo.org/1.2.0",
-    "https://api.stacspec.org/v1.0.0/collections"
-  )
-  create_api(
-    api_class = "openeo_v1",
-    id = id,
-    title = title,
-    description = description,
-    backend_version = backend_version,
-    api_version = "1.2.0",
-    stac_api = stac_api,
-    work_dir = work_dir,
-    conforms_to = c(openeo_v1_conforms_to, as.list(conforms_to)),
-    production = production, ...
-  )
+    # A list of all conformance classes specified in a standard that the
+    # server conforms to.
+    openeo_v1_conforms_to <- list(
+        "https://api.openeo.org/1.2.0",
+        "https://api.stacspec.org/v1.0.0/collections"
+    )
+    create_api(
+        api_class = "openeo_v1",
+        id = id,
+        title = title,
+        description = description,
+        backend_version = backend_version,
+        api_version = "1.2.0",
+        stac_api = stac_api,
+        work_dir = work_dir,
+        conforms_to = c(openeo_v1_conforms_to, as.list(conforms_to)),
+        production = production, ...
+    )
 }
 #' @rdname api_handling
 #' @export
@@ -175,81 +175,83 @@ api_setup_plumber <- function(api,
                               spec_endpoint = "/api",
                               docs_endpoint = "/docs",
                               wellknown_versions = list()) {
-  stopifnot(is_absolute_url(api_base_url))
-  # TODO: replace all calls to `api_attr()` by proper functions
-  api_attr(api, "plumber") <- pr
-  api_attr(api, "api_base_url") <- api_base_url
-  set_wellknown_versions(api, wellknown_versions)
-  setup_endpoints(api, pr)
-  # set error handling
-  if (handle_errors)
-    plumber::pr_set_error(pr, api_error_handler)
-  # setup /api and /docs endpoints
-  if (!is.null(spec_endpoint)) {
-    setup_plumber_spec(api, pr, spec_endpoint)
-    if (!is.null(docs_endpoint))
-      setup_plumber_docs(api, pr, docs_endpoint, spec_endpoint)
-  }
+    stopifnot(is_absolute_url(api_base_url))
+    # TODO: replace all calls to `api_attr()` by proper functions
+    api_attr(api, "plumber") <- pr
+    api_attr(api, "api_base_url") <- api_base_url
+    set_wellknown_versions(api, wellknown_versions)
+    setup_endpoints(api, pr)
+    # set error handling
+    if (handle_errors) {
+        plumber::pr_set_error(pr, api_error_handler)
+    }
+    # setup /api and /docs endpoints
+    if (!is.null(spec_endpoint)) {
+        setup_plumber_spec(api, pr, spec_endpoint)
+        if (!is.null(docs_endpoint)) {
+            setup_plumber_docs(api, pr, docs_endpoint, spec_endpoint)
+        }
+    }
 }
 #' @rdname api_handling
 #' @export
 api_credential <- function(api, req, res) {
-  UseMethod("api_credential", api)
+    UseMethod("api_credential", api)
 }
 #' @rdname api_handling
 #' @export
 api_wellknown <- function(api, req, res) {
-  UseMethod("api_wellknown", api)
+    UseMethod("api_wellknown", api)
 }
 #' @rdname api_handling
 #' @export
 api_landing_page <- function(api, req, res) {
-  UseMethod("api_landing_page", api)
+    UseMethod("api_landing_page", api)
 }
 #' @rdname api_handling
 #' @export
 api_conformance <- function(api, req, res) {
-  UseMethod("api_conformance", api)
+    UseMethod("api_conformance", api)
 }
 #' @rdname api_handling
 #' @export
 api_processes <- function(api, req, res, check_auth = FALSE) {
-  UseMethod("api_processes", api)
+    UseMethod("api_processes", api)
 }
 #' @rdname api_handling
 #' @export
 api_result <- function(api, req, res) {
-  UseMethod("api_result", api)
+    UseMethod("api_result", api)
 }
 #' @rdname api_handling
 #' @export
 api_jobs_list <- function(api, req, res) {
-  UseMethod("api_jobs_list", api)
+    UseMethod("api_jobs_list", api)
 }
 #' @rdname api_handling
 #' @export
 api_job_info <- function(api, req, res, job_id) {
-  UseMethod("api_job_info", api)
+    UseMethod("api_job_info", api)
 }
 #' @rdname api_handling
 #' @export
 api_job_delete <- function(api, req, res, job_id) {
-  UseMethod("api_job_delete", api)
+    UseMethod("api_job_delete", api)
 }
 #' @rdname api_handling
 #' @export
 api_job_create <- function(api, req, res) {
-  UseMethod("api_job_create", api)
+    UseMethod("api_job_create", api)
 }
 #' @rdname api_handling
 #' @export
 api_job_start <- function(api, req, res, job_id) {
-  UseMethod("api_job_start", api)
+    UseMethod("api_job_start", api)
 }
 #' @rdname api_handling
 #' @export
 api_file_formats <- function(api, req, res) {
-  UseMethod("api_file_formats", api)
+    UseMethod("api_file_formats", api)
 }
 # TODO:
 # - Supported UDF runtimes `GET /udf_runtime`
@@ -257,9 +259,11 @@ api_file_formats <- function(api, req, res) {
 # - OpenID Connect authentication `GET /credentials/oidc`
 # - HTTP Basic authentication `GET /credentials/basic`
 # - Information about the authenticated user `GET /me`
-# - (openstac) Metadata filters for a specific dataset `GET /collections/{collection_id}/queryables`
+# - (openstac) Metadata filters for a specific dataset
+#                   `GET /collections/{collection_id}/queryables`
 # - List all user-defined processes `GET /process_graphs`
-# - Full metadata for a user-defined process `GET /process_graphs/{process_graph_id}`
+# - Full metadata for a user-defined process
+#                   `GET /process_graphs/{process_graph_id}`
 # - Validate a user-defined process (graph) `POST /validation`
 # - Store a user-defined process `PUT /process_graphs/{process_graph_id}`
 # - Delete a user-defined process `DELETE /process_graphs/{process_graph_id}`
