@@ -170,15 +170,28 @@ job_async <- function(api, req, user, job_id) {
   job_dir <- job_get_dir(api, user, job_id)
   # Update job status
   job_upd_status(api, user, job_id, "running")
-  proc <- suppressMessages(callr::r_bg(
+  # proc <- suppressMessages(callr::r_bg(
+  #   func = function(api, req, user, job_id) {
+  #     openeocraft::job_sync(api, req, user, job_id)
+  #   },
+  #   args = list(api, req, user, job_id),
+  #   stdout = file.path(job_dir, "_stdout.log"),
+  #   stderr = file.path(job_dir, "_stderr.log"),
+  #   poll_connection = FALSE
+  # ))
+  proc <- callr::r_bg(
     func = function(api, req, user, job_id) {
+      message("Starting job in background: ")
+      print(req)# Debugging line to see the request, data serialization, jsonlite and callr etc.
       openeocraft::job_sync(api, req, user, job_id)
     },
     args = list(api, req, user, job_id),
     stdout = file.path(job_dir, "_stdout.log"),
     stderr = file.path(job_dir, "_stderr.log"),
     poll_connection = FALSE
-  ))
+  )
+  message("Job started in background with pid: ", proc$pid, "\n")
+  print(proc)
   proc
 }
 #' Get job information/metadata
