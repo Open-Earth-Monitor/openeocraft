@@ -11,19 +11,22 @@ load_processes <- function(api, processes_file) {
 #' @export
 current_env <- function() {
   n <- sys.nframe()
-  if (n < 2)
+  if (n < 2) {
     api_stop(500, "invalid evaluation environment")
+  }
   for (i in seq(2, n)) {
     env <- parent.frame(i)
-    if (exists("openeocraft", env))
+    if (exists("openeocraft", env)) {
       return(as.list(env))
+    }
   }
   api_stop(500, "invalid evaluation environment")
 }
 #' @export
 get_job_dir <- function(env = NULL) {
-  if (is.null(env))
+  if (is.null(env)) {
     env <- current_env()
+  }
   job_get_dir(env$api, env$user, env$job$id)
 }
 
@@ -62,13 +65,16 @@ load_rlang <- function(api) {
   export_fn("c", "list", "stop")
   # load openeocraft runtime functions
   export_fn("current_env", "get_job_dir")
+  export_fn("substitute", "quote")
   invisible(NULL)
 }
 run_pgraph <- function(api, req, user, job, pg) {
-  if (is.null(pg))
+  if (is.null(pg)) {
     return(NULL)
-  if ("process" %in% names(pg) )
+  }
+  if ("process" %in% names(pg)) {
     pg <- pg$process
+  }
   expr <- pgraph_expr(pg)
   # TODO: need to define a scope with api and user objects
   # a possible solution is load the processes per request
