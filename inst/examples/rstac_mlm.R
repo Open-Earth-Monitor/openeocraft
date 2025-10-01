@@ -14,10 +14,12 @@ collection <- "ml-models-rs"
 
 # Perform the search
 search <- stac(url) %>%
-  stac_search(collections = collection,
-              bbox = bbox,
-              datetime = datetime_range) %>%
-  get_request()
+    stac_search(
+        collections = collection,
+        bbox = bbox,
+        datetime = datetime_range
+    ) %>%
+    get_request()
 
 
 # Retrieve items
@@ -29,4 +31,8 @@ print(items)
 # Download assets
 rstac::assets_url(items)
 
-rstac::assets_download(items = items, asset_names = "water-bodies-model-pystac", output_dir = "~/Desktop/")
+rstac::assets_download(
+    items = items,
+    asset_names = "water-bodies-model-pystac",
+    output_dir = "~/Desktop/"
+)

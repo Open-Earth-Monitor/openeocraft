@@ -29,15 +29,14 @@ library(openeo)
 
 # Connect to the backend
 con <- connect(
-  host = "http://127.0.0.1:8000",
-  user = "brian",
-  password = "123456"
+    host = "http://127.0.0.1:8000",
+    user = "brian",
+    password = "123456"
 )
 
 # Access processes
 p <- processes()
 p
-
 ```
 ## Describe processes
 ```{r}
@@ -65,9 +64,9 @@ Here we define the architecture and hyperparameters for our TempCNN model:
 ```{r}
 # Define the Temporal CNN model
 tempcnn_model_init <- p$mlm_class_tempcnn(
-  optimizer = "adam",
-  learning_rate = 0.0005,
-  seed = 42
+    optimizer = "adam",
+    learning_rate = 0.0005,
+    seed = 42
 )
 ```
 
@@ -78,47 +77,47 @@ Now we fit the model using our training dataset:
 ```{r}
 # Fit the model using the training dataset
 tempcnn_model <- p$ml_fit(
-  model = tempcnn_model_init,
-  training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
-  target = "label"
+    model = tempcnn_model_init,
+    training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
+    target = "label"
 )
 ```
 
 ## Load Sentinel-2 Data
 
 ```{r}
-datacube = p$load_collection(
-  id = "mpc-sentinel-2-l2a",
-  spatial_extent = list(
-    west = -63.9,
-    east = 	-62.9,
-    south = -9.14,
-    north = -8.14
-  ),
-  bands = list(
-    "B02",
-    "B03",
-    "B04",
-    "B05",
-    "B06",
-    "B07",
-    "B08",
-    "B11",
-    "B12",
-    "B8A"
-  ),
-  temporal_extent = c("2022-01-01", "2022-12-31"
-  )
+datacube <- p$load_collection(
+    id = "mpc-sentinel-2-l2a",
+    spatial_extent = list(
+        west = -63.9,
+        east = -62.9,
+        south = -9.14,
+        north = -8.14
+    ),
+    bands = list(
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07",
+        "B08",
+        "B11",
+        "B12",
+        "B8A"
+    ),
+    temporal_extent = c("2022-01-01", "2022-12-31")
 )
 ```
 
 # Regularize the data
 
 ```{r}
-datacube = p$cube_regularize(data = datacube,
-                             period = "P1M",
-                             resolution = "320")
-
+datacube <- p$cube_regularize(
+    data = datacube,
+    period = "P1M",
+    resolution = "320"
+)
 ```
 
 # Apply the trained model to make predictions
@@ -126,26 +125,25 @@ datacube = p$cube_regularize(data = datacube,
 
 ```{r}
 data <- p$ml_predict(
-  data = datacube,
-  model = tempcnn_model
+    data = datacube,
+    model = tempcnn_model
 )
 ```
 
 ## # Save the prediction results
 
 ```{r}
-
 ml_job <- p$save_result(
-  data = data,
-  format = "GTiff"
+    data = data,
+    format = "GTiff"
 )
 ```
 # Run the job
 ```{r}
 job <- create_job(
-  graph = ml_job,
-  title = "Temp CNN Model - Rondonia - R Client",
-  description = "Training a Temp CNN model, Predict with it"
+    graph = ml_job,
+    title = "Temp CNN Model - Rondonia - R Client",
+    description = "Training a Temp CNN model, Predict with it"
 )
 job <- start_job(job)
 
@@ -162,5 +160,3 @@ This example demonstrated how to:
 4. Train the model
 5. Make predictions on new data
 6. Save the results
-
-

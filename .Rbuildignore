@@ -1,5 +1,9 @@
 ^openeocraft\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
-workspace
+^workspace$
 docker
+^\.github$
+^\.Rcheck$
+^\.\.Rcheck$
+^\.lintr$
