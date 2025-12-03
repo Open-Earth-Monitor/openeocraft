@@ -2,7 +2,9 @@
 .github
 .Rproj.user
 .DS_Store
-docker/
+docker/*
+!docker/plumber.R
+!docker/server.R
 tests/
 *.Rproj
 *.md
