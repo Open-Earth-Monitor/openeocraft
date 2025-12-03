@@ -1,0 +1,12 @@
+services:
+  openeocraft:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      - TZ=Etc/UTC
+      - DEBIAN_FRONTEND=noninteractive
+    container_name: openeocraft
+    ports:
+      - "8000:8000"
+    restart: always

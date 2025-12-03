@@ -87,9 +87,6 @@ function(req, res) {
 #* @get /collections/<collection_id>
 function(req, res, collection_id) {
   print("GET /collections/<col_id>")
-  print(as.list(api$stac_api))
-  print(collection_id)
-  print(as.list(req))
   doc <- openstac::api_collection(api$stac_api, req, res, collection_id)
   doc <- delete_link(doc, rel = "item")
   doc
@@ -136,7 +133,7 @@ function(req, res, job_id) {
 #* @post /jobs
 function(req, res) {
   print("POST /jobs")
-  print(req$body$process)
+  #print(req$body$process)
   api_job_create(api, req, res)
 }
 
@@ -250,6 +247,7 @@ function(req, res) {
 }
 
 #* Workspace job files handling
+#* @head /files/jobs/<job_id>/<asset>
 #* @get /files/jobs/<job_id>/<asset>
 function(req, res, job_id, asset) {
   print("GET /files/jobs/<jobid>/<asset>")
@@ -264,11 +262,16 @@ function(req, res, job_id, asset) {
     api_stop(404L, "File not found")
   }
   res$setHeader("Content-Type", ext_content_type(path))
-  res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+  if (get_method(req) == "HEAD") {
+    res$status <- 200L
+  } else {
+    res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+  }
   res
 }
 
 #* Workspace root files handling
+#* @head /files/root/<folder>/<asset>
 #* @get /files/root/<folder>/<asset>
 function(req, res, folder, asset) {
   print("GET /files/root/<folder>/<asset>")
@@ -283,6 +286,10 @@ function(req, res, folder, asset) {
     api_stop(404L, "File not found")
   }
   res$setHeader("Content-Type", ext_content_type(path))
-  res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+  if (get_method(req) == "HEAD") {
+    res$status <- 200L
+  } else {
+    res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+  }
   res
 }

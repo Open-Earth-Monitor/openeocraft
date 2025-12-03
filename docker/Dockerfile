@@ -48,22 +48,35 @@ RUN apt-get update && \
 # install necessary packages
 RUN R -e "install.packages(c('usethis', 'pkgdown', 'rcmdcheck', 'rversions', 'urlchecker'), repos='https://cran.rstudio.com/')"
 RUN R -e "install.packages('devtools', repos='https://cran.rstudio.com/')"
+RUN R -e "install.packages('remotes', repos='https://cran.rstudio.com/')"
 
-RUN Rscript -e "install.packages(c('plumber', 'sf', 'rstac','sits', 'stars', 'jsonlite', 'base64enc', 'ids', 'callr'))"
+# Install basic packages first (these are dependencies for others)
+RUN Rscript -e "install.packages(c('jsonlite', 'base64enc', 'ids', 'callr'), repos='https://cran.rstudio.com/')" || true
+
+# Install plumber (critical for the API)
+RUN Rscript -e "install.packages('plumber', repos='https://cran.rstudio.com/')" && \
+    Rscript -e "if (!require('plumber', quietly=TRUE)) stop('plumber installation failed')"
+
+# Install spatial packages (these may take longer and have more dependencies)
+RUN Rscript -e "install.packages(c('sf', 'stars'), repos='https://cran.rstudio.com/')" || true
+RUN Rscript -e "install.packages('rstac', repos='https://cran.rstudio.com/')" || true
+RUN Rscript -e "install.packages('sits', repos='https://cran.rstudio.com/')" || true
 
 # create directories
 RUN mkdir -p /opt/dockerfiles/ && mkdir -p /var/openeo/workspace/ && mkdir -p /var/openeo/workspace/data/
 
 # install packages from local directory
-COPY ../ /opt/dockerfiles/
+COPY . /opt/dockerfiles/
 RUN R -e "remotes::install_github('Open-Earth-Monitor/openstac', ref = 'dev')"
 RUN R -e "remotes::install_local('/opt/dockerfiles', dependencies = TRUE, upgrade = 'always', verbose = TRUE)"
 
-# check installed packages
-RUN R -e "print(installed.packages()[, 'Package'])"
+# Verify critical packages are installed
+RUN Rscript -e "if (!require('plumber', quietly=TRUE)) stop('plumber is not installed')" && \
+    Rscript -e "if (!require('jsonlite', quietly=TRUE)) stop('jsonlite is not installed')" && \
+    Rscript -e "cat('Critical packages verified successfully\n')"
 
 # cmd or entrypoint for startup
-CMD ["R", "-q", "--no-save", "-f /opt/dockerfiles/docker/server.R"]
+CMD ["Rscript", "/opt/dockerfiles/docker/server.R"]
 
 # Expose the port
 EXPOSE 8000
