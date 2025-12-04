@@ -1,79 +1,64 @@
 FROM r-base:4.5.0
 
-# install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    cmake \
-    g++ \
-    git \
-    supervisor \
-    wget && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
+ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
+ENV CXXFLAGS="-O2 -pipe -std=gnu++17"
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libnetcdf-dev \
-    libcurl4-openssl-dev \
-    libcpprest-dev \
-    doxygen \
-    graphviz \
-    libsqlite3-dev \
-    libboost-all-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates gnupg apt-transport-https \
+    build-essential cmake g++ git wget make \
+    automake libtool autoconf pkg-config supervisor \
+    ninja-build zip unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libproj-dev \
-    libgdal-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libproj-dev libgdal-dev libgeos-dev \
+    libnetcdf-dev libcurl4-openssl-dev libcpprest-dev \
+    libsqlite3-dev libboost-all-dev \
+    libsodium-dev libudunits2-dev \
+    zlib1g-dev libunwind-dev libssl-dev libxml2-dev \
+    doxygen graphviz \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libudunits2-dev \
-    libsodium-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch 20230802.1 https://github.com/abseil/abseil-cpp.git /tmp/abseil && \
+    cmake -S /tmp/abseil -B /tmp/abseil/build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+      -DABSL_PROPAGATE_CXX_STD=ON \
+      -DABSL_ENABLE_INSTALL=ON && \
+    cmake --build /tmp/abseil/build -j"$(nproc)" && \
+    cmake --install /tmp/abseil/build && \
+    rm -rf /tmp/abseil
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libfreetype-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 
-# install necessary packages
-RUN R -e "install.packages(c('usethis', 'pkgdown', 'rcmdcheck', 'rversions', 'urlchecker'), repos='https://cran.rstudio.com/')"
-RUN R -e "install.packages('devtools', repos='https://cran.rstudio.com/')"
-RUN R -e "install.packages('remotes', repos='https://cran.rstudio.com/')"
+RUN R -e "install.packages(c('remotes'), repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
 
 # Install basic packages first (these are dependencies for others)
-RUN Rscript -e "install.packages(c('jsonlite', 'base64enc', 'ids', 'callr'), repos='https://cran.rstudio.com/')" || true
+RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits'), repos='https://cloud.r-project.org')"
 
-# Install plumber (critical for the API)
-RUN Rscript -e "install.packages('plumber', repos='https://cran.rstudio.com/')" && \
-    Rscript -e "if (!require('plumber', quietly=TRUE)) stop('plumber installation failed')"
-
-# Install spatial packages (these may take longer and have more dependencies)
-RUN Rscript -e "install.packages(c('sf', 'stars'), repos='https://cran.rstudio.com/')" || true
-RUN Rscript -e "install.packages('rstac', repos='https://cran.rstudio.com/')" || true
-RUN Rscript -e "install.packages('sits', repos='https://cran.rstudio.com/')" || true
 
 # create directories
 RUN mkdir -p /opt/dockerfiles/ && mkdir -p /var/openeo/workspace/ && mkdir -p /var/openeo/workspace/data/
 
 # install packages from local directory
 COPY . /opt/dockerfiles/
-RUN R -e "remotes::install_github('Open-Earth-Monitor/openstac', ref = 'dev')"
-RUN R -e "remotes::install_local('/opt/dockerfiles', dependencies = TRUE, upgrade = 'always', verbose = TRUE)"
+
+# Install openstac from GitHub and verify
+RUN Rscript -e "remotes::install_github('Open-Earth-Monitor/openstac', ref = 'dev', dependencies = TRUE)" && \
+    Rscript -e "if (!require('openstac', quietly=TRUE)) stop('openstac installation failed')"
+
+# Install local openeocraft package
+RUN Rscript -e "remotes::install_local('/opt/dockerfiles', dependencies = TRUE, upgrade = 'always', verbose = TRUE)" && \
+    Rscript -e "if (!require('openeocraft', quietly=TRUE)) stop('openeocraft installation failed')"
 
 # Verify critical packages are installed
 RUN Rscript -e "if (!require('plumber', quietly=TRUE)) stop('plumber is not installed')" && \
+    Rscript -e "if (!require('openstac', quietly=TRUE)) stop('openstac is not installed')" && \
+    Rscript -e "if (!require('openeocraft', quietly=TRUE)) stop('openeocraft is not installed')" && \
     Rscript -e "if (!require('jsonlite', quietly=TRUE)) stop('jsonlite is not installed')" && \
-    Rscript -e "cat('Critical packages verified successfully\n')"
+    Rscript -e "cat('All critical packages verified successfully\n')"
 
 # cmd or entrypoint for startup
 CMD ["Rscript", "/opt/dockerfiles/docker/server.R"]
