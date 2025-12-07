@@ -36,7 +36,6 @@ con <- connect(
 
 # Access processes
 p <- processes()
-p
 ```
 ## Describe processes
 ```{r}
@@ -80,6 +79,17 @@ tempcnn_model <- p$ml_fit(
     model = tempcnn_model_init,
     training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
     target = "label"
+)
+```
+
+## Save Model
+
+```{r}
+# Save the model
+model <- p$save_ml_model(
+    data = tempcnn_model,
+    name = 'tempcnn_rondonia_model',
+    tasks = list("classification")
 )
 ```
 
