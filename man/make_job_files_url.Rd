@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils-api.R
 \name{make_job_files_url}
 \alias{make_job_files_url}
-\title{Build the download URL for a job artefact}
+\title{Build the download URL for a job artifact}
 \usage{
 make_job_files_url(host, user, job_id, file)
 }
@@ -19,5 +19,5 @@ make_job_files_url(host, user, job_id, file)
 A character string containing the absolute URL.
 }
 \description{
-Build the download URL for a job artefact
+Build the download URL for a job artifact
 }
