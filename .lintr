@@ -1,1 +1,0 @@
-linters: lintr::linters_with_defaults(indentation_linter = lintr::indentation_linter(indent = 4L))

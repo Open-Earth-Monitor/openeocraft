@@ -45,6 +45,7 @@ api <- create_openeo_v1(
 set_credentials(api, file = "~/openeo-credentials.rds")
 new_credential(api, user = "rolf", password = "123456")
 new_credential(api, user = "brian", password = "123456")
+new_credential(api, user = "user", password = "password")
 
 # Load processes
 processes_file <- system.file("ml/processes.R", package = "openeocraft")
@@ -133,7 +134,7 @@ function(req, res, job_id) {
 #* @post /jobs
 function(req, res) {
   print("POST /jobs")
-  #print(req$body$process)
+  # print(req$body$process)
   api_job_create(api, req, res)
 }
 
@@ -195,7 +196,12 @@ function(req, res, job_id) {
 #* @param job_id job identifier
 #* @serializer unboxedJSON
 #* @get /jobs/<job_id>/logs
-function(req, res, job_id, offset = 0, level = "info", limit = 10) {
+function(req,
+         res,
+         job_id,
+         offset = 0,
+         level = "info",
+         limit = 10) {
   print("GET /jobs/<jobid>/logs")
   token <- get_token(req)
   user <- get_token_user(api, token)

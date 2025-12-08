@@ -423,8 +423,36 @@ mlm_class_lighttae <- function(epochs = 150,
 
 #* @openeo-process
 ml_fit <- function(model, training_set, target = "label") {
-    training_set <- jsonlite::unserializeJSON(training_set)
-    model$train(training_set)
+    # Check if training_set is a URL
+    if (base::grepl("^https?://", training_set, ignore.case = TRUE)) {
+        # Create a temporary file to store the downloaded data
+        temp_file <- base::tempfile(fileext = ".rds")
+        base::on.exit(base::unlink(temp_file))  # Clean up temp file on exit
+
+        # Download the file and read the RDS data
+        tryCatch({
+            utils::download.file(training_set,
+                                 temp_file,
+                                 mode = "wb",
+                                 quiet = TRUE)
+            training_data <- base::readRDS(temp_file)
+        }, error = function(e) {
+            stop("Failed to download or read the training data from URL: ",
+                 e$message)
+        })
+    } else {
+        # Handle existing JSON serialized data
+        training_data <- tryCatch({
+            jsonlite::unserializeJSON(training_set)
+        }, error = function(e) {
+            stop(
+                "Failed to parse training data. Ensure it's either a valid JSON string or a URL to an RDS file."
+            )
+        })
+    }
+
+    # Train the model with the loaded data
+    model$train(training_data)
 }
 
 #* @openeo-process
@@ -925,114 +953,112 @@ import_ml_model <- function(name, folder) {
 
 #* @openeo-process
 save_ml_model <- function(data, name, tasks, options = NULL) {
-    base::tryCatch(
-        {
-            # Initialize environment and host
-            env <- openeocraft::current_env()
-            host <- openeocraft::get_host(env$api, env$req)
+    base::tryCatch({
+        # Initialize environment and host
+        env <- openeocraft::current_env()
+        host <- openeocraft::get_host(env$api, env$req)
 
-            # Get directories
-            job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
-            result_dir <- job_dir # they are the same
+        # Get directories
+        job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+        result_dir <- job_dir # they are the same
 
-            # Use visible "mlmodel" folder instead of hidden ".obj"
-            mlmodel_dir <- base::file.path(result_dir, "mlmodel")
+        # Use visible "mlmodel" folder instead of hidden ".obj"
+        mlmodel_dir <- base::file.path(result_dir, "mlmodel")
 
-            # Create mlmodel directory if it doesn't exist
-            if (!base::dir.exists(mlmodel_dir)) {
-                base::dir.create(mlmodel_dir, recursive = TRUE)
-            }
-
-            if (!base::dir.exists(mlmodel_dir)) {
-                openeocraft::api_stop(500, "Could not create the mlmodel folder")
-            }
-
-            # Save RDS object representation with the model name
-            model_file <- base::file.path(mlmodel_dir, base::paste0(name, ".rds"))
-            base::saveRDS(data, model_file)
-
-            # Verify the file was saved correctly
-            if (!base::file.exists(model_file)) {
-                openeocraft::api_stop(500, "Failed to save model file")
-            }
-
-            # Create STAC Item (Feature) with mlm extension
-            # Following the mlm extension specification and examples
-            item <- base::list()
-
-            # STAC core fields
-            item$stac_version <- "1.0.0"
-            item$type <- "Feature"
-            item$id <- name
-            item$stac_extensions <- base::list("https://stac-extensions.github.io/mlm/v1.0.0/schema.json")
-
-            # Properties - start with mlm extension fields
-            item$properties <- base::list()
-            item$properties[["mlm:name"]] <- name
-            item$properties[["mlm:tasks"]] <- tasks
-
-            # Add mlm:input and mlm:output (basic structure)
-            # These can be enhanced based on model metadata or options
-            item$properties[["mlm:input"]] <- base::list(
-                base::list(type = "data-cube", description = "Input data cube for model prediction")
-            )
-            item$properties[["mlm:output"]] <- base::list(
-                base::list(type = "data-cube", description = "Output data cube from model prediction")
-            )
-
-            # If options is not NULL, merge into properties
-            # This allows custom mlm properties like mlm:framework, mlm:name, etc.
-            if (!base::is.null(options) && base::is.list(options)) {
-                for (key in base::names(options)) {
-                    item$properties[[key]] <- options[[key]]
-                }
-            }
-
-            # Assets - add model asset with mlm:model role
-            model_filename <- base::basename(model_file)
-            model_url <- openeocraft::make_job_files_url(
-                host = host,
-                user = env$user,
-                job_id = env$job$id,
-                file = base::file.path("mlmodel", model_filename)
-            )
-
-            item$assets <- base::list()
-            item$assets[["model"]] <- base::list(
-                href = model_url,
-                type = "application/x-rds", # RDS format
-                title = name,
-                description = base::paste("Machine learning model:", name),
-                roles = base::list("mlm:model", "data")
-            )
-
-            # Links (optional but good practice)
-            item$links <- base::list(
-                base::list(
-                    rel = "self",
-                    href = base::file.path(job_dir, "ml_collection.json"),
-                    type = "application/geo+json"
-                )
-            )
-
-            # Save the STAC Item JSON in the job directory
-            item_json_path <- base::file.path(job_dir, "ml_collection.json")
-            jsonlite::write_json(
-                x = item,
-                path = item_json_path,
-                auto_unbox = TRUE,
-                pretty = TRUE
-            )
-
-            return(TRUE)
-        },
-        error = function(e) {
-            if (base::inherits(e, "openeocraft_api_error")) {
-                stop(e)
-            }
-            stop(base::paste("Error in save_ml_model():", e$message))
+        # Create mlmodel directory if it doesn't exist
+        if (!base::dir.exists(mlmodel_dir)) {
+            base::dir.create(mlmodel_dir, recursive = TRUE)
         }
-    )
+
+        if (!base::dir.exists(mlmodel_dir)) {
+            openeocraft::api_stop(500, "Could not create the mlmodel folder")
+        }
+
+        # Save RDS object representation with the model name
+        model_file <- base::file.path(mlmodel_dir, base::paste0(name, ".rds"))
+        base::saveRDS(data, model_file)
+
+        # Verify the file was saved correctly
+        if (!base::file.exists(model_file)) {
+            openeocraft::api_stop(500, "Failed to save model file")
+        }
+
+        # Create STAC Item (Feature) with mlm extension
+        # Following the mlm extension specification and examples
+        item <- base::list()
+
+        # STAC core fields
+        item$stac_version <- "1.0.0"
+        item$type <- "Feature"
+        item$id <- name
+        item$stac_extensions <- base::list("https://stac-extensions.github.io/mlm/v1.0.0/schema.json")
+
+        # Properties - start with mlm extension fields
+        item$properties <- base::list()
+        item$properties[["mlm:name"]] <- name
+        item$properties[["mlm:tasks"]] <- tasks
+
+        # Add mlm:input and mlm:output (basic structure)
+        # These can be enhanced based on model metadata or options
+        item$properties[["mlm:input"]] <- base::list(
+            base::list(type = "data-cube", description = "Input data cube for model prediction")
+        )
+        item$properties[["mlm:output"]] <- base::list(
+            base::list(type = "data-cube", description = "Output data cube from model prediction")
+        )
+
+        # If options is not NULL, merge into properties
+        # This allows custom mlm properties like mlm:framework, mlm:name, etc.
+        if (!base::is.null(options) && base::is.list(options)) {
+            for (key in base::names(options)) {
+                item$properties[[key]] <- options[[key]]
+            }
+        }
+
+        # Assets - add model asset with mlm:model role
+        model_filename <- base::basename(model_file)
+        model_url <- openeocraft::make_job_files_url(
+            host = host,
+            user = env$user,
+            job_id = env$job$id,
+            file = base::file.path("mlmodel", model_filename)
+        )
+
+        item$assets <- base::list()
+        item$assets[["model"]] <- base::list(
+            href = model_url,
+            type = "application/x-rds",
+            # RDS format
+            title = name,
+            description = base::paste("Machine learning model:", name),
+            roles = base::list("mlm:model", "data")
+        )
+
+        # Links (optional but good practice)
+        item$links <- base::list(
+            base::list(
+                rel = "self",
+                href = base::file.path(job_dir, "ml_collection.json"),
+                type = "application/geo+json"
+            )
+        )
+
+        # Save the STAC Item JSON in the job directory
+        item_json_path <- base::file.path(job_dir, "ml_collection.json")
+        jsonlite::write_json(
+            x = item,
+            path = item_json_path,
+            auto_unbox = TRUE,
+            pretty = TRUE
+        )
+
+        return(TRUE)
+    }, error = function(e) {
+        if (base::inherits(e, "openeocraft_api_error")) {
+            stop(e)
+        }
+        stop(base::paste("Error in save_ml_model():", e$message))
+    })
 }
 
 #* @openeo-process
@@ -1326,75 +1352,69 @@ load_stac_ml <- function(uri,
 
 #* @openeo-process
 load_ml_model <- function(id) {
-    base::tryCatch(
-        {
-            # Initialize environment
-            env <- openeocraft::current_env()
+    base::tryCatch({
+        # Initialize environment
+        env <- openeocraft::current_env()
 
-            # Try to find model in multiple locations:
-            # 1. Current job directory mlmodel folder (for models saved in this job)
-            # 2. Workspace root directories mlmodel folders (for exported models)
-            # 3. Other job directories mlmodel folders (for models from previous jobs)
+        # Try to find model in multiple locations:
+        # 1. Current job directory mlmodel folder (for models saved in this job)
+        # 2. Workspace root directories mlmodel folders (for exported models)
+        # 3. Other job directories mlmodel folders (for models from previous jobs)
 
-            job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
-            workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
-            workspace_root <- base::file.path(workspace_dir, "root")
+        job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+        workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
+        workspace_root <- base::file.path(workspace_dir, "root")
 
-            # Try current job mlmodel folder first
-            model_file <- base::file.path(job_dir, "mlmodel", base::paste0(id, ".rds"))
-            if (base::file.exists(model_file)) {
-                model <- base::readRDS(model_file)
-                if (base::is.list(model)) {
-                    return(model)
-                }
+        # Try current job mlmodel folder first
+        model_file <- base::file.path(job_dir, "mlmodel", base::paste0(id, ".rds"))
+        if (base::file.exists(model_file)) {
+            model <- base::readRDS(model_file)
+            if (base::is.list(model)) {
+                return(model)
             }
-
-            # Search in workspace root folders mlmodel subdirectories
-            if (base::dir.exists(workspace_root)) {
-                folders <- base::list.dirs(workspace_root,
-                    full.names = TRUE,
-                    recursive = FALSE
-                )
-                for (folder in folders) {
-                    model_file <- base::file.path(folder, "mlmodel", base::paste0(id, ".rds"))
-                    if (base::file.exists(model_file)) {
-                        model <- base::readRDS(model_file)
-                        if (base::is.list(model)) {
-                            return(model)
-                        }
-                    }
-                }
-            }
-
-            # If not found, check if it's a collection reference
-            # (models saved with save_ml_model create a ml_collection.json)
-            collection_file <- base::file.path(job_dir, "ml_collection.json")
-            if (base::file.exists(collection_file)) {
-                collection <- jsonlite::fromJSON(collection_file, simplifyVector = FALSE)
-                if (!base::is.null(collection$id) &&
-                    collection$id == id) {
-                    # Model should be in mlmodel directory
-                    model_file <- base::file.path(job_dir, "mlmodel", base::paste0(id, ".rds"))
-                    if (base::file.exists(model_file)) {
-                        model <- base::readRDS(model_file)
-                        if (base::is.list(model)) {
-                            return(model)
-                        }
-                    }
-                }
-            }
-
-            # Model not found
-            openeocraft::api_stop(
-                404,
-                base::paste("Model with id '", id, "' not found", sep = "")
-            )
-        },
-        error = function(e) {
-            if (base::inherits(e, "openeocraft_api_error")) {
-                stop(e)
-            }
-            stop(base::paste("Error in load_ml_model():", e$message))
         }
-    )
+
+        # Search in workspace root folders mlmodel subdirectories
+        if (base::dir.exists(workspace_root)) {
+            folders <- base::list.dirs(workspace_root,
+                                       full.names = TRUE,
+                                       recursive = FALSE)
+            for (folder in folders) {
+                model_file <- base::file.path(folder, "mlmodel", base::paste0(id, ".rds"))
+                if (base::file.exists(model_file)) {
+                    model <- base::readRDS(model_file)
+                    if (base::is.list(model)) {
+                        return(model)
+                    }
+                }
+            }
+        }
+
+        # If not found, check if it's a collection reference
+        # (models saved with save_ml_model create a ml_collection.json)
+        collection_file <- base::file.path(job_dir, "ml_collection.json")
+        if (base::file.exists(collection_file)) {
+            collection <- jsonlite::fromJSON(collection_file, simplifyVector = FALSE)
+            if (!base::is.null(collection$id) &&
+                collection$id == id) {
+                # Model should be in mlmodel directory
+                model_file <- base::file.path(job_dir, "mlmodel", base::paste0(id, ".rds"))
+                if (base::file.exists(model_file)) {
+                    model <- base::readRDS(model_file)
+                    if (base::is.list(model)) {
+                        return(model)
+                    }
+                }
+            }
+        }
+
+        # Model not found
+        openeocraft::api_stop(404,
+                              base::paste("Model with id '", id, "' not found", sep = ""))
+    }, error = function(e) {
+        if (base::inherits(e, "openeocraft_api_error")) {
+            stop(e)
+        }
+        stop(base::paste("Error in load_ml_model():", e$message))
+    })
 }
