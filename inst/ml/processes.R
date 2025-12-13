@@ -742,6 +742,17 @@ ndvi <- function(data,
                 .(base::as.name(nir)) + .(base::as.name(red))
             ))
     )
+    data <- sits::sits_select(data, bands = target_band)
+    data
+}
+
+#* @openeo-process
+merge_cubes <- function(cube1, cube2, overlap_resolver = NULL, context = NULL) {
+    # Merge cubes
+    data <- sits::sits_merge(
+        data1 = cube1,
+        data2 = cube2
+    )
     data
 }
 
