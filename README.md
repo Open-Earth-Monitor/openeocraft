@@ -46,7 +46,14 @@ docker-compose up
 
 ## Example Workflows
 
+### Authentication
+Default credentials for the development server:
+- Username: `user`
+- Password: `password`
+
 ### R Example: TempCNN Model Training
+
+**Note:** Training data is located in `inst/demo-paper-2025/data/` within the repository.
 
 ```r
 library(openeo)
@@ -78,8 +85,8 @@ datacube <- p$ndvi(
     nir = "B08",
     target_band = "NDVI"
 )
-# Load training data
-data_deforestation_rondonia <- readRDS("./data/samples_deforestation_rondonia.rds")
+# Load training data from the package installation directory
+data_deforestation_rondonia <- readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia.rds")
 # Initialize TempCNN model
 tempcnn_model_init <-  p$mlm_class_tempcnn(optimizer = "adam",
                                            learning_rate = 0.0005,
@@ -96,7 +103,7 @@ model <- p$save_ml_model(
     tempcnn_model,
     name = "tempcnn_model_2022_rondonia",
     tasks = list("classification"),
-    options = list("mlm:accelerator" = "macos-arm", "mlm:framework" = "Torch for R")
+    options = list("accelerator" = "macos-arm", "framework" = "Torch for R")
 )
 # Save the prediction result
 ml_job <- p$save_result(data = datacube, format = "GTiff")
@@ -120,6 +127,11 @@ if (status$status == "finished") {
 ```
 
 ### Python Example: Interacting with EO Data Cubes
+
+**Note:** This example requires the custom Python client. Install it locally:
+```bash
+pip install git+https://github.com/PondiB/openeo-python-client.git
+```
 
 ```python
 import openeo
@@ -157,8 +169,8 @@ datacube = datacube.process(
     }
 )
 
-# Load training data
-serialized_data = connection.readRDS("./data/samples_deforestation_rondonia_1M.rds")
+# Load training data from the package installation directory
+serialized_data = connection.readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia_1M.rds")
 
 
 
@@ -178,7 +190,7 @@ tempcnn_model = tempcnn_model_init.fit(
 datacube =  tempcnn_model.predict(datacube)
 
 # Save the trained model for future use.
-tempcnn_model.save_ml_model(name ="tempcnn_rondonia", tasks=["classification"], options={"mlm:accelerator":"macos-arm", "mlm:framework":"Torch"})
+tempcnn_model.save_ml_model(name ="tempcnn_rondonia", tasks=["classification"], options={"accelerator":"macos-arm", "framework":"Torch for R"})
 
 # Save and Execute Results
 result = datacube.save_result(
@@ -195,7 +207,4 @@ results = job.get_results()
 results.download_files("data/output")
 ```
 
-## Authentication
-Default credentials for the development server:
-- Username: `user`
-- Password: `password`
+
