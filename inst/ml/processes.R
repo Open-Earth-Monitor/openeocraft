@@ -104,8 +104,7 @@ load_collection <- function(id,
                 source = source,
                 collection = collection,
                 bands = bands,
-                roi = roi,
-                # sf polygon object
+                roi = roi, # sf polygon object
                 start_date = temporal_extent[[1]],
                 end_date = temporal_extent[[2]]
             )
@@ -145,7 +144,10 @@ mlm_class_random_forest <- function(num_trees = 100,
             }
             max_variables <- base::max(1, base::floor(max_variables))
             # end preparing max_variables parameter
-            model <- sits::sits_rfor(num_trees = num_trees, mtry = max_variables)
+            model <- sits::sits_rfor(
+                num_trees = num_trees,
+                mtry = max_variables
+            )
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
@@ -436,45 +438,8 @@ mlm_class_lighttae <- function(epochs = 150,
 
 #* @openeo-process
 ml_fit <- function(model, training_set, target = "label") {
-    # Check if training_set is a URL
-    if (base::grepl("^https?://", training_set, ignore.case = TRUE)) {
-        # Create a temporary file to store the downloaded data
-        temp_file <- base::tempfile(fileext = ".rds")
-        base::on.exit(base::unlink(temp_file)) # Clean up temp file on exit
-
-        # Download the file and read the RDS data
-        tryCatch(
-            {
-                utils::download.file(training_set,
-                    temp_file,
-                    mode = "wb",
-                    quiet = TRUE
-                )
-                training_data <- base::readRDS(temp_file)
-            },
-            error = function(e) {
-                stop(
-                    "Failed to download or read the training data from URL: ",
-                    e$message
-                )
-            }
-        )
-    } else {
-        # Handle existing JSON serialized data
-        training_data <- tryCatch(
-            {
-                jsonlite::unserializeJSON(training_set)
-            },
-            error = function(e) {
-                stop(
-                    "Failed to parse training data. Ensure it's either a valid JSON string or a URL to an RDS file."
-                )
-            }
-        )
-    }
-
-    # Train the model with the loaded data
-    model$train(training_data)
+    training_set <- jsonlite::unserializeJSON(training_set)
+    model$train(training_set)
 }
 
 #* @openeo-process
@@ -499,14 +464,14 @@ ml_predict <- function(data, model) {
         data = data,
         ml_model = model,
         roi = roi,
-        memsize = 16L,
+        memsize = 8L,
         multicores = 8L,
         output_dir = result_dir
     )
     # label the probability cube
     data <- sits::sits_label_classification(
         cube = data,
-        memsize = 16L,
+        memsize = 8L,
         multicores = 8L,
         output_dir = result_dir
     )
@@ -535,7 +500,7 @@ ml_predict_probabilities <- function(data, model) {
         data = data,
         ml_model = model,
         roi = roi,
-        memsize = 16L,
+        memsize = 8L,
         multicores = 8L,
         output_dir = result_dir
     )
@@ -558,7 +523,7 @@ ml_uncertainty_class <- function(data, approach = "margin") {
     data <- sits::sits_uncertainty(
         cube = data,
         type = approach,
-        memsize = 16L,
+        memsize = 8L,
         multicores = 8L,
         output_dir = result_dir
     )
@@ -585,7 +550,7 @@ ml_smooth_class <- function(data,
         window_size = window_size,
         neigh_fraction = neighborhood_fraction,
         smoothness = smoothness,
-        memsize = 16L,
+        memsize = 8L,
         multicores = 8L,
         output_dir = result_dir
     )
@@ -606,7 +571,7 @@ ml_label_class <- function(data) {
     # label the probability cube
     data <- sits::sits_label_classification(
         cube = data,
-        memsize = 16L,
+        memsize = 8L,
         multicores = 8L,
         output_dir = result_dir
     )
@@ -643,10 +608,7 @@ cube_regularize <- function(data, resolution, period) {
 }
 
 #* @openeo-process
-ndvi <- function(data,
-                 nir = "nir",
-                 red = "red",
-                 target_band = NULL) {
+ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
     # Get current context of evaluation environment
     env <- openeocraft::current_env()
     # Preparing parameters
@@ -661,8 +623,8 @@ ndvi <- function(data,
     sits:::sits_apply.raster_cube
     .sits_apply <- function(data, out_band, expr) {
         window_size <- 1L
-        memsize <- 16L
-        multicores <- 8L
+        memsize <- 2L
+        multicores <- 2L
         normalized <- TRUE
         progress <- FALSE
         sits:::.check_is_raster_cube(data)
@@ -692,7 +654,9 @@ ndvi <- function(data,
             expr = expr
         )
         overlap <- base::ceiling(window_size / 2) - 1
-        block <- sits:::.raster_file_blocksize(sits:::.raster_open_rast(sits:::.tile_path(data)))
+        block <- sits:::.raster_file_blocksize(
+            sits:::.raster_open_rast(sits:::.tile_path(data))
+        )
         job_memsize <- sits:::.jobs_block_memsize(
             block_size = sits:::.block_size(block = block, overlap = overlap),
             npaths = base::length(in_bands) + 1,
@@ -715,32 +679,41 @@ ndvi <- function(data,
         sits:::.parallel_start(workers = multicores)
         base::on.exit(sits:::.parallel_stop(), add = TRUE)
         features_cube <- sits:::.cube_split_features(data)
-        features_band <- sits:::.jobs_map_parallel_dfr(features_cube, function(feature) {
-            output_feature <- sits:::.apply_feature(
-                feature = feature,
-                block = block,
-                expr = expr,
-                window_size = window_size,
-                out_band = out_band,
-                in_bands = in_bands,
-                overlap = overlap,
-                normalized = normalized,
-                output_dir = result_dir
-            )
-            output_feature
-        }, progress = progress)
-        sits:::.cube_merge_tiles(dplyr::bind_rows(list(features_cube, features_band)))
+        features_band <- sits:::.jobs_map_parallel_dfr(
+            features_cube, function(feature) {
+                output_feature <- sits:::.apply_feature(
+                    feature = feature,
+                    block = block,
+                    expr = expr,
+                    window_size = window_size,
+                    out_band = out_band,
+                    in_bands = in_bands,
+                    overlap = overlap,
+                    normalized = normalized,
+                    output_dir = result_dir
+                )
+                output_feature
+            },
+            progress = progress
+        )
+        sits:::.cube_merge_tiles(
+            dplyr::bind_rows(list(features_cube, features_band))
+        )
     }
     #
     data <- .sits_apply(
         data = data,
         out_band = target_band,
-        expr = base::bquote((
-            .(base::as.name(nir)) - .(base::as.name(red))
-        ) /
-            (
-                .(base::as.name(nir)) + .(base::as.name(red))
-            ))
+        expr = base::bquote((.(
+            base::as.name(nir)
+        ) - .(
+            base::as.name(red)
+        )) /
+            (.(
+                base::as.name(nir)
+            ) + .(
+                base::as.name(red)
+            )))
     )
     data
 }
@@ -814,12 +787,18 @@ load_result <- function(id) {
     result_dir <- openeocraft::job_get_dir(env$api, env$user, id)
     obj_dir <- base::file.path(result_dir, ".obj")
     if (!base::dir.exists(obj_dir)) {
-        openeocraft::api_stop(500, "Object's representation folder doesn't exist")
+        openeocraft::api_stop(
+            500,
+            "Object's representation folder doesn't exist"
+        )
     }
     # Get RDS object representation
     file <- base::file.path(result_dir, ".obj", "cube.rds")
     if (!base::file.exists(file)) {
-        openeocraft::api_stop(500, "Object's representation file doesn't exist")
+        openeocraft::api_stop(
+            500,
+            "Object's representation file doesn't exist"
+        )
     }
     data <- base::readRDS(file)
     data
@@ -979,493 +958,452 @@ import_ml_model <- function(name, folder) {
 }
 
 #* @openeo-process
-save_ml_model <- function(data, name, tasks, options = NULL) {
-    base::tryCatch(
-        {
-            # Initialize environment and host
-            env <- openeocraft::current_env()
-            host <- openeocraft::get_host(env$api, env$req)
+save_ml_model <- function(data, name, tasks, options = list()) {
+    # Input validation
+    if (!base::is.character(name) || base::length(name) != 1 || base::nchar(name) == 0) {
+        openeocraft::api_stop(400, "Parameter 'name' must be a non-empty string")
+    }
+    
+   
+    if (!base::is.character(tasks) && !base::is.list(tasks)) {
+        openeocraft::api_stop(400, "Parameter 'tasks' must be an array of strings")
+    }
+    
+    env <- openeocraft::current_env()
+    host <- openeocraft::get_host(env$api, env$req)
+    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+    models_dir <- base::file.path(job_dir, "models")
 
-            # Get directories
-            job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
-            result_dir <- job_dir # they are the same
+    if (!base::dir.exists(models_dir)) {
+        base::dir.create(models_dir, recursive = TRUE)
+    }
 
-            # Use visible "mlmodel" folder instead of hidden ".obj"
-            mlmodel_dir <- base::file.path(result_dir, "mlmodel")
+    if (!base::dir.exists(models_dir)) {
+        openeocraft::api_stop(500, "Could not create the models folder")
+    }
 
-            # Create mlmodel directory if it doesn't exist
-            if (!base::dir.exists(mlmodel_dir)) {
-                base::dir.create(mlmodel_dir, recursive = TRUE)
-            }
+    model_filename <- base::paste0(name, ".rds")
+    file <- base::file.path(models_dir, model_filename)
+    base::saveRDS(data, file)
 
-            if (!base::dir.exists(mlmodel_dir)) {
-                openeocraft::api_stop(500, "Could not create the mlmodel folder")
-            }
+    model_href <- openeocraft::make_job_files_url(
+        host = host,
+        user = env$user,
+        job_id = env$job$id,
+        file = base::paste0("models/", model_filename)
+    )
 
-            # Save RDS object representation with the model name
-            model_file <- base::file.path(mlmodel_dir, base::paste0(name, ".rds"))
-            base::saveRDS(data, model_file)
+    stac_item <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+    stac_item$type <- "Feature"
+    stac_item$id <- name
+    stac_item$stac_version <- "1.1.0"
+    stac_item$stac_extensions <- list(
+        "https://stac-extensions.github.io/mlm/v1.5.0/schema.json"
+    )
 
-            # Verify the file was saved correctly
-            if (!base::file.exists(model_file)) {
-                openeocraft::api_stop(500, "Failed to save model file")
-            }
+    mlm_properties <- list(
+        `mlm:name` = name,
+        `mlm:architecture` = options$architecture,
+        `mlm:tasks` = tasks_vec,
+        `mlm:input` = options$input,
+        `mlm:output` = options$output
+    )
 
-            # Create STAC Item (Feature) with mlm extension
-            # Following the mlm extension specification and examples
-            item <- base::list()
+    if (!base::is.null(options$framework)) {
+        mlm_properties$`mlm:framework` <- options$framework
+    }
+    if (!base::is.null(options$framework_version)) {
+        mlm_properties$`mlm:framework_version` <- options$framework_version
+    }
+    if (!base::is.null(options$memory_size)) {
+        mlm_properties$`mlm:memory_size` <- options$memory_size
+    }
+    if (!base::is.null(options$total_parameters)) {
+        mlm_properties$`mlm:total_parameters` <- options$total_parameters
+    }
+    if (!base::is.null(options$pretrained)) {
+        mlm_properties$`mlm:pretrained` <- options$pretrained
+    }
+    if (!base::is.null(options$pretrained_source)) {
+        mlm_properties$`mlm:pretrained_source` <- options$pretrained_source
+    }
+    if (!base::is.null(options$batch_size_suggestion)) {
+        mlm_properties$`mlm:batch_size_suggestion` <- options$batch_size_suggestion
+    }
+    if (!base::is.null(options$accelerator)) {
+        mlm_properties$`mlm:accelerator` <- options$accelerator
+    }
+    if (!base::is.null(options$accelerator_constrained)) {
+        mlm_properties$`mlm:accelerator_constrained` <- options$accelerator_constrained
+    }
+    if (!base::is.null(options$accelerator_summary)) {
+        mlm_properties$`mlm:accelerator_summary` <- options$accelerator_summary
+    }
+    if (!base::is.null(options$accelerator_count)) {
+        mlm_properties$`mlm:accelerator_count` <- options$accelerator_count
+    }
+    if (!base::is.null(options$hyperparameters)) {
+        mlm_properties$`mlm:hyperparameters` <- options$hyperparameters
+    }
 
-            # STAC core fields
-            item$stac_version <- "1.0.0"
-            item$type <- "Feature"
-            item$id <- name
-            item$stac_extensions <- base::list("https://stac-extensions.github.io/mlm/v1.0.0/schema.json")
+    stac_item$properties <- mlm_properties
 
-            # Properties - start with mlm extension fields
-            item$properties <- base::list()
-            item$properties[["mlm:name"]] <- name
-            item$properties[["mlm:tasks"]] <- tasks
+    artifact_type <- options$artifact_type
+    if (base::is.null(artifact_type)) {
+        artifact_type <- "application/octet-stream"
+    }
 
-            # Add mlm:input and mlm:output (basic structure)
-            # These can be enhanced based on model metadata or options
-            item$properties[["mlm:input"]] <- base::list(
-                base::list(type = "data-cube", description = "Input data cube for model prediction")
+    model_asset <- list(
+        href = model_href,
+        type = "application/octet-stream",
+        roles = list("mlm:model"),
+        `mlm:artifact_type` = artifact_type
+    )
+
+    if (!base::is.null(options$compile_method)) {
+        model_asset$`mlm:compile_method` <- options$compile_method
+    }
+
+    assets <- list()
+    assets[[model_filename]] <- model_asset
+
+    if (!base::is.null(options$code_asset)) {
+        code_asset_info <- options$code_asset
+        
+        # Validate required code asset fields
+        if (base::is.null(code_asset_info$href) || base::nchar(code_asset_info$href) == 0) {
+            openeocraft::api_stop(
+                400,
+                "Code asset must have a valid 'href' field"
             )
-            item$properties[["mlm:output"]] <- base::list(
-                base::list(type = "data-cube", description = "Output data cube from model prediction")
+        }
+        
+        if (base::is.null(code_asset_info$type) || base::nchar(code_asset_info$type) == 0) {
+            openeocraft::api_stop(
+                400,
+                "Code asset must have a valid 'type' field"
             )
-
-            # If options is not NULL, merge into properties
-            # This allows custom mlm properties like mlm:framework, mlm:name, etc.
-            if (!base::is.null(options) && base::is.list(options)) {
-                for (key in base::names(options)) {
-                    item$properties[[key]] <- options[[key]]
-                }
-            }
-
-            # Assets - add model asset with mlm:model role
-            model_filename <- base::basename(model_file)
-            model_url <- openeocraft::make_job_files_url(
-                host = host,
-                user = env$user,
-                job_id = env$job$id,
-                file = base::file.path("mlmodel", model_filename)
+        }
+        
+        if (base::is.null(code_asset_info$name) || base::nchar(code_asset_info$name) == 0) {
+            openeocraft::api_stop(
+                400,
+                "Code asset must have a valid 'name' field"
             )
+        }
+        
+        code_asset <- list(
+            href = code_asset_info$href,
+            type = code_asset_info$type,
+            roles = list("code")
+        )
+        
+        if (!base::is.null(code_asset_info$entrypoint)) {
+            code_asset$`mlm:entrypoint` <- code_asset_info$entrypoint
+        }
+        
+        assets[[code_asset_info$name]] <- code_asset
+    }
 
-            item$assets <- base::list()
-            item$assets[["model"]] <- base::list(
-                href = model_url,
-                type = "application/x-rds",
-                # RDS format
-                title = name,
-                description = base::paste("Machine learning model:", name),
-                roles = base::list("mlm:model", "data")
-            )
+    stac_item$assets <- assets
+    
+    # Add link to parent collection
+    stac_item$links <- list(
+        list(
+            href = "collection.json",
+            rel = "collection"
+        ),
+        list(
+            href = "ml_collection.json",
+            rel = "self"
+        )
+    )
 
-            # Links (optional but good practice)
-            item$links <- base::list(
-                base::list(
-                    rel = "self",
-                    href = base::file.path(job_dir, "ml_collection.json"),
-                    type = "application/geo+json"
+    # Save STAC Item
+    item_json_path <- base::file.path(job_dir, "ml_collection.json")
+    jsonlite::write_json(
+        x = stac_item,
+        path = item_json_path,
+        auto_unbox = TRUE
+    )
+    
+    # Create or update parent collection
+    collection_json_path <- base::file.path(job_dir, "collection.json")
+    
+    if (base::file.exists(collection_json_path)) {
+        # Update existing collection
+        collection <- jsonlite::read_json(collection_json_path, simplifyVector = FALSE)
+        
+        # Add item link if not already present
+        item_link <- list(
+            href = "ml_collection.json",
+            rel = "item"
+        )
+        
+        link_exists <- base::any(base::sapply(collection$links, function(link) {
+            !base::is.null(link$href) && link$href == "ml_collection.json"
+        }))
+        
+        if (!link_exists) {
+            collection$links <- c(collection$links, list(item_link))
+        }
+    } else {
+        # Create new parent collection
+        collection <- list(
+            stac_version = "1.0.0",
+            stac_extensions = list(
+                "https://stac-extensions.github.io/item-assets/v1.0.0/schema.json"
+            ),
+            type = "Collection",
+            id = "ml-models",
+            title = "Machine Learning Models",
+            description = "Collection of machine learning models saved in this job.",
+            license = "Apache-2.0",
+            extent = list(
+                spatial = list(
+                    bbox = list(list(-180, -90, 180, 90))
+                ),
+                temporal = list(
+                    interval = list(list("1900-01-01T00:00:00Z", "9999-12-31T23:59:59Z"))
+                )
+            ),
+            item_assets = list(
+                weights = list(
+                    title = "model weights",
+                    roles = list("mlm:model", "mlm:weights")
+                )
+            ),
+            summaries = list(
+                datetime = list(
+                    minimum = "1900-01-01T00:00:00Z",
+                    maximum = "9999-12-31T23:59:59Z"
+                )
+            ),
+            links = list(
+                list(
+                    href = "collection.json",
+                    rel = "self"
+                ),
+                list(
+                    href = "ml_collection.json",
+                    rel = "item"
                 )
             )
-
-            # Save the STAC Item JSON in the job directory
-            item_json_path <- base::file.path(job_dir, "ml_collection.json")
-            jsonlite::write_json(
-                x = item,
-                path = item_json_path,
-                auto_unbox = TRUE,
-                pretty = TRUE
-            )
-
-            return(TRUE)
-        },
-        error = function(e) {
-            if (base::inherits(e, "openeocraft_api_error")) {
-                stop(e)
-            }
-            stop(base::paste("Error in save_ml_model():", e$message))
-        }
+        )
+    }
+    
+    jsonlite::write_json(
+        x = collection,
+        path = collection_json_path,
+        auto_unbox = TRUE
     )
+
+    return(TRUE)
 }
 
 #* @openeo-process
 load_stac_ml <- function(uri,
                          model_asset = NULL,
-                         input_index = 0L,
-                         output_index = 0L) {
+                         input_index = 0,
+                         output_index = 0) {
     base::tryCatch(
         {
-            # Check if rstac is available
-            if (!base::requireNamespace("rstac", quietly = TRUE)) {
-                stop("Package 'rstac' is required for loading STAC Items")
-            }
-
-            # Validate indices (0-based from spec, will convert to 1-based for R)
-            if (input_index < 0L) {
-                stop("input_index must be >= 0")
-            }
-            if (output_index < 0L) {
-                stop("output_index must be >= 0")
-            }
-
-            # Load STAC Item from URI (URL or local file)
-            item <- NULL
-            if (base::grepl("^https?://", uri)) {
-                # Remote URL - use rstac to fetch
-                # Try to determine if it's an item, collection, or search endpoint
-                response <- rstac::stac(uri) %>%
-                    rstac::get_request()
-
-                # Check if it's a FeatureCollection (search results)
-                if (!base::is.null(response$features) &&
-                    base::length(response$features) > 0) {
-                    # It's a FeatureCollection, take the first item
-                    item <- response$features[[1]]
-                } else if (!base::is.null(response$type) &&
-                    response$type == "Feature") {
-                    # It's a direct STAC Item
-                    item <- response
-                } else if (!base::is.null(response$type) &&
-                    response$type == "Collection") {
-                    # It's a Collection, we need an item - check links
-                    if (!base::is.null(response$links)) {
-                        item_links <- base::Filter(
-                            function(link) {
-                                link$rel == "item"
-                            },
-                            response$links
-                        )
-                        if (base::length(item_links) > 0) {
-                            # Try to fetch the first item
-                            item_uri <- item_links[[1]]$href
-                            if (base::grepl("^https?://", item_uri)) {
-                                item <- rstac::stac(item_uri) %>%
-                                    rstac::get_request()
-                            } else {
-                                # Relative URL - construct from base URI
-                                base_uri <- base::sub("/[^/]*$", "", uri)
-                                item_uri <- base::paste0(base_uri, "/", item_uri)
-                                item <- rstac::stac(item_uri) %>%
-                                    rstac::get_request()
-                            }
-                        } else {
-                            stop("Collection has no item links")
-                        }
-                    } else {
-                        stop("Cannot load model from Collection, please provide a STAC Item URI")
-                    }
-                } else {
-                    stop("Unexpected STAC response type")
-                }
-            } else {
-                # Local file path
-                if (!base::file.exists(uri)) {
-                    stop("STAC Item file not found: ", uri)
-                }
-                item <- jsonlite::fromJSON(uri, simplifyVector = FALSE)
-            }
-
-            # Validate that item is a Feature
-            if (base::is.null(item$type) ||
-                item$type != "Feature") {
-                stop("STAC Item must be of type 'Feature'")
-            }
-
-            # Validate that item has mlm extension
-            if (base::is.null(item$stac_extensions) ||
-                !base::any(base::grepl("mlm", item$stac_extensions))) {
-                stop("STAC Item must implement the 'mlm' extension")
-            }
-
-            # Convert 0-based indices to 1-based for R array access
-            r_input_index <- input_index + 1L
-            r_output_index <- output_index + 1L
-
-            # Access mlm:input array from properties (if present)
-            mlm_input <- item$properties[["mlm:input"]]
-            if (!base::is.null(mlm_input)) {
-                if (!base::is.list(mlm_input)) {
-                    stop("mlm:input must be an array")
-                }
-                if (base::length(mlm_input) == 0) {
-                    stop("mlm:input array is empty")
-                }
-                if (r_input_index > base::length(mlm_input)) {
-                    stop(
-                        "input_index ",
-                        input_index,
-                        " is out of bounds. ",
-                        "mlm:input array has ",
-                        base::length(mlm_input),
-                        " element(s)."
-                    )
-                }
-                # Store the selected input specification
-                selected_input <- mlm_input[[r_input_index]]
-            } else {
-                selected_input <- NULL
-            }
-
-            # Access mlm:output array from properties (if present)
-            mlm_output <- item$properties[["mlm:output"]]
-            if (!base::is.null(mlm_output)) {
-                if (!base::is.list(mlm_output)) {
-                    stop("mlm:output must be an array")
-                }
-                if (base::length(mlm_output) == 0) {
-                    stop("mlm:output array is empty")
-                }
-                if (r_output_index > base::length(mlm_output)) {
-                    stop(
-                        "output_index ",
-                        output_index,
-                        " is out of bounds. ",
-                        "mlm:output array has ",
-                        base::length(mlm_output),
-                        " element(s)."
-                    )
-                }
-                # Store the selected output specification
-                selected_output <- mlm_output[[r_output_index]]
-            } else {
-                selected_output <- NULL
-            }
-
-            # Find assets with mlm:model role
-            assets <- item$assets
-            if (base::is.null(assets) ||
-                base::length(assets) == 0) {
-                stop("STAC Item has no assets")
-            }
-
-            model_assets <- base::list()
-            for (asset_name in base::names(assets)) {
-                asset <- assets[[asset_name]]
-                roles <- asset$roles
-                if (!base::is.null(roles) &&
-                    "mlm:model" %in% roles) {
-                    model_assets[[asset_name]] <- asset
-                }
-            }
-
-            if (base::length(model_assets) == 0) {
-                stop("No assets with 'mlm:model' role found in STAC Item")
-            }
-
-            # Determine which asset to use
-            if (base::is.null(model_asset)) {
-                if (base::length(model_assets) > 1) {
-                    stop(
-                        "Multiple assets with 'mlm:model' role found. ",
-                        "Please specify 'model_asset' parameter."
-                    )
-                }
-                model_asset <- base::names(model_assets)[[1]]
-            } else {
-                if (!model_asset %in% base::names(model_assets)) {
-                    stop("Specified 'model_asset' not found or does not have 'mlm:model' role")
-                }
-            }
-
-            # Get the selected asset
-            selected_asset <- model_assets[[model_asset]]
-
-            # Get current context for temporary storage
+            # Initialize environment
             env <- openeocraft::current_env()
-            job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
-            temp_dir <- base::file.path(job_dir, "temp")
-            if (!base::dir.exists(temp_dir)) {
-                base::dir.create(temp_dir, recursive = TRUE)
+
+            # Determine if uri is a URL or file path
+            is_url <- base::grepl("^https?://", uri, perl = TRUE)
+
+            # Load STAC Item
+            stac_item <- NULL
+            if (is_url) {
+                stac_item <- rstac::read_stac(uri)
+            } else {
+                file_path <- NULL
+                
+                # Try workspace directory first
+                workspace_dir <- openeocraft::api_user_workspace(
+                    env$api,
+                    env$user
+                )
+                workspace_dir <- base::file.path(workspace_dir, "root")
+                workspace_path <- base::file.path(workspace_dir, uri)
+                
+                if (base::file.exists(workspace_path)) {
+                    file_path <- workspace_path
+                } else {
+                    # Try job directory (for models saved with save_ml_model)
+                    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+                    job_path <- base::file.path(job_dir, uri)
+                    
+                    if (base::file.exists(job_path)) {
+                        file_path <- job_path
+                    }
+                }
+
+                if (base::is.null(file_path)) {
+                    openeocraft::api_stop(
+                        404,
+                        base::paste("STAC Item file not found:", uri)
+                    )
+                }
+
+                stac_item <- jsonlite::read_json(file_path, simplifyVector = TRUE)
             }
 
-            # Download or copy the model file
-            asset_href <- selected_asset$href
-            model_path <- NULL
+            if (base::is.null(stac_item)) {
+                openeocraft::api_stop(400, "Failed to load STAC Item")
+            }
 
-            if (base::grepl("^https?://", asset_href)) {
-                # Remote URL - download
-                model_filename <- base::basename(asset_href)
-                # Remove query parameters if any
-                model_filename <- base::strsplit(model_filename, "?", fixed = TRUE)[[1]][[1]]
-                model_path <- base::file.path(temp_dir, model_filename)
-                utils::download.file(asset_href,
-                    model_path,
+            if (base::is.null(stac_item$assets)) {
+                openeocraft::api_stop(
+                    400,
+                    "STAC Item does not contain any assets"
+                )
+            }
+
+            # Find model asset
+            model_asset_obj <- NULL
+            if (base::is.null(model_asset)) {
+                mlm_assets <- base::Filter(function(asset) {
+                    !base::is.null(asset$roles) &&
+                        "mlm:model" %in% asset$roles
+                }, stac_item$assets)
+
+                if (base::length(mlm_assets) == 0) {
+                    openeocraft::api_stop(
+                        400,
+                        "No asset with role 'mlm:model' found in STAC Item"
+                    )
+                } else if (base::length(mlm_assets) > 1) {
+                    openeocraft::api_stop(
+                        400,
+                        base::paste(
+                            "Multiple assets with role 'mlm:model' found.",
+                            "Please specify 'model_asset' parameter."
+                        )
+                    )
+                }
+
+                model_asset_obj <- mlm_assets[[1]]
+            } else {
+                if (!model_asset %in% base::names(stac_item$assets)) {
+                    openeocraft::api_stop(
+                        400,
+                        base::paste("Asset not found:", model_asset)
+                    )
+                }
+                model_asset_obj <- stac_item$assets[[model_asset]]
+            }
+
+            if (base::is.null(model_asset_obj$href)) {
+                openeocraft::api_stop(
+                    400,
+                    "Model asset does not contain 'href' field"
+                )
+            }
+
+            # Download or load the model from href
+            model_href <- model_asset_obj$href
+            model <- NULL
+
+            if (base::grepl("^https?://", model_href, perl = TRUE)) {
+                temp_file <- base::tempfile(fileext = ".rds")
+                utils::download.file(
+                    model_href,
+                    temp_file,
                     mode = "wb",
                     quiet = TRUE
                 )
-            } else if (base::file.exists(asset_href)) {
-                # Absolute local file path - copy
-                model_filename <- base::basename(asset_href)
-                model_path <- base::file.path(temp_dir, model_filename)
-                base::file.copy(asset_href, model_path, overwrite = TRUE)
+                model <- base::readRDS(temp_file)
+                base::unlink(temp_file)
             } else {
-                # Relative path - resolve relative to STAC Item location
-                if (base::grepl("^https?://", uri)) {
-                    # For remote STAC Items, resolve relative to base URL
-                    base_url <- base::sub("/[^/]*$", "", uri)
-                    if (!base::grepl("/$", base_url)) {
-                        base_url <- base::paste0(base_url, "/")
-                    }
-                    # Handle both absolute and relative hrefs
-                    if (base::grepl("^/", asset_href)) {
-                        # Absolute path from root
-                        parsed <- base::strsplit(uri, "/", fixed = TRUE)[[1]]
-                        base_url <- base::paste0(parsed[[1]], "//", parsed[[3]], "/")
-                        asset_url <- base::paste0(base_url, base::sub("^/", "", asset_href))
-                    } else {
-                        # Relative path
-                        asset_url <- base::paste0(base_url, asset_href)
-                    }
-                    model_filename <- base::basename(asset_href)
-                    model_filename <- base::strsplit(model_filename, "?", fixed = TRUE)[[1]][[1]]
-                    model_path <- base::file.path(temp_dir, model_filename)
-                    utils::download.file(asset_url,
-                        model_path,
-                        mode = "wb",
-                        quiet = TRUE
-                    )
+                model_path <- NULL
+                
+                # Try job directory first (for models saved with save_ml_model)
+                job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+                job_model_path <- base::file.path(job_dir, model_href)
+                
+                if (base::file.exists(job_model_path)) {
+                    model_path <- job_model_path
                 } else {
-                    # Local STAC Item file - resolve relative to file location
-                    stac_dir <- base::dirname(base::normalizePath(uri))
-                    model_path <- base::file.path(stac_dir, asset_href)
-                    if (!base::file.exists(model_path)) {
-                        stop("Model file not found: ", model_path)
+                    # Try workspace directory
+                    workspace_dir <- openeocraft::api_user_workspace(
+                        env$api,
+                        env$user
+                    )
+                    workspace_dir <- base::file.path(workspace_dir, "root")
+                    workspace_model_path <- base::file.path(workspace_dir, model_href)
+                    
+                    if (base::file.exists(workspace_model_path)) {
+                        model_path <- workspace_model_path
                     }
-                    model_filename <- base::basename(model_path)
-                    model_path <- base::file.path(temp_dir, model_filename)
-                    base::file.copy(base::file.path(stac_dir, asset_href),
-                        model_path,
-                        overwrite = TRUE
+                }
+
+                if (base::is.null(model_path)) {
+                    openeocraft::api_stop(
+                        404,
+                        base::paste("Model file not found:", model_href)
                     )
                 }
-            }
 
-            # Load the model based on file extension
-            if (base::grepl("\\.rds$", model_path, ignore.case = TRUE)) {
                 model <- base::readRDS(model_path)
-            } else if (base::grepl("\\.json$", model_path, ignore.case = TRUE)) {
-                model <- jsonlite::fromJSON(model_path, simplifyVector = FALSE)
-            } else {
-                # Try RDS first, then JSON, then raw binary
-                tryCatch(
-                    {
-                        model <- base::readRDS(model_path)
-                    },
-                    error = function(e1) {
-                        tryCatch(
-                            {
-                                model <- jsonlite::fromJSON(model_path, simplifyVector = FALSE)
-                            },
-                            error = function(e2) {
-                                # For other formats (e.g., PyTorch .pth), store path reference
-                                # The actual model loading would need format-specific handlers
-                                model <- base::list(
-                                    path = model_path,
-                                    format = tools::file_ext(model_path),
-                                    note = "Model file downloaded but format-specific loader not implemented"
-                                )
-                            }
-                        )
-                    }
-                )
             }
 
-            # Validate model structure (if it's a list/object)
-            if (base::is.list(model)) {
-                # Store mlm metadata in model attributes for reference
-                # Store the original 0-based indices and the selected specifications
-                base::attr(model, "mlm:input_index") <- input_index
-                base::attr(model, "mlm:output_index") <- output_index
-                base::attr(model, "mlm:input_spec") <- selected_input
-                base::attr(model, "mlm:output_spec") <- selected_output
-                base::attr(model, "mlm:stac_item") <- item
-                base::attr(model, "mlm:asset_name") <- model_asset
-            } else {
-                stop("Invalid model format: model must be a list/object")
+            if (!base::is.list(model)) {
+                openeocraft::api_stop(400, "Invalid model format")
             }
+
+            # Attach metadata from STAC Item
+            base::attr(model, "stac_item") <- stac_item
+            base::attr(model, "input_index") <- input_index
+            base::attr(model, "output_index") <- output_index
 
             model
         },
         error = function(e) {
-            stop(base::paste("Error in load_stac_ml():", e$message))
+            if (base::inherits(e, "openeocraft_error")) {
+                stop(e)
+            }
+            openeocraft::api_stop(
+                500,
+                base::paste("Error loading STAC ML model:", e$message)
+            )
         }
     )
 }
 
 #* @openeo-process
 load_ml_model <- function(id) {
-    base::tryCatch(
-        {
-            # Initialize environment
-            env <- openeocraft::current_env()
+    # Validate id parameter against pattern
+    if (!base::grepl("^[\\w\\-\\.~/]+$", id, perl = TRUE)) {
+        openeocraft::api_stop(
+            400,
+            "Invalid model ID. Must match pattern: ^[\\w\\-\\.~/]+$"
+        )
+    }
 
-            # Try to find model in multiple locations:
-            # 1. Current job directory mlmodel folder (for models saved in this job)
-            # 2. Workspace root directories mlmodel folders (for exported models)
-            # 3. Other job directories mlmodel folders (for models from previous jobs)
+    # Initialize environment
+    env <- openeocraft::current_env()
 
-            job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
-            workspace_dir <- openeocraft::api_user_workspace(env$api, env$user)
-            workspace_root <- base::file.path(workspace_dir, "root")
+    # Get job directory
+    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
 
-            # Try current job mlmodel folder first
-            model_file <- base::file.path(job_dir, "mlmodel", base::paste0(id, ".rds"))
-            if (base::file.exists(model_file)) {
-                model <- base::readRDS(model_file)
-                if (base::is.list(model)) {
-                    return(model)
-                }
-            }
+    # Get model file path from models directory
+    model_file <- base::file.path(job_dir, "models", base::paste0(id, ".rds"))
 
-            # Search in workspace root folders mlmodel subdirectories
-            if (base::dir.exists(workspace_root)) {
-                folders <- base::list.dirs(workspace_root,
-                    full.names = TRUE,
-                    recursive = FALSE
-                )
-                for (folder in folders) {
-                    model_file <- base::file.path(folder, "mlmodel", base::paste0(id, ".rds"))
-                    if (base::file.exists(model_file)) {
-                        model <- base::readRDS(model_file)
-                        if (base::is.list(model)) {
-                            return(model)
-                        }
-                    }
-                }
-            }
+    # Check if model file exists
+    if (!base::file.exists(model_file)) {
+        openeocraft::api_stop(404, "Model file not found")
+    }
 
-            # If not found, check if it's a collection reference
-            # (models saved with save_ml_model create a ml_collection.json)
-            collection_file <- base::file.path(job_dir, "ml_collection.json")
-            if (base::file.exists(collection_file)) {
-                collection <- jsonlite::fromJSON(collection_file, simplifyVector = FALSE)
-                if (!base::is.null(collection$id) &&
-                    collection$id == id) {
-                    # Model should be in mlmodel directory
-                    model_file <- base::file.path(job_dir, "mlmodel", base::paste0(id, ".rds"))
-                    if (base::file.exists(model_file)) {
-                        model <- base::readRDS(model_file)
-                        if (base::is.list(model)) {
-                            return(model)
-                        }
-                    }
-                }
-            }
+    # Load the model
+    model <- base::readRDS(model_file)
 
-            # Model not found
-            openeocraft::api_stop(
-                404,
-                base::paste("Model with id '", id, "' not found", sep = "")
-            )
-        },
-        error = function(e) {
-            if (base::inherits(e, "openeocraft_api_error")) {
-                stop(e)
-            }
-            stop(base::paste("Error in load_ml_model():", e$message))
-        }
-    )
+    # Basic validation
+    if (!base::is.list(model)) {
+        openeocraft::api_stop(400, "Invalid model format")
+    }
+
+    model
 }
