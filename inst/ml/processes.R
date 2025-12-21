@@ -715,7 +715,74 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
                 base::as.name(red)
             )))
     )
+    data <- sits::sits_select(data, bands = target_band)
     data
+}
+
+#* @openeo-process
+merge_cubes <- function(cube1, cube2, overlap_resolver = NULL, context = NULL) {
+    # Get current context of evaluation environment
+    env <- openeocraft::current_env()
+    # Merge cubes
+    data <- sits::sits_merge(
+        data1 = cube1,
+        data2 = cube2
+    )
+    data
+}
+
+
+#* @openeo-process
+filter_bands <- function(data, bands = NULL, wavelengths = NULL) {
+    # Input validation
+    if (base::missing(data)) {
+        stop("Argument 'data' is required", call. = FALSE)
+    }
+    
+    # Check if wavelengths parameter is used (not supported)
+    if (!base::is.null(wavelengths)) {
+        stop("Filtering by wavelength is currently not supported. Please use the 'bands' parameter instead.", call. = FALSE)
+    }
+    
+    # Validate bands parameter
+    if (base::is.null(bands)) {
+        stop("The 'bands' parameter is required and must be a non-empty character vector or list", call. = FALSE)
+    }
+    
+    # Convert bands to character vector if it's a list (e.g., from JSON/API input)
+    if (base::is.list(bands)) {
+        bands <- base::unlist(bands, use.names = FALSE)
+    }
+    
+    if (!base::is.character(bands) || base::length(bands) == 0) {
+        stop("'bands' must be a non-empty character vector or list of band names", call. = FALSE)
+    }
+    
+    # Get band information from the data cube
+    cube_bands <- sits::sits_bands(data)
+    
+    # If no bands found, stop with error
+    if (base::length(cube_bands) == 0) {
+        stop("No bands found in the input data cube", call. = FALSE)
+    }
+    
+    # Find intersection of requested bands and available bands
+    matched_bands <- base::intersect(bands, cube_bands)
+    
+    # If no bands matched, return the original cube with a warning
+    if (base::length(matched_bands) == 0) {
+        warning("No bands matched the filter criteria. Returning the original cube.", call. = FALSE)
+        return(data)
+    }
+    
+    # Use sits_select to filter the bands
+    result <- tryCatch({
+        sits::sits_select(data, bands = matched_bands)
+    }, error = function(e) {
+        stop(sprintf("Error filtering bands: %s", e$message), call. = FALSE)
+    })
+    
+    return(result)
 }
 
 #* @openeo-process
