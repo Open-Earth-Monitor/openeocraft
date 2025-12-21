@@ -78,13 +78,14 @@ datacube <- p$load_collection(
 datacube <-  p$cube_regularize(data = datacube,
                                period = "P16D",
                                resolution = 600)
-# NDVI calculation
-datacube <- p$ndvi(
+# NDVI calculation and merge with the original datacube
+datacube_ndvi <- p$ndvi(
     data = datacube,
     red = "B04",
     nir = "B08",
     target_band = "NDVI"
 )
+datacube <- p$merge_cubes(datacube, datacube_ndvi)
 # Load training data from the package installation directory
 data_deforestation_rondonia <- readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia.rds")
 # Initialize TempCNN model
@@ -168,6 +169,10 @@ datacube = datacube.process(
         "resolution": 300
     }
 )
+
+datacube_ndvi = datacube.ndvi(red = "B04", nir = "B08", 
+                                    target_band = "NDVI")
+datacube = datacube.merge_cubes(datacube_ndvi)
 
 # Load training data from the package installation directory
 serialized_data = connection.readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia_1M.rds")

@@ -28,7 +28,7 @@ datacube <- p$ndvi(
     target_band = "NDVI"
 )
 # Load training data
-data_deforestation_rondonia <- readRDS("./data/samples_deforestation_rondonia.rds")
+data_deforestation_rondonia <- readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia.rds")
 # Initialize TempCNN model
 tempcnn_model_init <-  p$mlm_class_tempcnn(optimizer = "adam",
                                            learning_rate = 0.0005,
@@ -45,7 +45,7 @@ model <- p$save_ml_model(
     tempcnn_model,
     name = "tempcnn_model_2022_rondonia",
     tasks = list("classification"),
-    options = list("mlm:accelerator" = "macos-arm", "mlm:framework" = "Torch for R")
+    options = list("accelerator" = "macos-arm", "framework" = "Torch for R")
 )
 # Save the prediction result
 ml_job <- p$save_result(data = datacube, format = "GTiff")
