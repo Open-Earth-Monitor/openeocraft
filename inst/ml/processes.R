@@ -715,7 +715,7 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
                 base::as.name(red)
             )))
     )
-    data <- sits::sits_select(data, bands = target_band)
+    #data <- sits::sits_select(data, bands = target_band)
     data
 }
 

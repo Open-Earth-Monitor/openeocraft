@@ -48,7 +48,30 @@ new_credential(api, user = "brian", password = "123456")
 new_credential(api, user = "user", password = "password")
 
 # Load processes
-processes_file <- system.file("ml/processes.R", package = "openeocraft")
+# When running locally (Rscript docker/server.R), load from source for easier development
+# When running in Docker, load from installed package
+
+# Try multiple paths to find the source file
+local_paths <- c(
+  "inst/ml/processes.R", # From repo root
+  "../inst/ml/processes.R" # From docker/ directory
+)
+
+processes_file <- NULL
+for (path in local_paths) {
+  if (file.exists(path)) {
+    processes_file <- path
+    cat("Loading processes from source:", normalizePath(path), "\n")
+    break
+  }
+}
+
+# Fallback to installed package
+if (is.null(processes_file)) {
+  processes_file <- system.file("ml/processes.R", package = "openeocraft")
+  cat("Loading processes from package:", processes_file, "\n")
+}
+
 load_processes(api, processes_file)
 
 #* Enable Cross-origin Resource Sharing
