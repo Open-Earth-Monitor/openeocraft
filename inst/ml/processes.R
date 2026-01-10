@@ -2,6 +2,31 @@
 #* @openeo-import math.R
 #* @openeo-import data.R
 
+# Internal helpers -------------------------------------------------------
+# Use one fewer than total physical cores (fallback to 2) but never more than 16.
+.openeocraft_multicores <- function() {
+    cores <- base::tryCatch(
+        parallel::detectCores(logical = FALSE),
+        error = function(...) NA_integer_
+    )
+    cores <- if (base::is.na(cores) || !base::is.numeric(cores)) {
+        2L
+    } else {
+        base::max(1L, cores - 1L)
+    }
+    base::as.integer(base::min(cores, 16L))
+}
+
+# Default memory (GB) for sits processing; can be overridden via option
+# options(openeocraft.memsize = 8L)
+.openeocraft_memsize <- function() {
+    mem <- base::getOption("openeocraft.memsize", 8L)
+    if (!base::is.numeric(mem) || base::length(mem) != 1 || base::is.na(mem)) {
+        mem <- 8L
+    }
+    base::as.integer(base::max(1L, mem))
+}
+
 #* @summary Load a collection
 #*
 #* @description
@@ -438,8 +463,61 @@ mlm_class_lighttae <- function(epochs = 150,
 
 #* @openeo-process
 ml_fit <- function(model, training_set, target = "label") {
-    training_set <- jsonlite::unserializeJSON(training_set)
-    model$train(training_set)
+    # Allow training_set as:
+    # 1) JSON-serialized object
+    # 2) Local path to an RDS file
+    # 3) URL to an RDS file
+    # 4) Already-loaded object
+    load_training <- function(x) {
+        if (!base::is.character(x) || base::length(x) != 1L) {
+            return(x) # already an object
+        }
+
+        # URL to RDS
+        if (base::grepl("^https?://", x)) {
+            tmp <- base::tempfile(fileext = ".rds")
+            base::on.exit(base::unlink(tmp), add = TRUE)
+            return(base::tryCatch(
+                {
+                    utils::download.file(x, tmp, mode = "wb", quiet = TRUE)
+                    base::readRDS(tmp)
+                },
+                error = function(e) {
+                    stop(
+                        sprintf("Failed to download/read training_set from URL: %s", e$message),
+                        call. = FALSE
+                    )
+                }
+            ))
+        }
+
+        # JSON-serialized object (explicit option, not just fallback)
+        json_obj <- base::tryCatch(
+            jsonlite::unserializeJSON(x),
+            error = function(...) NULL
+        )
+        if (!base::is.null(json_obj)) {
+            return(json_obj)
+        }
+
+        # Local RDS file
+        if (base::file.exists(x)) {
+            return(base::tryCatch(
+                base::readRDS(x),
+                error = function(e) {
+                    stop(
+                        sprintf("Failed to read training_set from file: %s", e$message),
+                        call. = FALSE
+                    )
+                }
+            ))
+        }
+
+        stop("training_set must be a URL to RDS, a local RDS path, a JSON-serialized object, or an object", call. = FALSE)
+    }
+
+    training_obj <- load_training(training_set)
+    model$train(training_obj)
 }
 
 #* @openeo-process
@@ -464,15 +542,15 @@ ml_predict <- function(data, model) {
         data = data,
         ml_model = model,
         roi = roi,
-        memsize = 8L,
-        multicores = 8L,
+        memsize = .openeocraft_memsize(),
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     # label the probability cube
     data <- sits::sits_label_classification(
         cube = data,
-        memsize = 8L,
-        multicores = 8L,
+        memsize = .openeocraft_memsize(),
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     data
@@ -500,8 +578,8 @@ ml_predict_probabilities <- function(data, model) {
         data = data,
         ml_model = model,
         roi = roi,
-        memsize = 8L,
-        multicores = 8L,
+        memsize = .openeocraft_memsize(),
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     data
@@ -523,8 +601,8 @@ ml_uncertainty_class <- function(data, approach = "margin") {
     data <- sits::sits_uncertainty(
         cube = data,
         type = approach,
-        memsize = 8L,
-        multicores = 8L,
+        memsize = .openeocraft_memsize(),
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     data
@@ -550,8 +628,8 @@ ml_smooth_class <- function(data,
         window_size = window_size,
         neigh_fraction = neighborhood_fraction,
         smoothness = smoothness,
-        memsize = 8L,
-        multicores = 8L,
+        memsize = .openeocraft_memsize(),
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     data
@@ -571,8 +649,8 @@ ml_label_class <- function(data) {
     # label the probability cube
     data <- sits::sits_label_classification(
         cube = data,
-        memsize = 8L,
-        multicores = 8L,
+        memsize = .openeocraft_memsize(),
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     data
@@ -602,7 +680,7 @@ cube_regularize <- function(data, resolution, period) {
         res = resolution,
         output_dir = result_dir,
         roi = roi,
-        multicores = 8L
+        multicores = .openeocraft_multicores()
     )
     data
 }
@@ -623,8 +701,8 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
     sits:::sits_apply.raster_cube
     .sits_apply <- function(data, out_band, expr) {
         window_size <- 1L
-        memsize <- 2L
-        multicores <- 2L
+        memsize <- .openeocraft_memsize()
+        multicores <- .openeocraft_multicores()
         normalized <- TRUE
         progress <- FALSE
         sits:::.check_is_raster_cube(data)
@@ -715,7 +793,7 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
                 base::as.name(red)
             )))
     )
-    #data <- sits::sits_select(data, bands = target_band)
+    # data <- sits::sits_select(data, bands = target_band)
     data
 }
 
@@ -810,7 +888,7 @@ save_result <- function(data, format, options = NULL) {
     data <- sits::sits_cube_copy(
         cube = data,
         roi = roi,
-        multicores = 8L,
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     # Save RDS object representation
@@ -900,7 +978,7 @@ export_cube <- function(data, name, folder) {
     data <- sits::sits_cube_copy(
         cube = data,
         roi = roi,
-        multicores = 8L,
+        multicores = .openeocraft_multicores(),
         output_dir = result_dir
     )
     # Save RDS object representation

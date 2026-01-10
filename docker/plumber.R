@@ -8,6 +8,16 @@
 # Load libraries
 library(openeocraft)
 library(plumber)
+
+# Increase request body size limit (100MB) to handle large payloads
+# such as serialized training datasets in process graphs
+options(plumber.maxRequestSize = 1024 * 1024 * 100)
+
+# Increase curl/httr timeouts for large data transfers
+options(timeout = 600) # 10 minutes for base R connections
+if (requireNamespace("httr", quietly = TRUE)) {
+  httr::set_config(httr::config(connecttimeout = 60, timeout = 600))
+}
 # library(promises)
 # library(coro)
 
