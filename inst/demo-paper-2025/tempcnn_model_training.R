@@ -31,7 +31,7 @@ datacube <- p$ndvi(
 )
 
 # Load training data
-data_deforestation_rondonia <- readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia.rds")
+# data_deforestation_rondonia <- readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia.rds")
 # Initialize TempCNN model
 tempcnn_model_init <- p$mlm_class_tempcnn(
     optimizer = "adam",
@@ -41,7 +41,7 @@ tempcnn_model_init <- p$mlm_class_tempcnn(
 # Model Training
 tempcnn_model <- p$ml_fit(
     model = tempcnn_model_init,
-    training_set = jsonlite::serializeJSON(data_deforestation_rondonia),
+    training_set = "https://github.com/e-sensing/sitsdata/raw/main/data/samples_deforestation_rondonia.rds",
     target = "label"
 )
 # Apply the trained model to make a prediction

@@ -1,5 +1,6 @@
 services:
   openeocraft:
+    platform: linux/amd64 # Required for torch - no ARM64 Linux binaries available
     build:
       context: ..
       dockerfile: docker/Dockerfile
