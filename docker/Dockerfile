@@ -1,4 +1,6 @@
-FROM r-base:4.5.0
+# Force x86_64 architecture - torch doesn't have ARM64 Linux binaries
+ARG BUILD_PLATFORM=linux/amd64
+FROM --platform=${BUILD_PLATFORM} r-base:4.5.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
@@ -37,6 +39,10 @@ RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
 
 # Install basic packages first (these are dependencies for others)
 RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits'), repos='https://cloud.r-project.org')"
+
+# Install torch's Lantern library (required for deep learning models like TempCNN)
+# TORCH_INSTALL=1 auto-confirms the interactive prompt
+RUN TORCH_INSTALL=1 R -e "torch::install_torch()"
 
 
 # create directories
