@@ -173,6 +173,15 @@
                     "null"
                 ]
             }
+        },
+        {
+            "name": "verbose",
+            "description": "If true, log training progress (loss/accuracy) during fitting.",
+            "optional": true,
+            "default": false,
+            "schema": {
+                "type": "boolean"
+            }
         }
     ],
     "returns": {

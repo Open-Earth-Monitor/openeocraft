@@ -332,3 +332,24 @@ function(req, res, folder, asset) {
   }
   res
 }
+
+#* Public workspace files handling (no token)
+#*  e.g. http://127.0.0.1:8000/files/public/<job_id>/models/tempcnn_rondonia.rds
+#* @head /files/public/<folder>/<asset>
+#* @get /files/public/<folder>/<asset>
+function(req, res, folder, asset) {
+  print("GET /files/public/<folder>/<asset>")
+  file <- gsub("^([^?]+)?", "\\1", asset)
+  public_dir <- openeocraft::api_user_workspace(api, "public")
+  path <- file.path(public_dir, folder, file)
+  if (!file.exists(path)) {
+    api_stop(404L, "File not found")
+  }
+  res$setHeader("Content-Type", ext_content_type(path))
+  if (get_method(req) == "HEAD") {
+    res$status <- 200L
+  } else {
+    res$body <- readBin(path, what = "raw", n = file.info(path)$size)
+  }
+  res
+}
