@@ -6,7 +6,7 @@ login(user = "brian", password = "123456")
 p <- processes()
 # Load Sentinel-2 Data
 datacube <- p$load_collection(
-    id = "mpc-sentinel-2-l2a",
+    id = "aws-sentinel-2-l2a",
     spatial_extent = list(
         west = -63.33,
         south = -12.03,
@@ -14,7 +14,8 @@ datacube <- p$load_collection(
         north = -11.13,
         crs = 4326
     ),
-    temporal_extent = c("2022-01-01", "2022-12-31")
+    temporal_extent = c("2022-01-01", "2022-12-31"),
+    bands = list("B02", "B04", "B06", "B08", "B8A", "B11", "B12", "CLOUD")
 )
 # Regularize the Sentinel-2 data
 datacube <- p$cube_regularize(
@@ -36,7 +37,8 @@ datacube <- p$ndvi(
 tempcnn_model_init <- p$mlm_class_tempcnn(
     optimizer = "adam",
     learning_rate = 0.0005,
-    seed = 42
+    seed = 42,
+    verbose = TRUE
 )
 # Model Training
 tempcnn_model <- p$ml_fit(
