@@ -371,7 +371,8 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
                               lr_decay_rate = 0.95,
                               epochs = 150,
                               batch_size = 64,
-                              seed = NULL) {
+                              seed = NULL,
+                              verbose = FALSE) {
     base::message("[mlm_class_tempcnn] START")
     base::on.exit(base::message("[mlm_class_tempcnn] END"))
     # start preparing parameters
@@ -400,6 +401,7 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
     cnn_layers <- base::unlist(cnn_layers)
     cnn_kernels <- base::unlist(cnn_kernels)
     cnn_dropout_rates <- base::unlist(cnn_dropout_rates)
+    verbose <- base::isTRUE(verbose)
     # end preparing parameters
     list(
         train = function(training_set) {
@@ -416,7 +418,8 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
                 lr_decay_epochs = lr_decay_epochs,
                 lr_decay_rate = lr_decay_rate,
                 epochs = epochs,
-                batch_size = batch_size
+                batch_size = batch_size,
+                verbose = verbose
             )
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
@@ -1320,9 +1323,9 @@ save_ml_model <- function(data, name, tasks, options = list()) {
         )
     }
 
-    # Validate data parameter - should be an object (list in R)
-    if (!base::is.list(data) && !base::is.environment(data)) {
-        openeocraft::api_stop(400, "Parameter 'data' must be an ml-model object")
+    # Validate data parameter - must be non-null to save
+    if (base::is.null(data)) {
+        openeocraft::api_stop(400, "Parameter 'data' must be a non-null model object")
     }
 
     # Wrap operations in try-catch to return FALSE on runtime failures
@@ -1362,6 +1365,19 @@ save_ml_model <- function(data, name, tasks, options = list()) {
                 job_id = env$job$id,
                 file = base::paste0("models/", model_filename)
             )
+
+            public_models_dir <- base::file.path(
+                openeocraft::api_user_workspace(env$api, "public"),
+                "models"
+            )
+            if (!base::dir.exists(public_models_dir)) {
+                base::dir.create(public_models_dir, recursive = TRUE)
+            }
+            if (!base::dir.exists(public_models_dir)) {
+                openeocraft::api_stop(500, "Could not create public models folder")
+            }
+            public_model_path <- base::file.path(public_models_dir, model_filename)
+            base::saveRDS(data, public_model_path)
 
             stac_item <- openeocraft::job_empty_collection(env$api, env$user, env$job)
             stac_item$type <- "Feature"
@@ -1502,11 +1518,21 @@ save_ml_model <- function(data, name, tasks, options = list()) {
                 list(href = item_filename, rel = "self")
             )
 
-            # Save STAC Item
+            # Save STAC Item (job-local, includes tokenized href)
             item_json_path <- base::file.path(job_dir, item_filename)
             jsonlite::write_json(
                 x = stac_item,
                 path = item_json_path,
+                auto_unbox = TRUE
+            )
+
+            # Save public STAC Item (token-free, relative model href)
+            public_stac_item <- stac_item
+            public_stac_item$assets[[model_filename]]$href <- model_filename
+            public_item_json_path <- base::file.path(public_models_dir, item_filename)
+            jsonlite::write_json(
+                x = public_stac_item,
+                path = public_item_json_path,
                 auto_unbox = TRUE
             )
 
@@ -1564,6 +1590,13 @@ save_ml_model <- function(data, name, tasks, options = list()) {
             jsonlite::write_json(
                 x = collection,
                 path = collection_json_path,
+                auto_unbox = TRUE
+            )
+
+            public_collection_json_path <- base::file.path(public_models_dir, "collection.json")
+            jsonlite::write_json(
+                x = collection,
+                path = public_collection_json_path,
                 auto_unbox = TRUE
             )
 
