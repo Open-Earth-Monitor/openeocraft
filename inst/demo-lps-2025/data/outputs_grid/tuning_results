@@ -1,0 +1,1 @@
+[{"epochs":50,"batch_size":32,"metric":0.91181364392678865},{"epochs":100,"batch_size":32,"metric":0.94093178036605662},{"epochs":50,"batch_size":64,"metric":0.93094841930116468},{"epochs":100,"batch_size":64,"metric":0.93178036605657233}]
