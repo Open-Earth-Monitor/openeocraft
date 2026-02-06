@@ -203,7 +203,17 @@ mlm_class_random_forest <- function(num_trees = 100,
                                     seed = NULL) {
     base::message("[mlm_class_random_forest] START")
     base::on.exit(base::message("[mlm_class_random_forest] END"))
+    # Store seed for reproducibility
+    if (!base::is.null(seed)) {
+        base::set.seed(seed)
+    }
+    # For ml_validate/ml_tune compatibility, ml_args uses NULL for mtry when
+    # max_variables is a string ("sqrt"/"log2") since sits_rfor expects numeric.
+    # The train() function handles string conversion using training data dimensions.
+    mtry_for_args <- if (base::is.numeric(max_variables)) max_variables else NULL
     list(
+        ml_method = sits::sits_rfor,
+        ml_args = list(num_trees = num_trees, mtry = mtry_for_args),
         train = function(training_set) {
             base::message("[mlm_class_random_forest::train] START")
             base::on.exit(base::message("[mlm_class_random_forest::train] END"))
@@ -211,22 +221,25 @@ mlm_class_random_forest <- function(num_trees = 100,
             n_bands <- base::length(sits::sits_bands(training_set))
             n_times <- base::length(sits::sits_timeline(training_set))
             n_features <- n_bands * n_times
+            mtry_final <- max_variables
             if (base::is.character(max_variables)) {
                 if (max_variables == "sqrt") {
-                    max_variables <- base::sqrt(n_features)
+                    mtry_final <- base::sqrt(n_features)
                 } else if (max_variables == "log2") {
-                    max_variables <- base::log2(n_features)
+                    mtry_final <- base::log2(n_features)
                 }
             } else if (base::is.null(max_variables)) {
-                max_variables <- n_features
+                mtry_final <- NULL
             } else if (base::is.numeric(max_variables)) {
-                max_variables <- max_variables
+                mtry_final <- max_variables
             } else {
                 stop("Invalid max_variables parameter", call. = FALSE)
             }
-            max_variables <- base::max(1, base::floor(max_variables))
+            if (!base::is.null(mtry_final)) {
+                mtry_final <- base::max(1, base::floor(mtry_final))
+            }
             # end preparing max_variables parameter
-            model <- sits::sits_rfor(num_trees = num_trees, mtry = max_variables)
+            model <- sits::sits_rfor(num_trees = num_trees, mtry = mtry_final)
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
@@ -249,6 +262,17 @@ mlm_class_svm <- function(kernel = "radial",
     formula <- sits::sits_formula_linear()
 
     list(
+        ml_method = sits::sits_svm,
+        ml_args = list(
+            formula = formula,
+            cachesize = cachesize,
+            kernel = kernel,
+            degree = degree,
+            coef0 = coef0,
+            cost = cost,
+            tolerance = tolerance,
+            epsilon = epsilon
+        ),
         train = function(training_set) {
             base::message("[mlm_class_svm::train] START")
             base::on.exit(base::message("[mlm_class_svm::train] END"))
@@ -280,6 +304,14 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
     base::message("[mlm_class_xgboost] START")
     base::on.exit(base::message("[mlm_class_xgboost] END"))
     list(
+        ml_method = sits::sits_xgboost,
+        ml_args = list(
+            learning_rate = learning_rate,
+            min_split_loss = min_split_loss,
+            max_depth = max_depth,
+            nfold = nfold,
+            early_stopping_rounds = early_stopping_rounds
+        ),
         train = function(training_set) {
             base::message("[mlm_class_xgboost::train] START")
             base::on.exit(base::message("[mlm_class_xgboost::train] END"))
@@ -338,6 +370,15 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
     dropout_rates <- base::unlist(dropout_rates)
     # end preparing parameters
     list(
+        ml_method = sits::sits_mlp,
+        ml_args = list(
+            layers = layers,
+            dropout_rates = dropout_rates,
+            optimizer = optimizer_fn,
+            opt_hparams = opt_hparams,
+            epochs = epochs,
+            batch_size = batch_size
+        ),
         train = function(training_set) {
             base::message("[mlm_class_mlp::train] START")
             base::on.exit(base::message("[mlm_class_mlp::train] END"))
@@ -404,6 +445,21 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
     verbose <- base::isTRUE(verbose)
     # end preparing parameters
     list(
+        ml_method = sits::sits_tempcnn,
+        ml_args = list(
+            cnn_layers = cnn_layers,
+            cnn_kernels = cnn_kernels,
+            cnn_dropout_rates = cnn_dropout_rates,
+            dense_layer_nodes = dense_layer_nodes,
+            dense_layer_dropout_rate = dense_layer_dropout_rate,
+            optimizer = optimizer_fn,
+            opt_hparams = opt_hparams,
+            lr_decay_epochs = lr_decay_epochs,
+            lr_decay_rate = lr_decay_rate,
+            epochs = epochs,
+            batch_size = batch_size,
+            verbose = verbose
+        ),
         train = function(training_set) {
             base::message("[mlm_class_tempcnn::train] START")
             base::on.exit(base::message("[mlm_class_tempcnn::train] END"))
@@ -466,6 +522,15 @@ mlm_class_tae <- function(epochs = 150,
     )
     # end preparing parameters
     list(
+        ml_method = sits::sits_tae,
+        ml_args = list(
+            epochs = epochs,
+            batch_size = batch_size,
+            optimizer = optimizer_fn,
+            opt_hparams = opt_hparams,
+            lr_decay_epochs = lr_decay_epochs,
+            lr_decay_rate = lr_decay_rate
+        ),
         train = function(training_set) {
             base::message("[mlm_class_tae::train] START")
             base::on.exit(base::message("[mlm_class_tae::train] END"))
@@ -523,6 +588,15 @@ mlm_class_lighttae <- function(epochs = 150,
     )
     # end preparing parameters
     list(
+        ml_method = sits::sits_lighttae,
+        ml_args = list(
+            epochs = epochs,
+            batch_size = batch_size,
+            optimizer = optimizer_fn,
+            opt_hparams = opt_hparams,
+            lr_decay_epochs = lr_decay_epochs,
+            lr_decay_rate = lr_decay_rate
+        ),
         train = function(training_set) {
             base::message("[mlm_class_lighttae::train] START")
             base::on.exit(base::message("[mlm_class_lighttae::train] END"))
@@ -696,6 +770,912 @@ ml_predict <- function(data, model) {
         output_dir = result_dir
     )
     data
+}
+
+#* @openeo-process
+ml_validate <- function(model,
+                        training_data,
+                        validation_data = NULL,
+                        target = "label",
+                        validation_split = 0.2,
+                        cv = 5,
+                        seed = NULL) {
+    base::message("[ml_validate] START")
+    base::on.exit(base::message("[ml_validate] END"))
+
+    if (!base::is.null(seed)) {
+        base::set.seed(seed)
+    }
+
+    load_samples <- function(x) {
+        if (!base::is.character(x) || base::length(x) != 1L) {
+            return(x)
+        }
+        if (base::grepl("^https?://", x)) {
+            tmp <- base::tempfile(fileext = ".rds")
+            base::on.exit(base::unlink(tmp), add = TRUE)
+            utils::download.file(x, tmp, mode = "wb", quiet = TRUE)
+            return(base::readRDS(tmp))
+        }
+        json_obj <- base::tryCatch(
+            jsonlite::unserializeJSON(x),
+            error = function(...) {
+                NULL
+            }
+        )
+        if (!base::is.null(json_obj)) {
+            return(json_obj)
+        }
+        if (base::file.exists(x)) {
+            return(base::readRDS(x))
+        }
+        stop("training_data must be a URL, a local path, a JSON object, or an object",
+            call. = FALSE
+        )
+    }
+
+    if (base::is.null(model$ml_method) || base::is.null(model$ml_args)) {
+        openeocraft::api_stop(400, "Model does not support validation.")
+    }
+    ml_method <- base::do.call(model$ml_method, model$ml_args)
+    training_obj <- load_samples(training_data)
+    base::message("[ml_validate] Training samples loaded: ", base::nrow(training_obj))
+
+    validation_obj <- NULL
+    if (!base::is.null(validation_data)) {
+        validation_obj <- load_samples(validation_data)
+        base::message("[ml_validate] Validation samples loaded: ", base::nrow(validation_obj))
+    }
+
+    base::message("[ml_validate] Running validation...")
+    if (base::is.null(cv) || cv <= 1) {
+        acc_obj <- sits::sits_validate(
+            samples = training_obj,
+            samples_validation = validation_obj,
+            validation_split = validation_split,
+            ml_method = ml_method
+        )
+    } else {
+        base::message("[ml_validate] Using ", cv, "-fold cross-validation")
+        acc_obj <- sits::sits_kfold_validate(
+            samples = training_obj,
+            folds = cv,
+            ml_method = ml_method,
+            multicores = .openeocraft_multicores(),
+            progress = FALSE
+        )
+    }
+
+    build_accuracy_summary <- function(x) {
+        acc <- if (base::inherits(x, "sits_accuracy") || base::inherits(x, "confusionMatrix")) {
+            x
+        } else {
+            sits::sits_accuracy(x)
+        }
+        overall <- acc[["overall"]]
+        if (base::is.null(overall)) {
+            return(base::data.frame())
+        }
+        base::as.data.frame(base::t(overall), stringsAsFactors = FALSE)
+    }
+
+    summary_df <- build_accuracy_summary(acc_obj)
+    base::message("[ml_validate] Validation complete. Accuracy: ",
+        base::round(summary_df$Accuracy[1], 4))
+
+    metrics_json <- jsonlite::toJSON(
+        summary_df,
+        dataframe = "rows",
+        auto_unbox = TRUE,
+        digits = 16
+    )
+
+    env <- openeocraft::current_env()
+    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+    host <- openeocraft::get_host(env$api, env$req)
+    metrics_file <- base::file.path(job_dir, "metrics.json")
+    base::writeLines(metrics_json, metrics_file)
+
+    asset_href <- openeocraft::make_job_files_url(
+        host = host,
+        user = env$user,
+        job_id = env$job$id,
+        file = "metrics.json"
+    )
+    collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+    collection$assets <- list(
+        metrics = list(
+            href = asset_href,
+            type = "application/json",
+            roles = list("data")
+        )
+    )
+    jsonlite::write_json(
+        x = collection,
+        path = base::file.path(job_dir, "_collection.json"),
+        auto_unbox = TRUE
+    )
+
+    list(
+        metrics = jsonlite::fromJSON(metrics_json, simplifyVector = FALSE)
+    )
+}
+
+#* @openeo-process
+ml_validate_kfold <- function(model,
+                              training_data,
+                              folds,
+                              target = "label",
+                              seed = NULL) {
+    base::message("[ml_validate_kfold] START")
+    base::on.exit(base::message("[ml_validate_kfold] END"))
+
+    if (!base::is.null(seed)) {
+        base::set.seed(seed)
+    }
+
+    if (base::is.null(folds) || folds < 2) {
+        openeocraft::api_stop(400, "folds must be at least 2 for k-fold cross-validation.")
+    }
+
+    load_samples <- function(x) {
+        if (!base::is.character(x) || base::length(x) != 1L) {
+            return(x)
+        }
+        if (base::grepl("^https?://", x)) {
+            tmp <- base::tempfile(fileext = ".rds")
+            base::on.exit(base::unlink(tmp), add = TRUE)
+            utils::download.file(x, tmp, mode = "wb", quiet = TRUE)
+            return(base::readRDS(tmp))
+        }
+        json_obj <- base::tryCatch(
+            jsonlite::unserializeJSON(x),
+            error = function(...) {
+                NULL
+            }
+        )
+        if (!base::is.null(json_obj)) {
+            return(json_obj)
+        }
+        if (base::file.exists(x)) {
+            return(base::readRDS(x))
+        }
+        stop("training_data must be a URL, a local path, a JSON object, or an object",
+            call. = FALSE
+        )
+    }
+
+    if (base::is.null(model$ml_method) || base::is.null(model$ml_args)) {
+        openeocraft::api_stop(400, "Model does not support validation.")
+    }
+    ml_method <- base::do.call(model$ml_method, model$ml_args)
+    training_obj <- load_samples(training_data)
+    base::message("[ml_validate_kfold] Training samples loaded: ", base::nrow(training_obj))
+    base::message("[ml_validate_kfold] Running ", folds, "-fold cross-validation...")
+
+    acc_obj <- sits::sits_kfold_validate(
+        samples = training_obj,
+        folds = folds,
+        ml_method = ml_method,
+        multicores = .openeocraft_multicores(),
+        progress = FALSE
+    )
+
+    build_accuracy_summary <- function(x) {
+        acc <- if (base::inherits(x, "sits_accuracy") || base::inherits(x, "confusionMatrix")) {
+            x
+        } else {
+            sits::sits_accuracy(x)
+        }
+        overall <- acc[["overall"]]
+        if (base::is.null(overall)) {
+            return(base::data.frame())
+        }
+        base::as.data.frame(base::t(overall), stringsAsFactors = FALSE)
+    }
+
+    summary_df <- build_accuracy_summary(acc_obj)
+    base::message("[ml_validate_kfold] Cross-validation complete. Accuracy: ",
+        base::round(summary_df$Accuracy[1], 4))
+
+    metrics_json <- jsonlite::toJSON(
+        summary_df,
+        dataframe = "rows",
+        auto_unbox = TRUE,
+        digits = 16
+    )
+
+    env <- openeocraft::current_env()
+    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+    host <- openeocraft::get_host(env$api, env$req)
+    metrics_file <- base::file.path(job_dir, "metrics.json")
+    base::writeLines(metrics_json, metrics_file)
+
+    asset_href <- openeocraft::make_job_files_url(
+        host = host,
+        user = env$user,
+        job_id = env$job$id,
+        file = "metrics.json"
+    )
+    collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+    collection$assets <- list(
+        metrics = list(
+            href = asset_href,
+            type = "application/json",
+            roles = list("data")
+        )
+    )
+    jsonlite::write_json(
+        x = collection,
+        path = base::file.path(job_dir, "_collection.json"),
+        auto_unbox = TRUE,
+        digits = 16
+    )
+
+    list(
+        metrics = jsonlite::fromJSON(metrics_json, simplifyVector = FALSE),
+        folds = folds
+    )
+}
+
+#* @openeo-process
+ml_tune_grid <- function(model,
+                         training_data,
+                         parameters,
+                         target = "label",
+                         scoring = "accuracy",
+                         cv = 5,
+                         validation_split = 0.2,
+                         seed = NULL) {
+    base::message("[ml_tune_grid] START")
+    base::on.exit(base::message("[ml_tune_grid] END"))
+    log_msg <- function(...) {
+        base::message("[ml_tune_grid] ", ...)
+    }
+    if (!base::is.null(seed)) {
+        base::set.seed(seed)
+    }
+
+    if (base::is.null(model$ml_method) || base::is.null(model$ml_args)) {
+        openeocraft::api_stop(400, "Model does not support tuning.")
+    }
+    if (!base::is.list(parameters) || base::length(parameters) == 0) {
+        openeocraft::api_stop(400, "parameters must be a non-empty object.")
+    }
+
+    load_samples <- function(x) {
+        if (!base::is.character(x) || base::length(x) != 1L) {
+            return(x)
+        }
+        if (base::grepl("^https?://", x)) {
+            tmp <- base::tempfile(fileext = ".rds")
+            base::on.exit(base::unlink(tmp), add = TRUE)
+            utils::download.file(x, tmp, mode = "wb", quiet = TRUE)
+            return(base::readRDS(tmp))
+        }
+        json_obj <- base::tryCatch(
+            jsonlite::unserializeJSON(x),
+            error = function(...) {
+                NULL
+            }
+        )
+        if (!base::is.null(json_obj)) {
+            return(json_obj)
+        }
+        if (base::file.exists(x)) {
+            return(base::readRDS(x))
+        }
+        stop("training_set must be a URL to RDS, a local RDS path, a JSON-serialized object, or an object",
+            call. = FALSE
+        )
+    }
+
+    normalize_grid_values <- function(values) {
+        if (base::is.list(values)) {
+            return(values)
+        }
+        if (base::is.array(values)) {
+            if (base::length(base::dim(values)) >= 2) {
+                return(base::lapply(base::seq_len(base::nrow(values)), function(i) {
+                    values[i, , drop = TRUE]
+                }))
+            }
+            return(base::as.list(values))
+        }
+        base::as.list(values)
+    }
+
+    expand_params <- function(params, keys = base::names(params)) {
+        if (base::length(keys) == 0) {
+            return(list(list()))
+        }
+        key <- keys[[1]]
+        rest <- keys[-1]
+        values <- normalize_grid_values(params[[key]])
+        combos <- list()
+        for (value in values) {
+            for (suffix in expand_params(params, rest)) {
+                combos <- c(combos, list(base::c(suffix, stats::setNames(list(value), key))))
+            }
+        }
+        combos
+    }
+
+    training_obj <- load_samples(training_data)
+    log_msg("Training samples loaded: ", base::nrow(training_obj))
+    param_sets <- expand_params(parameters)
+    results <- list()
+
+    metric_key <- base::tolower(scoring)
+    total_sets <- base::length(param_sets)
+    map_optimizer_param <- function(param_set, ml_args) {
+        if (base::is.null(param_set$optimizer)) {
+            return(list(param_set = param_set, ml_args = ml_args))
+        }
+        if (!base::is.character(param_set$optimizer)) {
+            return(list(param_set = param_set, ml_args = ml_args))
+        }
+        optimizer_fn <- base::switch(param_set$optimizer,
+            "adam" = torch::optim_adamw,
+            "adabound" = torch::optim_adabound,
+            "adabelief" = torch::optim_adabelief,
+            "madagrad" = torch::optim_madagrad,
+            "nadam" = torch::optim_nadam,
+            "qhadam" = torch::optim_qhadam,
+            "radam" = torch::optim_radam,
+            "swats" = torch::optim_swats,
+            "yogi" = torch::optim_yogi,
+            NULL
+        )
+        if (base::is.null(optimizer_fn)) {
+            openeocraft::api_stop(400, "Unsupported optimizer in param_grid.")
+        }
+        ml_args$optimizer <- optimizer_fn
+        param_set$optimizer <- NULL
+        list(param_set = param_set, ml_args = ml_args)
+    }
+
+    map_opt_hparams <- function(param_set, ml_args) {
+        if (base::is.null(ml_args$opt_hparams) || !base::is.list(ml_args$opt_hparams)) {
+            return(list(param_set = param_set, ml_args = ml_args))
+        }
+        opt_map <- list(
+            learning_rate = "lr",
+            lr = "lr",
+            epsilon = "eps",
+            eps = "eps",
+            weight_decay = "weight_decay"
+        )
+        for (name in base::names(opt_map)) {
+            if (!base::is.null(param_set[[name]])) {
+                ml_args$opt_hparams[[opt_map[[name]]]] <- param_set[[name]]
+                param_set[[name]] <- NULL
+            }
+        }
+        list(param_set = param_set, ml_args = ml_args)
+    }
+
+    map_rf_params <- function(param_set, ml_args) {
+        # Map max_variables to mtry for Random Forest compatibility
+        if (!base::is.null(param_set$max_variables)) {
+            ml_args$mtry <- param_set$max_variables
+            param_set$max_variables <- NULL
+        }
+        list(param_set = param_set, ml_args = ml_args)
+    }
+
+    build_accuracy_summary <- function(x) {
+        acc <- if (base::inherits(x, "sits_accuracy") || base::inherits(x, "confusionMatrix")) {
+            x
+        } else {
+            sits::sits_accuracy(x)
+        }
+        overall <- acc[["overall"]]
+        if (base::is.null(overall)) {
+            return(base::data.frame())
+        }
+        base::as.data.frame(base::t(overall), stringsAsFactors = FALSE)
+    }
+
+    with_force_cpu <- function(expr) {
+        base::Sys.setenv(CUDA_VISIBLE_DEVICES = "")
+        base::Sys.setenv(TORCH_DISABLE_MPS = "1")
+        base::Sys.setenv(TORCH_USE_MPS_FALLBACK = "1")
+        if (!base::requireNamespace("torch", quietly = TRUE)) {
+            return(base::force(expr))
+        }
+        torch_ns <- base::asNamespace("torch")
+        override <- function(name, replacement) {
+            if (!base::exists(name, envir = torch_ns, inherits = FALSE)) {
+                return(NULL)
+            }
+            locked <- base::bindingIsLocked(name, torch_ns)
+            if (locked) {
+                base::unlockBinding(name, torch_ns)
+            }
+            original <- base::get(name, envir = torch_ns)
+            base::assign(name, replacement, envir = torch_ns)
+            if (locked) {
+                base::lockBinding(name, torch_ns)
+            }
+            list(name = name, original = original, locked = locked)
+        }
+        restore <- function(info) {
+            if (base::is.null(info)) {
+                return(base::invisible(NULL))
+            }
+            if (info$locked) {
+                base::unlockBinding(info$name, torch_ns)
+            }
+            base::assign(info$name, info$original, envir = torch_ns)
+            if (info$locked) {
+                base::lockBinding(info$name, torch_ns)
+            }
+            base::invisible(NULL)
+        }
+        cuda_info <- override("cuda_is_available", function() FALSE)
+        mps_info <- override("backends_mps_is_available", function() FALSE)
+        base::on.exit(
+            {
+                restore(cuda_info)
+                restore(mps_info)
+            },
+            add = TRUE
+        )
+        base::force(expr)
+    }
+
+    run_validation <- function(ml_method) {
+        if (base::is.null(cv) || cv <= 1) {
+            return(sits::sits_validate(
+                samples = training_obj,
+                validation_split = validation_split,
+                ml_method = ml_method
+            ))
+        }
+        sits::sits_kfold_validate(
+            samples = training_obj,
+            folds = cv,
+            ml_method = ml_method,
+            multicores = .openeocraft_multicores(),
+            progress = FALSE
+        )
+    }
+
+    for (idx in base::seq_along(param_sets)) {
+        param_set <- param_sets[[idx]]
+        param_set_raw <- param_set
+        start_time <- base::Sys.time()
+        mapped <- map_optimizer_param(param_set, model$ml_args)
+        param_set <- mapped$param_set
+        base_args <- mapped$ml_args
+        mapped <- map_opt_hparams(param_set, base_args)
+        param_set <- mapped$param_set
+        base_args <- mapped$ml_args
+        mapped <- map_rf_params(param_set, base_args)
+        param_set <- mapped$param_set
+        base_args <- mapped$ml_args
+        merged_args <- utils::modifyList(base_args, param_set)
+        log_msg(
+            "Evaluating ",
+            idx,
+            "/",
+            total_sets,
+            " with params: ",
+            jsonlite::toJSON(param_set_raw, auto_unbox = TRUE)
+        )
+        ml_method <- base::do.call(model$ml_method, merged_args)
+        acc_obj <- base::tryCatch(
+            run_validation(ml_method),
+            error = function(e) {
+                if (base::grepl("GPU memory", e$message, ignore.case = TRUE)) {
+                    log_msg("GPU memory low, retrying with CPU settings.")
+                    return(with_force_cpu(run_validation(ml_method)))
+                }
+                stop(e)
+            }
+        )
+
+        summary_df <- build_accuracy_summary(acc_obj)
+        metric_value <- NA_real_
+        if (base::is.data.frame(summary_df)) {
+            cols <- base::tolower(base::names(summary_df))
+            idx <- base::match(metric_key, cols)
+            if (!base::is.na(idx)) {
+                metric_value <- summary_df[[idx]][1]
+            } else {
+                numeric_cols <- base::vapply(summary_df, base::is.numeric, logical(1))
+                if (base::any(numeric_cols)) {
+                    metric_value <- summary_df[[base::which(numeric_cols)[1]]][1]
+                }
+            }
+        }
+        elapsed <- base::difftime(base::Sys.time(), start_time, units = "mins")
+        log_msg(
+            "Completed ",
+            idx,
+            "/",
+            total_sets,
+            " metric=",
+            metric_value,
+            " elapsed=",
+            base::round(base::as.numeric(elapsed), 2),
+            " min"
+        )
+        results <- c(results, list(base::c(param_set_raw, list(metric = metric_value))))
+    }
+
+    best_idx <- base::which.max(base::vapply(results, function(x) x$metric, base::numeric(1), USE.NAMES = FALSE))
+    best_result <- results[[best_idx]]
+
+    env <- openeocraft::current_env()
+    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+    host <- openeocraft::get_host(env$api, env$req)
+    results_json <- jsonlite::toJSON(results, auto_unbox = TRUE, digits = 16)
+    results_file <- base::file.path(job_dir, "tuning_results.json")
+    base::writeLines(results_json, results_file)
+
+    asset_href <- openeocraft::make_job_files_url(
+        host = host,
+        user = env$user,
+        job_id = env$job$id,
+        file = "tuning_results.json"
+    )
+    collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+    collection$assets <- list(
+        tuning_results = list(
+            href = asset_href,
+            type = "application/json",
+            roles = list("data")
+        )
+    )
+    jsonlite::write_json(
+        x = collection,
+        path = base::file.path(job_dir, "_collection.json"),
+        auto_unbox = TRUE,
+        digits = 16
+    )
+
+    list(
+        best_params = best_result,
+        best_score = best_result$metric,
+        results = jsonlite::fromJSON(results_json, simplifyVector = FALSE)
+    )
+}
+
+#* @openeo-process
+ml_tune_random <- function(model,
+                           training_data,
+                           parameters,
+                           n_iter = 10,
+                           target = "label",
+                           scoring = "accuracy",
+                           cv = 5,
+                           validation_split = 0.2,
+                           seed = NULL) {
+    base::message("[ml_tune_random] START")
+    base::on.exit(base::message("[ml_tune_random] END"))
+    log_msg <- function(...) {
+        base::message("[ml_tune_random] ", ...)
+    }
+
+    if (!base::is.null(seed)) {
+        base::set.seed(seed)
+    }
+
+    if (base::is.null(model$ml_method) || base::is.null(model$ml_args)) {
+        openeocraft::api_stop(400, "Model does not support tuning.")
+    }
+    if (!base::is.list(parameters) || base::length(parameters) == 0) {
+        openeocraft::api_stop(400, "parameters must be a non-empty object.")
+    }
+
+    load_samples <- function(x) {
+        if (!base::is.character(x) || base::length(x) != 1L) {
+            return(x)
+        }
+        if (base::grepl("^https?://", x)) {
+            tmp <- base::tempfile(fileext = ".rds")
+            base::on.exit(base::unlink(tmp), add = TRUE)
+            utils::download.file(x, tmp, mode = "wb", quiet = TRUE)
+            return(base::readRDS(tmp))
+        }
+        json_obj <- base::tryCatch(
+            jsonlite::unserializeJSON(x),
+            error = function(...) {
+                NULL
+            }
+        )
+        if (!base::is.null(json_obj)) {
+            return(json_obj)
+        }
+        if (base::file.exists(x)) {
+            return(base::readRDS(x))
+        }
+        stop("training_data must be a URL, a local path, a JSON object, or an object",
+            call. = FALSE
+        )
+    }
+
+    sample_from_dist <- function(param_spec) {
+        if (base::is.list(param_spec) && !base::is.null(param_spec$type)) {
+            dist_type <- param_spec$type
+            if (dist_type == "uniform") {
+                return(stats::runif(1, min = param_spec$min, max = param_spec$max))
+            } else if (dist_type == "log_uniform") {
+                log_min <- base::log(param_spec$min)
+                log_max <- base::log(param_spec$max)
+                return(base::exp(stats::runif(1, min = log_min, max = log_max)))
+            } else if (dist_type == "int_uniform") {
+                return(base::sample(
+                    base::seq(
+                        from = base::as.integer(param_spec$min),
+                        to = base::as.integer(param_spec$max)
+                    ),
+                    size = 1
+                ))
+            } else if (dist_type == "choice") {
+                return(base::sample(param_spec$values, size = 1)[[1]])
+            }
+        }
+        if (base::is.list(param_spec) || base::is.vector(param_spec)) {
+            vals <- base::unlist(param_spec, recursive = FALSE)
+            return(vals[[base::sample(base::length(vals), 1)]])
+        }
+        param_spec
+    }
+
+    sample_params <- function(params) {
+        result <- list()
+        for (key in base::names(params)) {
+            result[[key]] <- sample_from_dist(params[[key]])
+        }
+        result
+    }
+
+    training_obj <- load_samples(training_data)
+    log_msg("Training samples loaded: ", base::nrow(training_obj))
+    log_msg("Generating ", n_iter, " random parameter combinations.")
+
+    param_sets <- base::lapply(base::seq_len(n_iter), function(i) sample_params(parameters))
+    results <- list()
+
+    metric_key <- base::tolower(scoring)
+    total_sets <- base::length(param_sets)
+
+    map_optimizer_param <- function(param_set, ml_args) {
+        if (base::is.null(param_set$optimizer)) {
+            return(list(param_set = param_set, ml_args = ml_args))
+        }
+        if (!base::is.character(param_set$optimizer)) {
+            return(list(param_set = param_set, ml_args = ml_args))
+        }
+        optimizer_fn <- base::switch(param_set$optimizer,
+            "adam" = torch::optim_adamw,
+            "adabound" = torch::optim_adabound,
+            "adabelief" = torch::optim_adabelief,
+            "madagrad" = torch::optim_madagrad,
+            "nadam" = torch::optim_nadam,
+            "qhadam" = torch::optim_qhadam,
+            "radam" = torch::optim_radam,
+            "swats" = torch::optim_swats,
+            "yogi" = torch::optim_yogi,
+            NULL
+        )
+        if (base::is.null(optimizer_fn)) {
+            openeocraft::api_stop(400, "Unsupported optimizer in parameters.")
+        }
+        ml_args$optimizer <- optimizer_fn
+        param_set$optimizer <- NULL
+        list(param_set = param_set, ml_args = ml_args)
+    }
+
+    map_opt_hparams <- function(param_set, ml_args) {
+        if (base::is.null(ml_args$opt_hparams) || !base::is.list(ml_args$opt_hparams)) {
+            return(list(param_set = param_set, ml_args = ml_args))
+        }
+        opt_map <- list(
+            learning_rate = "lr",
+            lr = "lr",
+            epsilon = "eps",
+            eps = "eps",
+            weight_decay = "weight_decay"
+        )
+        for (name in base::names(opt_map)) {
+            if (!base::is.null(param_set[[name]])) {
+                ml_args$opt_hparams[[opt_map[[name]]]] <- param_set[[name]]
+                param_set[[name]] <- NULL
+            }
+        }
+        list(param_set = param_set, ml_args = ml_args)
+    }
+
+    map_rf_params <- function(param_set, ml_args) {
+        # Map max_variables to mtry for Random Forest compatibility
+        if (!base::is.null(param_set$max_variables)) {
+            ml_args$mtry <- param_set$max_variables
+            param_set$max_variables <- NULL
+        }
+        list(param_set = param_set, ml_args = ml_args)
+    }
+
+    build_accuracy_summary <- function(x) {
+        acc <- if (base::inherits(x, "sits_accuracy") || base::inherits(x, "confusionMatrix")) {
+            x
+        } else {
+            sits::sits_accuracy(x)
+        }
+        overall <- acc[["overall"]]
+        if (base::is.null(overall)) {
+            return(base::data.frame())
+        }
+        base::as.data.frame(base::t(overall), stringsAsFactors = FALSE)
+    }
+
+    with_force_cpu <- function(expr) {
+        base::Sys.setenv(CUDA_VISIBLE_DEVICES = "")
+        base::Sys.setenv(TORCH_DISABLE_MPS = "1")
+        base::Sys.setenv(TORCH_USE_MPS_FALLBACK = "1")
+        if (!base::requireNamespace("torch", quietly = TRUE)) {
+            return(base::force(expr))
+        }
+        torch_ns <- base::asNamespace("torch")
+        override <- function(name, replacement) {
+            if (!base::exists(name, envir = torch_ns, inherits = FALSE)) {
+                return(NULL)
+            }
+            locked <- base::bindingIsLocked(name, torch_ns)
+            if (locked) {
+                base::unlockBinding(name, torch_ns)
+            }
+            original <- base::get(name, envir = torch_ns)
+            base::assign(name, replacement, envir = torch_ns)
+            if (locked) {
+                base::lockBinding(name, torch_ns)
+            }
+            list(name = name, original = original, locked = locked)
+        }
+        restore <- function(info) {
+            if (base::is.null(info)) {
+                return(base::invisible(NULL))
+            }
+            if (info$locked) {
+                base::unlockBinding(info$name, torch_ns)
+            }
+            base::assign(info$name, info$original, envir = torch_ns)
+            if (info$locked) {
+                base::lockBinding(info$name, torch_ns)
+            }
+            base::invisible(NULL)
+        }
+        cuda_info <- override("cuda_is_available", function() FALSE)
+        mps_info <- override("backends_mps_is_available", function() FALSE)
+        base::on.exit(
+            {
+                restore(cuda_info)
+                restore(mps_info)
+            },
+            add = TRUE
+        )
+        base::force(expr)
+    }
+
+    run_validation <- function(ml_method) {
+        if (base::is.null(cv) || cv <= 1) {
+            return(sits::sits_validate(
+                samples = training_obj,
+                validation_split = validation_split,
+                ml_method = ml_method
+            ))
+        }
+        sits::sits_kfold_validate(
+            samples = training_obj,
+            folds = cv,
+            ml_method = ml_method,
+            multicores = .openeocraft_multicores(),
+            progress = FALSE
+        )
+    }
+
+    for (idx in base::seq_along(param_sets)) {
+        param_set <- param_sets[[idx]]
+        param_set_raw <- param_set
+        start_time <- base::Sys.time()
+        mapped <- map_optimizer_param(param_set, model$ml_args)
+        param_set <- mapped$param_set
+        base_args <- mapped$ml_args
+        mapped <- map_opt_hparams(param_set, base_args)
+        param_set <- mapped$param_set
+        base_args <- mapped$ml_args
+        mapped <- map_rf_params(param_set, base_args)
+        param_set <- mapped$param_set
+        base_args <- mapped$ml_args
+        merged_args <- utils::modifyList(base_args, param_set)
+        log_msg(
+            "Evaluating ",
+            idx,
+            "/",
+            total_sets,
+            " with params: ",
+            jsonlite::toJSON(param_set_raw, auto_unbox = TRUE)
+        )
+        ml_method <- base::do.call(model$ml_method, merged_args)
+        acc_obj <- base::tryCatch(
+            run_validation(ml_method),
+            error = function(e) {
+                if (base::grepl("GPU memory", e$message, ignore.case = TRUE)) {
+                    log_msg("GPU memory low, retrying with CPU settings.")
+                    return(with_force_cpu(run_validation(ml_method)))
+                }
+                stop(e)
+            }
+        )
+
+        summary_df <- build_accuracy_summary(acc_obj)
+        metric_value <- NA_real_
+        if (base::is.data.frame(summary_df)) {
+            cols <- base::tolower(base::names(summary_df))
+            idx_col <- base::match(metric_key, cols)
+            if (!base::is.na(idx_col)) {
+                metric_value <- summary_df[[idx_col]][1]
+            } else {
+                numeric_cols <- base::vapply(summary_df, base::is.numeric, logical(1))
+                if (base::any(numeric_cols)) {
+                    metric_value <- summary_df[[base::which(numeric_cols)[1]]][1]
+                }
+            }
+        }
+        elapsed <- base::difftime(base::Sys.time(), start_time, units = "mins")
+        log_msg(
+            "Completed ",
+            idx,
+            "/",
+            total_sets,
+            " metric=",
+            metric_value,
+            " elapsed=",
+            base::round(base::as.numeric(elapsed), 2),
+            " min"
+        )
+        results <- c(results, list(base::c(param_set_raw, list(metric = metric_value))))
+    }
+
+    best_idx <- base::which.max(base::vapply(results, function(x) x$metric, base::numeric(1), USE.NAMES = FALSE))
+    best_result <- results[[best_idx]]
+
+    env <- openeocraft::current_env()
+    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
+    host <- openeocraft::get_host(env$api, env$req)
+    results_json <- jsonlite::toJSON(results, auto_unbox = TRUE, digits = 16)
+    results_file <- base::file.path(job_dir, "tuning_results.json")
+    base::writeLines(results_json, results_file)
+
+    asset_href <- openeocraft::make_job_files_url(
+        host = host,
+        user = env$user,
+        job_id = env$job$id,
+        file = "tuning_results.json"
+    )
+    collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
+    collection$assets <- list(
+        tuning_results = list(
+            href = asset_href,
+            type = "application/json",
+            roles = list("data")
+        )
+    )
+    jsonlite::write_json(
+        x = collection,
+        path = base::file.path(job_dir, "_collection.json"),
+        auto_unbox = TRUE,
+        digits = 16
+    )
+
+    list(
+        best_params = best_result,
+        best_score = best_result$metric,
+        results = jsonlite::fromJSON(results_json, simplifyVector = FALSE)
+    )
 }
 
 #* @openeo-process

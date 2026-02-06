@@ -1,0 +1,87 @@
+{
+  "id": "ml_validate_kfold",
+  "summary": "K-fold cross-validation for ML models",
+  "description": "Evaluates a machine learning model using k-fold cross-validation. The training data is split into k folds, and the model is trained k times, each time using k-1 folds for training and the remaining fold for validation. Returns aggregated performance metrics across all folds.",
+  "categories": [
+    "machine learning",
+    "model evaluation"
+  ],
+  "experimental": true,
+  "parameters": [
+    {
+      "name": "model",
+      "description": "An untrained machine learning model object that will be trained and evaluated.",
+      "schema": {
+        "type": "object",
+        "subtype": "ml-model"
+      }
+    },
+    {
+      "name": "training_data",
+      "description": "Training samples. Can be provided as a URL to a data file, a local file path, or an inline data object depending on the backend implementation.",
+      "schema": [
+        {
+          "type": "string",
+          "subtype": "uri"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    {
+      "name": "folds",
+      "description": "Number of folds for cross-validation. Common values are 5 or 10.",
+      "schema": {
+        "type": "integer",
+        "minimum": 2
+      }
+    },
+    {
+      "name": "target",
+      "description": "Name of the target/label column in the data.",
+      "optional": true,
+      "default": "label",
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "seed",
+      "description": "Random seed for reproducibility of fold splits and model training.",
+      "optional": true,
+      "default": null,
+      "schema": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      }
+    }
+  ],
+  "returns": {
+    "description": "Cross-validation results including aggregated performance metrics across all folds.",
+    "schema": {
+      "type": "object",
+      "subtype": "ml-validation-result",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "description": "Aggregated performance metrics (accuracy, kappa, etc.) across all folds."
+        },
+        "folds": {
+          "type": "integer",
+          "description": "Number of folds used."
+        }
+      }
+    }
+  },
+  "links": [
+    {
+      "href": "https://scikit-learn.org/stable/modules/cross_validation.html#k-fold",
+      "title": "Scikit-learn K-Fold Cross-Validation Documentation",
+      "type": "text/html",
+      "rel": "about"
+    }
+  ]
+}
