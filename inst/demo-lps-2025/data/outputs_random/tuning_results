@@ -1,0 +1,1 @@
+[{"batch_size":32,"learning_rate":0.0007,"epochs":39,"metric":0.916},{"batch_size":32,"learning_rate":0.0005,"epochs":78,"metric":0.9384}]

@@ -1,113 +1,118 @@
 {
-    "id": "ml_validate",
-    "summary": "Validate a machine learning model",
-    "description": "Performs validation on a specified machine learning model using the provided training set. The dataset is split into training and test subsets, and the model is validated on the test data.",
-    "categories": [
-        "machine learning"
-    ],
-    "experimental": true,
-    "parameters": [
-        {
-            "name": "training_set",
-            "description": "The dataset used to train and validate the machine learning model. This set contains both the independent variables and dependent variable, which the model will analyze to learn patterns and relationships.",
-            "schema": [
-                {
-                    "type": "object",
-                    "subtype": "datacube",
-                    "dimensions": [
-                        {
-                            "type": "geometry"
-                        },
-                        {
-                            "type": "bands"
-                        }
-                    ]
-                },
-                {
-                    "type": "object",
-                    "subtype": "datacube",
-                    "dimensions": [
-                        {
-                            "type": "geometry"
-                        },
-                        {
-                            "type": "other"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "target",
-            "description": "The dimension in the training set that represents the dependent variable for classification or regression tasks.",
-            "schema": {
-                "type": "string"
-            }
-        },
-        {
-            "name": "model_name",
-            "description": "The name of the machine learning model to be validated. This could be any algorithm such as `random_forest`, `logistic_regression`, `svm`, etc.",
-            "schema": {
-                "type": "string",
-                "enum": [
-                    "random_forest",
-                    "support_vector_machine",
-                    "xgboost",
-                    "temp_cnn"
-                ]
-            }
-        },
-        {
-            "name": "model_parameters",
-            "description": "A dictionary of parameters specific to the selected model. These parameters will vary depending on the model chosen. For example, `max_depth`, `num_trees` for Random Forest, or `penalty`, `C` for Logistic Regression.",
-            "schema": {
-                "type": "object",
-                "additionalProperties": {
-                    "type": ["string", "number", "boolean", "null"]
-                }
-            }
-        },
-        {
-            "name": "train_test_split",
-            "description": "The proportion of the dataset to include in the training split. The remainder is used for testing. For example, 0.8 means 80% of the data is used for training, and 20% for testing.",
-            "optional": true,
-            "default": 0.8,
-            "schema": {
-                "type": "number",
-                "minimum": 0.0,
-                "maximum": 1.0
-            }
-        }
-    ],
-    "returns": {
-        "description": "A dictionary containing validation metrics such as accuracy, precision, recall, and other model-specific evaluation metrics.",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "accuracy": {
-                    "type": "number"
-                },
-                "precision": {
-                    "type": "number"
-                },
-                "recall": {
-                    "type": "number"
-                },
-                "f1_score": {
-                    "type": "number"
-                }
-            },
-            "additionalProperties": {
-                "type": ["string", "number"]
-            }
-        }
+  "id": "ml_validate",
+  "summary": "Validate ML model performance",
+  "description": "Evaluates a machine learning model on training/validation data using cross-validation or a hold-out split. Returns performance metrics such as accuracy, kappa, precision, recall, and F1 score.",
+  "categories": [
+    "machine learning",
+    "model evaluation"
+  ],
+  "experimental": true,
+  "parameters": [
+    {
+      "name": "model",
+      "description": "An untrained machine learning model object that will be trained and evaluated.",
+      "schema": {
+        "type": "object",
+        "subtype": "ml-model"
+      }
     },
-    "links": [
+    {
+      "name": "training_data",
+      "description": "Training samples. Can be provided as a URL to a data file, a local file path, or an inline data object depending on the backend implementation.",
+      "schema": [
         {
-            "href": "https://scikit-learn.org/stable/modules/model_evaluation.html",
-            "title": "Scikit-Learn: Model Evaluation",
-            "type": "text/html",
-            "rel": "about"
+          "type": "string",
+          "subtype": "uri"
+        },
+        {
+          "type": "object"
         }
-    ]
+      ]
+    },
+    {
+      "name": "validation_data",
+      "description": "Optional separate validation samples. If not provided, validation is performed using a split from training_data or cross-validation.",
+      "optional": true,
+      "default": null,
+      "schema": [
+        {
+          "type": "string",
+          "subtype": "uri"
+        },
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    {
+      "name": "target",
+      "description": "Name of the target/label column in the data.",
+      "optional": true,
+      "default": "label",
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "validation_split",
+      "description": "Fraction of training data used for validation when no validation_data is provided and cv <= 1.",
+      "optional": true,
+      "default": 0.2,
+      "schema": {
+        "type": "number",
+        "minimum": 0,
+        "exclusiveMaximum": 1
+      }
+    },
+    {
+      "name": "cv",
+      "description": "Number of cross-validation folds. If 0 or 1, uses a single train/validation split instead of cross-validation.",
+      "optional": true,
+      "default": 5,
+      "schema": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    {
+      "name": "seed",
+      "description": "Random seed for reproducibility of data splits and model training.",
+      "optional": true,
+      "default": null,
+      "schema": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      }
+    }
+  ],
+  "returns": {
+    "description": "Validation results including performance metrics.",
+    "schema": {
+      "type": "object",
+      "subtype": "ml-validation-result",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "description": "Performance metrics (accuracy, kappa, etc.)."
+        },
+        "confusion_matrix": {
+          "type": "array",
+          "description": "Confusion matrix if applicable."
+        }
+      }
+    }
+  },
+  "links": [
+    {
+      "href": "https://scikit-learn.org/stable/modules/cross_validation.html",
+      "title": "Scikit-learn Cross-validation Documentation",
+      "type": "text/html",
+      "rel": "about"
+    }
+  ]
 }
