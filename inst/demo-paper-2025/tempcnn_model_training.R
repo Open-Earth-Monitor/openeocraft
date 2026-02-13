@@ -52,9 +52,7 @@ datacube <- p$ml_predict(datacube, tempcnn_model)
 # Save the Model
 model <- p$save_ml_model(
     data = tempcnn_model,
-    name = "tempcnn_model_2022_rondonia",
-    tasks = list("classification"),
-    options = list("accelerator" = "macos-arm", "framework" = "Torch for R")
+    name = "tempcnn_model_2022_rondonia"
 )
 
 # Save the prediction result

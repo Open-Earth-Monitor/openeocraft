@@ -214,6 +214,9 @@ mlm_class_random_forest <- function(num_trees = 100,
     list(
         ml_method = sits::sits_rfor,
         ml_args = list(num_trees = num_trees, mtry = mtry_for_args),
+        mlm_task = "classification",
+        mlm_architecture = "Random Forest",
+        mlm_framework = "R CARET",
         train = function(training_set) {
             base::message("[mlm_class_random_forest::train] START")
             base::on.exit(base::message("[mlm_class_random_forest::train] END"))
@@ -273,6 +276,9 @@ mlm_class_svm <- function(kernel = "radial",
             tolerance = tolerance,
             epsilon = epsilon
         ),
+        mlm_task = "classification",
+        mlm_architecture = "SVM",
+        mlm_framework = "R CARET",
         train = function(training_set) {
             base::message("[mlm_class_svm::train] START")
             base::on.exit(base::message("[mlm_class_svm::train] END"))
@@ -312,6 +318,9 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
             nfold = nfold,
             early_stopping_rounds = early_stopping_rounds
         ),
+        mlm_task = "classification",
+        mlm_architecture = "XGBoost",
+        mlm_framework = "R CARET",
         train = function(training_set) {
             base::message("[mlm_class_xgboost::train] START")
             base::on.exit(base::message("[mlm_class_xgboost::train] END"))
@@ -379,6 +388,9 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
             epochs = epochs,
             batch_size = batch_size
         ),
+        mlm_task = "classification",
+        mlm_architecture = "MLP",
+        mlm_framework = "Torch for R",
         train = function(training_set) {
             base::message("[mlm_class_mlp::train] START")
             base::on.exit(base::message("[mlm_class_mlp::train] END"))
@@ -460,6 +472,9 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
             batch_size = batch_size,
             verbose = verbose
         ),
+        mlm_task = "classification",
+        mlm_architecture = "TempCNN",
+        mlm_framework = "Torch for R",
         train = function(training_set) {
             base::message("[mlm_class_tempcnn::train] START")
             base::on.exit(base::message("[mlm_class_tempcnn::train] END"))
@@ -531,6 +546,9 @@ mlm_class_tae <- function(epochs = 150,
             lr_decay_epochs = lr_decay_epochs,
             lr_decay_rate = lr_decay_rate
         ),
+        mlm_task = "classification",
+        mlm_architecture = "TAE",
+        mlm_framework = "Torch for R",
         train = function(training_set) {
             base::message("[mlm_class_tae::train] START")
             base::on.exit(base::message("[mlm_class_tae::train] END"))
@@ -597,6 +615,9 @@ mlm_class_lighttae <- function(epochs = 150,
             lr_decay_epochs = lr_decay_epochs,
             lr_decay_rate = lr_decay_rate
         ),
+        mlm_task = "classification",
+        mlm_architecture = "LightTAE",
+        mlm_framework = "Torch for R",
         train = function(training_set) {
             base::message("[mlm_class_lighttae::train] START")
             base::on.exit(base::message("[mlm_class_lighttae::train] END"))
@@ -731,7 +752,83 @@ ml_fit <- function(model, training_set, target = "label") {
         )
     }
     base::message("[ml_fit] Training model...")
-    model$train(training_obj)
+    trained_model <- model$train(training_obj)
+
+    # Propagate MLM metadata from the model spec to the trained model
+    if (!base::is.null(model$mlm_task)) {
+        base::attr(trained_model, "mlm_task") <- model$mlm_task
+    }
+    if (!base::is.null(model$mlm_architecture)) {
+        base::attr(trained_model, "mlm_architecture") <- model$mlm_architecture
+    }
+    if (!base::is.null(model$mlm_framework)) {
+        base::attr(trained_model, "mlm_framework") <- model$mlm_framework
+    }
+
+    # Attach hyperparameters from ml_args (excluding function objects)
+    if (!base::is.null(model$ml_args)) {
+        hparams <- base::Filter(
+            function(x) !base::is.function(x),
+            model$ml_args
+        )
+        if (base::length(hparams) > 0) {
+            base::attr(trained_model, "mlm_hyperparameters") <- hparams
+        }
+    }
+
+    # Extract spatial/temporal metadata from training data
+    base::tryCatch(
+        {
+            bands <- sits::sits_bands(training_obj)
+            base::attr(trained_model, "mlm_bands") <- bands
+        },
+        error = function(e) NULL
+    )
+
+    base::tryCatch(
+        {
+            timeline <- sits::sits_timeline(training_obj)
+            if (base::length(timeline) > 0) {
+                base::attr(trained_model, "mlm_start_datetime") <- base::format(
+                    base::min(timeline), "%Y-%m-%dT%H:%M:%SZ"
+                )
+                base::attr(trained_model, "mlm_end_datetime") <- base::format(
+                    base::max(timeline), "%Y-%m-%dT%H:%M:%SZ"
+                )
+                base::attr(trained_model, "mlm_n_times") <- base::length(timeline)
+            }
+        },
+        error = function(e) NULL
+    )
+
+    base::tryCatch(
+        {
+            labels <- base::unique(training_obj$label)
+            if (base::length(labels) > 0) {
+                base::attr(trained_model, "mlm_labels") <- labels
+            }
+        },
+        error = function(e) NULL
+    )
+
+    base::tryCatch(
+        {
+            lons <- training_obj$longitude
+            lats <- training_obj$latitude
+            if (base::length(lons) > 0 && base::length(lats) > 0) {
+                west <- base::min(lons, na.rm = TRUE)
+                south <- base::min(lats, na.rm = TRUE)
+                east <- base::max(lons, na.rm = TRUE)
+                north <- base::max(lats, na.rm = TRUE)
+                base::attr(trained_model, "mlm_bbox") <- base::c(
+                    west, south, east, north
+                )
+            }
+        },
+        error = function(e) NULL
+    )
+
+    trained_model
 }
 
 #* @openeo-process
@@ -860,8 +957,10 @@ ml_validate <- function(model,
     }
 
     summary_df <- build_accuracy_summary(acc_obj)
-    base::message("[ml_validate] Validation complete. Accuracy: ",
-        base::round(summary_df$Accuracy[1], 4))
+    base::message(
+        "[ml_validate] Validation complete. Accuracy: ",
+        base::round(summary_df$Accuracy[1], 4)
+    )
 
     metrics_json <- jsonlite::toJSON(
         summary_df,
@@ -975,8 +1074,10 @@ ml_validate_kfold <- function(model,
     }
 
     summary_df <- build_accuracy_summary(acc_obj)
-    base::message("[ml_validate_kfold] Cross-validation complete. Accuracy: ",
-        base::round(summary_df$Accuracy[1], 4))
+    base::message(
+        "[ml_validate_kfold] Cross-validation complete. Accuracy: ",
+        base::round(summary_df$Accuracy[1], 4)
+    )
 
     metrics_json <- jsonlite::toJSON(
         summary_df,
@@ -1919,7 +2020,6 @@ ndvi <- function(data,
                 .(base::as.name(nir)) + .(base::as.name(red))
             ))
     )
-    # data <- sits::sits_select(data, bands = target_band)
     data
 }
 
@@ -2256,7 +2356,7 @@ import_ml_model <- function(name, folder) {
 }
 
 #* @openeo-process
-save_ml_model <- function(data, name, tasks, options = list()) {
+save_ml_model <- function(data, name, options = list()) {
     base::message("[save_ml_model] START")
     base::on.exit(base::message("[save_ml_model] END"))
     # Input validation
@@ -2265,48 +2365,46 @@ save_ml_model <- function(data, name, tasks, options = list()) {
         openeocraft::api_stop(400, "Parameter 'name' must be a non-empty string")
     }
 
-    # Validate and convert tasks parameter
-    if (!base::is.character(tasks) && !base::is.list(tasks)) {
-        openeocraft::api_stop(400, "Parameter 'tasks' must be an array of strings")
-    }
-
-    # Convert tasks from list to character vector if needed
-    if (base::is.list(tasks)) {
-        tasks <- base::unlist(tasks, use.names = FALSE)
-    }
-
-    # Validate tasks enum values
-    valid_tasks <- c(
-        "regression",
-        "classification",
-        "object-detection",
-        "detection",
-        "scene-classification",
-        "segmentation",
-        "semantic-segmentation",
-        "similarity-search",
-        "generative",
-        "image-captioning",
-        "super-resolution"
-    )
-
-    invalid_tasks <- base::setdiff(tasks, valid_tasks)
-    if (base::length(invalid_tasks) > 0) {
-        openeocraft::api_stop(
-            400,
-            base::paste0(
-                "Invalid task(s) in 'tasks' parameter: ",
-                base::paste(invalid_tasks, collapse = ", "),
-                ". Valid tasks are: ",
-                base::paste(valid_tasks, collapse = ", ")
-            )
-        )
-    }
-
     # Validate data parameter - must be non-null to save
     if (base::is.null(data)) {
         openeocraft::api_stop(400, "Parameter 'data' must be a non-null model object")
     }
+
+    # --- Infer MLM metadata from model attributes (set by ml_fit) ---
+    # Task: inferred from the mlm_class_*/mlm_regr_* function that created the model
+    inferred_task <- base::attr(data, "mlm_task")
+    if (base::is.null(inferred_task)) {
+        inferred_task <- "classification"
+        base::message("[save_ml_model] No mlm_task attribute found; defaulting to 'classification'")
+    }
+    tasks <- base::c(inferred_task)
+
+    # Architecture: inferred from the model function (e.g. Random Forest, TempCNN)
+    inferred_architecture <- base::attr(data, "mlm_architecture")
+    if (base::is.null(inferred_architecture)) {
+        inferred_architecture <- "Unknown"
+        base::message("[save_ml_model] No mlm_architecture attribute found; defaulting to 'Unknown'")
+    }
+
+    # Framework: inferred from the model function (e.g. R, PyTorch)
+    inferred_framework <- base::attr(data, "mlm_framework")
+
+    # Bands from training data
+    inferred_bands <- base::attr(data, "mlm_bands")
+
+    # Temporal extent from training data
+    inferred_start_datetime <- base::attr(data, "mlm_start_datetime")
+    inferred_end_datetime <- base::attr(data, "mlm_end_datetime")
+    inferred_n_times <- base::attr(data, "mlm_n_times")
+
+    # Labels from training data (for classification outputs)
+    inferred_labels <- base::attr(data, "mlm_labels")
+
+    # Bounding box from training sample locations
+    inferred_bbox <- base::attr(data, "mlm_bbox")
+
+    # Hyperparameters from ml_args
+    inferred_hyperparameters <- base::attr(data, "mlm_hyperparameters")
 
     # Wrap operations in try-catch to return FALSE on runtime failures
     # Validation errors (api_stop) should propagate as HTTP errors
@@ -2363,72 +2461,143 @@ save_ml_model <- function(data, name, tasks, options = list()) {
             stac_item$type <- "Feature"
             stac_item$id <- name
             stac_item$stac_version <- "1.1.0"
-            stac_item$stac_extensions <- list("https://stac-extensions.github.io/mlm/v1.5.0/schema.json")
-
-            # Start with required MLM properties
-            mlm_properties <- list(`mlm:name` = name, `mlm:tasks` = tasks)
-
-            # Add architecture, input, and output if provided
-            if (!base::is.null(options$architecture)) {
-                mlm_properties$`mlm:architecture` <- options$architecture
-            }
-            if (!base::is.null(options$input)) {
-                mlm_properties$`mlm:input` <- options$input
-            }
-            if (!base::is.null(options$output)) {
-                mlm_properties$`mlm:output` <- options$output
-            }
-
-            # Process all other options dynamically, handling both 'mlm:' prefixed and unprefixed keys
-            mlm_option_keys <- base::c(
-                "framework",
-                "framework_version",
-                "memory_size",
-                "total_parameters",
-                "pretrained",
-                "pretrained_source",
-                "batch_size_suggestion",
-                "accelerator",
-                "accelerator_constrained",
-                "accelerator_summary",
-                "accelerator_count",
-                "hyperparameters"
+            stac_item$stac_extensions <- list(
+                "https://stac-extensions.github.io/mlm/v1.5.0/schema.json"
             )
 
-            for (key in mlm_option_keys) {
-                # Check for both 'mlm:key' and 'key' variants
-                mlm_key <- base::paste0("mlm:", key)
-                value <- NULL
-
-                if (mlm_key %in% base::names(options)) {
-                    value <- options[[mlm_key]]
-                } else if (key %in% base::names(options)) {
-                    value <- options[[key]]
-                }
-
-                if (!base::is.null(value)) {
-                    mlm_properties[[mlm_key]] <- value
-                }
+            # --- Build geometry and bbox from inferred training data ---
+            if (!base::is.null(inferred_bbox)) {
+                west <- inferred_bbox[1]
+                south <- inferred_bbox[2]
+                east <- inferred_bbox[3]
+                north <- inferred_bbox[4]
+                stac_item$bbox <- list(west, south, east, north)
+                stac_item$geometry <- list(
+                    type = "Polygon",
+                    coordinates = list(list(
+                        list(west, south),
+                        list(east, south),
+                        list(east, north),
+                        list(west, north),
+                        list(west, south)
+                    ))
+                )
+            } else {
+                stac_item$bbox <- list(-180, -90, 180, 90)
+                stac_item$geometry <- NULL
             }
 
-            # Handle any additional options that start with 'mlm:'
-            for (key in base::names(options)) {
-                if (base::startsWith(key, "mlm:") &&
-                    !key %in% base::names(mlm_properties)) {
-                    mlm_properties[[key]] <- options[[key]]
+            # --- Build MLM properties (all inferred internally) ---
+            mlm_properties <- list(
+                `mlm:name` = name,
+                `mlm:tasks` = base::as.list(tasks),
+                `mlm:architecture` = inferred_architecture
+            )
+
+            # Temporal extent
+            if (!base::is.null(inferred_start_datetime)) {
+                mlm_properties$datetime <- NULL
+                mlm_properties$start_datetime <- inferred_start_datetime
+                mlm_properties$end_datetime <- inferred_end_datetime
+            } else {
+                mlm_properties$datetime <- base::format(
+                    base::Sys.time(), "%Y-%m-%dT%H:%M:%SZ"
+                )
+            }
+
+            # Framework
+            if (!base::is.null(inferred_framework)) {
+                mlm_properties$`mlm:framework` <- inferred_framework
+            }
+
+            # Hyperparameters
+            if (!base::is.null(inferred_hyperparameters)) {
+                mlm_properties$`mlm:hyperparameters` <- inferred_hyperparameters
+            }
+
+            # Build mlm:input from inferred bands and timeline
+            n_bands <- if (!base::is.null(inferred_bands)) {
+                base::length(inferred_bands)
+            } else {
+                -1L
+            }
+            n_times <- if (!base::is.null(inferred_n_times)) {
+                inferred_n_times
+            } else {
+                -1L
+            }
+
+            mlm_input <- list(list(
+                name = "input",
+                bands = if (!base::is.null(inferred_bands)) {
+                    base::as.list(inferred_bands)
+                } else {
+                    list()
+                },
+                input = list(
+                    shape = list(-1L, n_bands, n_times),
+                    dim_order = list("batch", "bands", "time"),
+                    data_type = "float32"
+                )
+            ))
+            mlm_properties$`mlm:input` <- mlm_input
+
+            # Build mlm:output from inferred labels/task
+            n_classes <- if (!base::is.null(inferred_labels)) {
+                base::length(inferred_labels)
+            } else {
+                -1L
+            }
+
+            mlm_output <- list(list(
+                name = inferred_task,
+                tasks = base::as.list(tasks),
+                result = list(
+                    shape = list(-1L, n_classes),
+                    dim_order = list("batch", "class"),
+                    data_type = "float32"
+                ),
+                `classification:classes` = if (!base::is.null(inferred_labels)) {
+                    base::lapply(
+                        base::seq_along(inferred_labels),
+                        function(i) {
+                            list(
+                                value = i,
+                                name = inferred_labels[i]
+                            )
+                        }
+                    )
+                } else {
+                    list()
                 }
+            ))
+            mlm_properties$`mlm:output` <- mlm_output
+
+            # Allow options to override any inferred property
+            for (key in base::names(options)) {
+                mlm_key <- key
+                if (!base::startsWith(key, "mlm:") &&
+                    key %in% base::c(
+                        "framework", "framework_version", "memory_size",
+                        "total_parameters", "pretrained", "pretrained_source",
+                        "batch_size_suggestion", "accelerator",
+                        "accelerator_constrained", "accelerator_summary",
+                        "accelerator_count"
+                    )) {
+                    mlm_key <- base::paste0("mlm:", key)
+                }
+                mlm_properties[[mlm_key]] <- options[[key]]
             }
 
             stac_item$properties <- mlm_properties
 
-            # Handle artifact_type (check both variants)
+            # --- Build model asset ---
             artifact_type <- NULL
             if ("mlm:artifact_type" %in% base::names(options)) {
                 artifact_type <- options$`mlm:artifact_type`
             } else if ("artifact_type" %in% base::names(options)) {
                 artifact_type <- options$artifact_type
             }
-
             if (base::is.null(artifact_type)) {
                 artifact_type <- "application/octet-stream"
             }
@@ -2440,14 +2609,13 @@ save_ml_model <- function(data, name, tasks, options = list()) {
                 `mlm:artifact_type` = artifact_type
             )
 
-            # Handle compile_method (check both variants)
+            # Handle compile_method override
             compile_method <- NULL
             if ("mlm:compile_method" %in% base::names(options)) {
                 compile_method <- options$`mlm:compile_method`
             } else if ("compile_method" %in% base::names(options)) {
                 compile_method <- options$compile_method
             }
-
             if (!base::is.null(compile_method)) {
                 model_asset$`mlm:compile_method` <- compile_method
             }
@@ -2519,16 +2687,34 @@ save_ml_model <- function(data, name, tasks, options = list()) {
             # Create or update parent collection
             collection_json_path <- base::file.path(job_dir, "collection.json")
 
+            # Use inferred bbox/temporal for collection extent
+            coll_bbox <- if (!base::is.null(inferred_bbox)) {
+                list(inferred_bbox)
+            } else {
+                list(list(-180, -90, 180, 90))
+            }
+            coll_interval <- if (!base::is.null(inferred_start_datetime)) {
+                list(list(inferred_start_datetime, inferred_end_datetime))
+            } else {
+                list(list("1900-01-01T00:00:00Z", "9999-12-31T23:59:59Z"))
+            }
+
             if (base::file.exists(collection_json_path)) {
                 # Update existing collection
-                collection <- jsonlite::read_json(collection_json_path, simplifyVector = FALSE)
+                collection <- jsonlite::read_json(
+                    collection_json_path,
+                    simplifyVector = FALSE
+                )
 
                 # Add item link if not already present
                 item_link <- list(href = item_filename, rel = "item")
 
-                link_exists <- base::any(base::sapply(collection$links, function(link) {
-                    !base::is.null(link$href) && link$href == item_filename
-                }))
+                link_exists <- base::any(base::sapply(
+                    collection$links,
+                    function(link) {
+                        !base::is.null(link$href) && link$href == item_filename
+                    }
+                ))
 
                 if (!link_exists) {
                     collection$links <- c(collection$links, list(item_link))
@@ -2546,19 +2732,26 @@ save_ml_model <- function(data, name, tasks, options = list()) {
                     description = "Collection of machine learning models saved in this job.",
                     license = "Apache-2.0",
                     extent = list(
-                        spatial = list(bbox = list(list(
-                            -180, -90, 180, 90
-                        ))),
-                        temporal = list(interval = list(
-                            list("1900-01-01T00:00:00Z", "9999-12-31T23:59:59Z")
-                        ))
+                        spatial = list(bbox = coll_bbox),
+                        temporal = list(interval = coll_interval)
                     ),
                     item_assets = list(weights = list(
                         title = "model weights",
                         roles = list("mlm:model", "mlm:weights")
                     )),
                     summaries = list(
-                        datetime = list(minimum = "1900-01-01T00:00:00Z", maximum = "9999-12-31T23:59:59Z")
+                        datetime = list(
+                            minimum = if (!base::is.null(inferred_start_datetime)) {
+                                inferred_start_datetime
+                            } else {
+                                "1900-01-01T00:00:00Z"
+                            },
+                            maximum = if (!base::is.null(inferred_end_datetime)) {
+                                inferred_end_datetime
+                            } else {
+                                "9999-12-31T23:59:59Z"
+                            }
+                        )
                     ),
                     links = list(
                         list(href = "collection.json", rel = "self"),
@@ -2573,7 +2766,9 @@ save_ml_model <- function(data, name, tasks, options = list()) {
                 auto_unbox = TRUE
             )
 
-            public_collection_json_path <- base::file.path(public_models_dir, "collection.json")
+            public_collection_json_path <- base::file.path(
+                public_models_dir, "collection.json"
+            )
             jsonlite::write_json(
                 x = collection,
                 path = public_collection_json_path,
