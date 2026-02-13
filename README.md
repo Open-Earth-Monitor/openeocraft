@@ -78,16 +78,17 @@ datacube <- p$load_collection(
 datacube <-  p$cube_regularize(data = datacube,
                                period = "P16D",
                                resolution = 600)
-# NDVI calculation and merge with the original datacube
-datacube_ndvi <- p$ndvi(
+# NDVI calculation and addition to the other bands
+datacube <- p$ndvi(
     data = datacube,
     red = "B04",
     nir = "B08",
     target_band = "NDVI"
 )
-datacube <- p$merge_cubes(datacube, datacube_ndvi)
-# Load training data from the package installation directory
-data_deforestation_rondonia <- readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia.rds")
+
+# Training data  - sits tibble
+data_deforestation_rondonia <- "https://github.com/e-sensing/sitsdata/raw/main/data/samples_deforestation_rondonia.rds"
+
 # Initialize TempCNN model
 tempcnn_model_init <-  p$mlm_class_tempcnn(optimizer = "adam",
                                            learning_rate = 0.0005,
@@ -103,8 +104,7 @@ datacube <-  p$ml_predict(datacube, tempcnn_model)
 model <- p$save_ml_model(
     tempcnn_model,
     name = "tempcnn_model_2022_rondonia",
-    tasks = list("classification"),
-    options = list("accelerator" = "macos-arm", "framework" = "Torch for R")
+    options = list("accelerator" = "macos-arm")
 )
 # Save the prediction result
 ml_job <- p$save_result(data = datacube, format = "GTiff")
@@ -170,9 +170,9 @@ datacube = datacube.process(
     }
 )
 
-datacube_ndvi = datacube.ndvi(red = "B04", nir = "B08", 
+datacube = datacube.ndvi(red = "B04", nir = "B08", 
                                     target_band = "NDVI")
-datacube = datacube.merge_cubes(datacube_ndvi)
+
 
 # Load training data from the package installation directory
 serialized_data = connection.readRDS("inst/demo-paper-2025/data/samples_deforestation_rondonia_1M.rds")
@@ -195,7 +195,7 @@ tempcnn_model = tempcnn_model_init.fit(
 datacube =  tempcnn_model.predict(datacube)
 
 # Save the trained model for future use.
-tempcnn_model.save_ml_model(name ="tempcnn_rondonia", tasks=["classification"], options={"accelerator":"macos-arm", "framework":"Torch for R"})
+tempcnn_model.save_ml_model(name ="tempcnn_rondonia")
 
 # Save and Execute Results
 result = datacube.save_result(
