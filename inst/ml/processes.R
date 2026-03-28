@@ -3,31 +3,126 @@
 #* @openeo-import data.R
 
 # Internal helpers -------------------------------------------------------
-# Use one fewer than total physical cores (fallback to 2) but never more than 16.
+# Resource use: by default use openeocraft.resource_fraction (default 0.75) of
+# detected physical CPU cores and, when openeocraft.memsize is unset, of total
+# RAM. Override explicitly with options(openeocraft.memsize = 16L) and/or
+# options(openeocraft.memsize_auto = FALSE) to restore a fixed 8 GB fallback.
+# options(openeocraft.multicores_max = 32L) raises the worker cap (default 16).
+
+.openeocraft_resource_fraction <- function() {
+    f <- base::getOption("openeocraft.resource_fraction", 0.75)
+    if (!base::is.numeric(f) || base::length(f) != 1L || base::is.na(f)) {
+        return(0.75)
+    }
+    f <- base::as.numeric(f)
+    base::min(1, base::max(0.05, f))
+}
+
+.openeocraft_sys_total_ram_gb <- function() {
+    if (base::getRversion() >= "4.4.0" &&
+        base::exists("Sys.meminfo", mode = "function")) {
+        mi <- base::tryCatch(base::Sys.meminfo(), error = function(...) {
+            NULL
+        })
+        if (!base::is.null(mi)) {
+            tr <- mi[["totalram"]]
+            if (base::is.null(tr)) {
+                tr <- mi[["total"]]
+            }
+            if (!base::is.null(tr) && base::is.numeric(tr) && tr > 0) {
+                return(base::as.numeric(tr) / (1024^3))
+            }
+        }
+    }
+    if (base::.Platform$OS.type == "unix" &&
+        base::file.exists("/proc/meminfo")) {
+        lines <- base::readLines("/proc/meminfo", n = 30L, warn = FALSE)
+        idx <- base::grep("^MemTotal:", lines)
+        if (base::length(idx) >= 1L) {
+            parts <- base::strsplit(lines[[idx[[1]]]], "[: \t]+")[[1]]
+            parts <- parts[parts != ""]
+            if (base::length(parts) >= 2L) {
+                kb <- base::suppressWarnings(base::as.numeric(parts[[2]]))
+                if (!base::is.na(kb)) {
+                    return(kb / (1024^2))
+                }
+            }
+        }
+    }
+    if (base::Sys.info()[["sysname"]] == "Darwin") {
+        sysctl <- base::Sys.which("sysctl")
+        if (base::nzchar(sysctl)) {
+            out <- base::tryCatch(
+                base::system2(
+                    sysctl,
+                    args = "-n hw.memsize",
+                    stdout = TRUE,
+                    stderr = FALSE
+                ),
+                warning = function(...) {
+                    NULL
+                },
+                error = function(...) {
+                    NULL
+                }
+            )
+            if (!base::is.null(out) && base::length(out) >= 1L) {
+                b <- base::suppressWarnings(base::as.numeric(out[[1]]))
+                if (!base::is.na(b)) {
+                    return(b / (1024^3))
+                }
+            }
+        }
+    }
+    NA_real_
+}
+
 .openeocraft_multicores <- function() {
+    frac <- .openeocraft_resource_fraction()
     cores <- base::tryCatch(
         parallel::detectCores(logical = FALSE),
         error = function(...) {
             NA_integer_
         }
     )
-    cores <- if (base::is.na(cores) || !base::is.numeric(cores)) {
-        2L
-    } else {
-        base::max(1L, cores - 1L)
+    if (base::is.na(cores) || !base::is.numeric(cores) || cores < 1L) {
+        cores <- 2L
     }
-    base::as.integer(base::min(cores, 16L))
+    usable <- base::max(1L, base::as.integer(base::floor(cores * frac)))
+    cap <- base::getOption("openeocraft.multicores_max", 16L)
+    if (!base::is.numeric(cap) || base::length(cap) != 1L || base::is.na(cap)) {
+        cap <- 16L
+    }
+    if (!base::is.finite(cap)) {
+        return(usable)
+    }
+    cap <- base::as.integer(cap)
+    if (base::is.na(cap) || cap < 1L) {
+        cap <- 16L
+    }
+    base::as.integer(base::min(usable, cap))
 }
 
-# Default memory (GB) for sits processing; can be overridden via option
-# options(openeocraft.memsize = 8L)
 .openeocraft_memsize <- function() {
-    mem <- base::getOption("openeocraft.memsize", 8L)
-    if (!base::is.numeric(mem) ||
-        base::length(mem) != 1 || base::is.na(mem)) {
-        mem <- 8L
+    explicit <- base::getOption("openeocraft.memsize", NULL)
+    if (!base::is.null(explicit)) {
+        mem <- explicit
+        if (!base::is.numeric(mem) ||
+            base::length(mem) != 1L || base::is.na(mem)) {
+            mem <- 8L
+        }
+        return(base::as.integer(base::max(1L, mem)))
     }
-    base::as.integer(base::max(1L, mem))
+    if (!base::isTRUE(base::getOption("openeocraft.memsize_auto", TRUE))) {
+        return(8L)
+    }
+    total_gb <- .openeocraft_sys_total_ram_gb()
+    if (base::is.na(total_gb) || total_gb <= 0) {
+        return(8L)
+    }
+    frac <- .openeocraft_resource_fraction()
+    gb <- base::floor(total_gb * frac)
+    base::as.integer(base::max(1L, base::min(gb, 256L)))
 }
 
 # Load training/validation samples from URL (RDS), JSON string, local RDS path, or pass-through object.
@@ -37,11 +132,17 @@
     if (!base::is.character(x) || base::length(x) != 1L) {
         return(x)
     }
+    if (base::any(base::is.na(x)) || !base::nzchar(x)) {
+        stop(
+            base::paste0(param_name, " must be a non-missing, non-empty string when given as text"),
+            call. = FALSE
+        )
+    }
     err <- base::paste0(
         param_name,
         " must be a URL to RDS, a local RDS path, a JSON-serialized object, or an object"
     )
-    if (base::grepl("^https?://", x)) {
+    if (base::isTRUE(base::grepl("^https?://", x))) {
         tmp <- base::tempfile(fileext = ".rds")
         base::on.exit(base::unlink(tmp), add = TRUE)
         if (wrap_io_errors) {
@@ -93,6 +194,30 @@
         return(base::readRDS(x))
     }
     stop(err, call. = FALSE)
+}
+
+# sits/torch often drives txtProgressBar to stderr; openEO job message logs may
+# show long gaps between lines while those bars stream elsewhere. Log explicit
+# start/finish and wall time so workers are easier to interpret.
+.openeocraft_sits_train_logged <- function(training_set, sits_ml_model, log_label) {
+    t0 <- base::Sys.time()
+    base::message(
+        "[",
+        log_label,
+        "] sits_train: starting (CPU torch training can take many minutes; ",
+        "progress bars earlier in the job usually come from collection load / regularize, not this step)."
+    )
+    out <- sits::sits_train(training_set, sits_ml_model)
+    secs <- base::as.numeric(base::difftime(base::Sys.time(), t0, units = "secs"))
+    dur <- if (!base::is.na(secs) && secs >= 120) {
+        base::paste0(base::round(secs / 60, 1), " min")
+    } else if (!base::is.na(secs)) {
+        base::paste0(base::round(secs, 1), " s")
+    } else {
+        "?"
+    }
+    base::message("[", log_label, "] sits_train: finished in ", dur)
+    out
 }
 
 .openeocraft_accuracy_summary_df <- function(x) {
@@ -323,14 +448,25 @@
 }
 
 .openeocraft_tune_finalize_results <- function(results) {
-    best_idx <- base::which.max(base::vapply(
+    if (base::length(results) == 0L) {
+        openeocraft::api_stop(400, "Tuning produced no results (empty parameter grid).")
+    }
+    mets <- base::vapply(
         results,
         function(x) {
             x$metric
         },
         base::numeric(1),
         USE.NAMES = FALSE
-    ))
+    )
+    mets_use <- base::replace(mets, base::is.na(mets), -Inf)
+    if (!base::any(base::is.finite(mets))) {
+        openeocraft::api_stop(
+            500,
+            "All tuning runs returned a missing metric; check validation errors and scoring name."
+        )
+    }
+    best_idx <- base::which.max(mets_use)
     best_result <- results[[best_idx]]
     env <- openeocraft::current_env()
     job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
@@ -511,7 +647,15 @@ load_collection <- function(id,
                 )
             }
 
-            # Create data cube with correct roi format
+            # Network / STAC discovery can take minutes; this runs when the cube
+            # is first forced (often after upstream process START messages — lazy args).
+            base::message(
+                "[load_collection] sits_cube(source=",
+                source,
+                ", collection=",
+                collection,
+                ") ..."
+            )
             data <- sits::sits_cube(
                 source = source,
                 collection = collection,
@@ -521,6 +665,7 @@ load_collection <- function(id,
                 start_date = temporal_extent[[1]],
                 end_date = temporal_extent[[2]]
             )
+            base::message("[load_collection] sits_cube() returned")
 
             base::attr(data, "roi") <- roi
             return(data)
@@ -581,7 +726,11 @@ mlm_class_random_forest <- function(num_trees = 100,
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_random_forest::train"
+            )
         }
     )
 }
@@ -630,7 +779,11 @@ mlm_class_svm <- function(kernel = "radial",
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_svm::train"
+            )
         }
     )
 }
@@ -669,7 +822,11 @@ mlm_class_xgboost <- function(learning_rate = 0.15,
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_xgboost::train"
+            )
         }
     )
 }
@@ -740,7 +897,11 @@ mlm_class_mlp <- function(layers = list(512, 512, 512),
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_mlp::train"
+            )
         }
     )
 }
@@ -830,7 +991,11 @@ mlm_class_tempcnn <- function(cnn_layers = list(64, 64, 64),
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_tempcnn::train"
+            )
         }
     )
 }
@@ -898,7 +1063,11 @@ mlm_class_tae <- function(epochs = 150,
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_tae::train"
+            )
         }
     )
 }
@@ -967,7 +1136,11 @@ mlm_class_lighttae <- function(epochs = 150,
             if (!base::is.null(seed)) {
                 base::set.seed(seed)
             }
-            sits::sits_train(training_set, model)
+            .openeocraft_sits_train_logged(
+                training_set,
+                model,
+                "mlm_class_lighttae::train"
+            )
         }
     )
 }
@@ -1599,15 +1772,27 @@ cube_regularize <- function(data, resolution, period) {
         roi <- base::attr(data, "roi")
     }
 
-    # Regularize
+    # Regularize (often the slowest step: I/O + time-series alignment; progress
+    # bars may stall for a long time between updates, especially over AWS/STAC.)
+    mc <- .openeocraft_multicores()
+    base::message(
+        "[cube_regularize] sits_regularize(period=",
+        period,
+        ", res=",
+        resolution,
+        ", multicores=",
+        mc,
+        ") ..."
+    )
     data <- sits::sits_regularize(
         cube = data,
         period = period,
         res = resolution,
         output_dir = result_dir,
         roi = roi,
-        multicores = .openeocraft_multicores()
+        multicores = mc
     )
+    base::message("[cube_regularize] sits_regularize() returned")
     data
 }
 

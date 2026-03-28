@@ -6,3 +6,6 @@ workspace
 .idea/
 .DS_Store
 ..Rcheck/
+
+# inst/demo-lps-2025/00_ml_month.ipynb — openEO job downloads
+inst/demo-lps-2025/data/output-month/

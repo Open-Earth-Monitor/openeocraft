@@ -26,6 +26,8 @@ test_that("ML processes file eval()s in API sandbox when sits is installed", {
     )
     openeocraft:::setup_namespace(api)
     ns <- openeocraft:::get_namespace(api)
+    # Sandbox parent is emptyenv(); load_rlang must export primitives used by processes.
+    expect_identical(eval(quote(1024^3), envir = ns), 1073741824)
     expect_error(
         eval(parse(f, encoding = "UTF-8"), envir = ns),
         NA
