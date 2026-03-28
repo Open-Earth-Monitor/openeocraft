@@ -76,7 +76,7 @@ load_rlang <- function(api) {
     export_fn("{", "(")
     export_fn("=", "<-", "<<-", "$<-", "[<-", "[[<-")
     export_fn("$", "[", "[[")
-    export_fn("*", "+", "-", "/", "%%", "%/%", "%*%", "%in%")
+    export_fn("*", "+", "-", "/", "^", "%%", "%/%", "%*%", "%in%")
     export_fn("==", "<", ">", "<=", ">=", "!=")
     export_fn("&", "&&", "|", "||", "!")
     export_fn("if", "for", "while", "repeat", "break", "next")
