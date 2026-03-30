@@ -1,7 +1,7 @@
 {
   "id": "ml_tune_grid",
   "summary": "Grid search hyperparameter tuning",
-  "description": "Performs exhaustive grid search over specified hyperparameter combinations to find optimal model settings. Each combination in the parameter grid is evaluated using cross-validation or a hold-out validation set, and the best configuration based on the specified metric is returned.",
+  "description": "Performs exhaustive grid search over specified hyperparameter combinations to find optimal model settings. Each combination in the parameter grid is evaluated using cross-validation or a hold-out validation set. The best configuration is then used to train a final model on the full training set. All evaluated runs are written to `tuning_results.json` in the job directory (for use with `save_ml_model`, which can attach that file as an extra STAC asset).",
   "categories": [
     "machine learning",
     "model selection"
@@ -93,27 +93,10 @@
     }
   ],
   "returns": {
-    "description": "Tuning results including the best hyperparameters and performance metrics for all evaluated combinations.",
+    "description": "Trained model on the full training data using the best-scoring hyperparameters. See `tuning_results.json` in the job directory for the full search trace.",
     "schema": {
       "type": "object",
-      "subtype": "ml-tuning-result",
-      "properties": {
-        "best_params": {
-          "type": "object",
-          "description": "The hyperparameter combination that achieved the best score."
-        },
-        "best_score": {
-          "type": "number",
-          "description": "The best score achieved."
-        },
-        "results": {
-          "type": "array",
-          "description": "All evaluated parameter combinations with their scores.",
-          "items": {
-            "type": "object"
-          }
-        }
-      }
+      "subtype": "ml-model"
     }
   },
   "links": [

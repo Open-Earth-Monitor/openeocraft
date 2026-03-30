@@ -1,3 +1,20 @@
+#' Run one decorator block
+#'
+#' @param api API object passed to the decorator implementation.
+#' @param source Character vector of lines from the decorator line through the
+#'   end of the chunk (typically includes `#*` comments and one top-level R
+#'   expression).
+#' @param file Source file path (for error messages).
+#' @param line Line number of the decorator (for error messages).
+#'
+#' @return Value of evaluating the constructed decorator call (often `NULL`
+#'   invisibly).
+#'
+#' @details
+#' On parse failure, throws `stop()` with `basename(file)` and `line` in the
+#' message.
+#'
+#' @keywords internal
 run_decorator <- function(api, source, file, line) {
     decorator <- gsub("\\s+", " ", gsub("^[^@]+@", "", source[[1]]))
     decorator <- as.list(strsplit(decorator, " ")[[1]])
@@ -16,6 +33,15 @@ run_decorator <- function(api, source, file, line) {
     eval(do.call(call, args = args))
 }
 
+#' Scan a file for a given `#* @decorator` tag and evaluate each chunk
+#'
+#' @param api API object.
+#' @param file Path to an R source file.
+#' @param decorator Decorator name without `@` (e.g. `"openeo-process"`).
+#'
+#' @return `NULL`, invisibly.
+#'
+#' @keywords internal
 process_decorators <- function(api, file, decorator) {
     source <- readLines(file)
     pattern <- paste0("^\\s*#\\*\\s+@", decorator, "\\s?")
@@ -30,6 +56,11 @@ process_decorators <- function(api, file, decorator) {
     }
 }
 
+#' Sentinel formal used to distinguish missing arguments from defaults
+#'
+#' @return The name object taken from a dummy function's formal `x`.
+#'
+#' @keywords internal
 empty_name <- function() {
     formals(function(x) {})[["x"]]
 }
@@ -37,6 +68,27 @@ empty_name <- function() {
 # decorators
 # <decorator-function> :=
 #    function(<api>, <expr>, [decorator-params...], <proc_file>)
+
+#' Register an openEO process from `#* @openeo-process`
+#'
+#' @description
+#' Reads or creates `processes/<process_id>.json` next to `file`, then registers
+#' the process on `api` via `add_process()`.
+#'
+#' @param api API object.
+#' @param expr Parsed expression; expected to be an assignment whose RHS is a
+#'   `function(...) { ... }`.
+#' @param ... Reserved for future decorator arguments.
+#' @param file Path to the processes R file (used to resolve `processes/` dir).
+#'
+#' @return `NULL`, invisibly.
+#'
+#' @details
+#' If the JSON file does not exist, builds a minimal openEO parameter list from
+#' the function's formals. Throws from [stopifnot()] if directories or files are
+#' missing after creation attempts.
+#'
+#' @keywords internal
 `openeo-process` <- function(api, expr, ..., file) {
     # extract from list
     expr <- expr[[1]]
