@@ -28,6 +28,7 @@ test_that("ML processes file eval()s in API sandbox when sits is installed", {
     ns <- openeocraft:::get_namespace(api)
     # Sandbox parent is emptyenv(); load_rlang must export primitives used by processes.
     expect_identical(eval(quote(1024^3), envir = ns), 1073741824)
+    expect_identical(eval(quote(character(0)), envir = ns), base::character(0))
     expect_error(
         eval(parse(f, encoding = "UTF-8"), envir = ns),
         NA
@@ -38,4 +39,24 @@ test_that("ML processes file eval()s in API sandbox when sits is installed", {
     loader <- get(".openeocraft_load_samples", envir = ns, inherits = FALSE)
     df <- data.frame(x = 1L)
     expect_identical(loader(df, "training_data"), df)
+
+    merge_opts <- get(
+        ".openeocraft_save_result_merge_options",
+        envir = ns,
+        inherits = FALSE
+    )
+    expect_identical(merge_opts(NULL)$merge_mode, "auto")
+    expect_identical(merge_opts(list(merge_tiles = TRUE))$merge_mode, "yes")
+    expect_identical(merge_opts(list(merge_tiles = "true"))$merge_mode, "yes")
+    expect_identical(merge_opts(list(merge_tiles = FALSE))$merge_mode, "no")
+    expect_identical(merge_opts(list(merge_tiles = "false"))$merge_mode, "no")
+    expect_identical(
+        merge_opts(list(target_crs = "EPSG:4326"))$target_crs,
+        "EPSG:4326"
+    )
+
+    fmt <- get(".openeocraft_format_is_geotiff", envir = ns, inherits = FALSE)
+    expect_true(fmt("GTiff"))
+    expect_true(fmt("GeoTIFF"))
+    expect_false(fmt("netCDF"))
 })
