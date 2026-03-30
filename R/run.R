@@ -81,7 +81,7 @@ load_rlang <- function(api) {
     export_fn("&", "&&", "|", "||", "!")
     export_fn("if", "for", "while", "repeat", "break", "next")
     export_fn("function", "return")
-    export_fn("c", "list", "stop")
+    export_fn("c", "list", "stop", "character")
     # load openeocraft runtime functions
     export_fn("current_env", "get_job_dir")
     export_fn("substitute", "quote")
