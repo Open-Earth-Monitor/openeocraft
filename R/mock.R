@@ -86,7 +86,7 @@ mock_create_openeo_v1 <- function() {
             "designed for the development and deployment ",
             "of openEO API applications."
         ),
-        backend_version = "0.2.0",
+        backend_version = "0.3.0",
         stac_api = NULL,
         work_dir = tempdir(),
         conforms_to = NULL,

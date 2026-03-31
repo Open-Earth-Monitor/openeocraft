@@ -10,6 +10,12 @@ empty_name()
 The name object taken from a dummy function's formal \code{x}.
 }
 \description{
-Sentinel formal used to distinguish missing arguments from defaults
+Used when auto-generating openEO parameter metadata from function formals:
+a formal equal to this sentinel is treated as \strong{required} (no default in
+JSON); any other formal (including explicit \code{NULL}) is \strong{optional} with a
+default in JSON.
+}
+\seealso{
+\code{\link{openeo-process}}
 }
 \keyword{internal}
