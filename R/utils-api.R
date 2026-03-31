@@ -325,6 +325,20 @@ api_user_workspace <- function(api, user) {
     }
     workspace_dir
 }
+
+#' Build the evaluation `list` for process graph execution
+#'
+#' Produces a list with `openeocraft = TRUE` and slots `api`, `user`, `job`, and
+#' `req`. [run_pgraph()] uses this as `envir` for `eval()`; [current_env()]
+#' searches parent frames for `openeocraft` to recover the same slots.
+#'
+#' @param api API object.
+#' @param user Authenticated user identifier.
+#' @param job Job metadata (`list`, includes at least `id`).
+#' @param req Plumber request object.
+#' @return A `list` suitable as `envir` in [run_pgraph()].
+#' @seealso [run_pgraph()], [current_env()]
+#' @keywords internal
 create_env <- function(api, user, job, req) {
     list(
         openeocraft = TRUE,

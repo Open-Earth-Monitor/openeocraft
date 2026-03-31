@@ -9,7 +9,7 @@ process_decorators(api, file, decorator)
 \arguments{
 \item{api}{API object.}
 
-\item{file}{Path to an R source file.}
+\item{file}{Path to an R source file containing \verb{#* @<decorator>} blocks.}
 
 \item{decorator}{Decorator name without \code{@} (e.g. \code{"openeo-process"}).}
 }
@@ -17,6 +17,10 @@ process_decorators(api, file, decorator)
 \code{NULL}, invisibly.
 }
 \description{
-Scan a file for a given \verb{#* @decorator} tag and evaluate each chunk
+Finds all lines matching \verb{^\\\\s*#\\\\*\\\\s+@<decorator>} and treats each run
+from one match to the line before the next match (or EOF) as one chunk.
+}
+\seealso{
+\code{\link[=run_decorator]{run_decorator()}}, \code{\link[=load_processes]{load_processes()}}
 }
 \keyword{internal}

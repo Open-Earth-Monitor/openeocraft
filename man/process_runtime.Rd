@@ -16,17 +16,33 @@ get_job_dir(env = NULL)
 \arguments{
 \item{api}{An openeocraft API object.}
 
-\item{processes_file}{Path to a file that defines processes via
-decorators.}
+\item{processes_file}{Path to an R file that defines processes via
+\verb{#* @openeo-process} chunks (see \code{\link[=process_decorators]{process_decorators()}}).}
 
 \item{env}{A runtime environment produced by \code{current_env()}.}
 }
 \value{
 \code{load_processes()} returns the API object with its namespace
-populated; \code{current_env()} returns the current runtime environment; and
-\code{get_job_dir()} returns the file path backing the active job.
+populated; \code{current_env()} returns the current runtime environment as a
+\code{list}; \code{get_job_dir()} returns the file path backing the active job.
 }
 \description{
 These helpers prepare and interact with the sandboxed environment used to
 evaluate openEO process graphs.
+}
+\details{
+\code{load_processes()} builds an isolated evaluation namespace (\code{\link[=get_namespace]{get_namespace()}})
+for process graph execution, sources \code{processes_file} into it (defining
+process functions), clears the API process registry, then runs
+\code{\link[=process_decorators]{process_decorators()}} so each \verb{#* @openeo-process} block registers JSON
+metadata from \verb{dirname(processes_file)/processes/*.json}.
+
+\code{current_env()} walks parent frames from a process graph evaluation to find
+the frame that contains \code{openeocraft} (injected by the job runner); that list
+holds \code{api}, \code{user}, \code{job}, etc.
+
+\code{get_job_dir()} resolves the on-disk workspace directory for the active job.
+}
+\seealso{
+\code{\link[=process_decorators]{process_decorators()}}, \code{\link{openeo-process}}, \code{\link[=run_pgraph]{run_pgraph()}}
 }

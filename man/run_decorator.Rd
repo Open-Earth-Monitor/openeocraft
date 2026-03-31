@@ -11,9 +11,9 @@ run_decorator(api, source, file, line)
 
 \item{source}{Character vector of lines from the decorator line through the
 end of the chunk (typically includes \verb{#*} comments and one top-level R
-expression).}
+assignment such as \code{my_process <- function(...) { ... }}).}
 
-\item{file}{Source file path (for error messages).}
+\item{file}{Source file path (for error messages and for \code{\link{openeo-process}}).}
 
 \item{line}{Line number of the decorator (for error messages).}
 }
@@ -22,10 +22,17 @@ Value of evaluating the constructed decorator call (often \code{NULL}
 invisibly).
 }
 \description{
-Run one decorator block
+Parses the first line of \code{source} for \verb{@decorator} and optional trailing
+tokens, parses the \strong{entire} \code{source} vector as one R expression, then
+\code{eval()}s \code{decorator_name(api, list(expr), ..., file = file)}.
 }
 \details{
+The first line must look like \verb{#* @openeo-process} (optional extra tokens
+after the decorator name are passed as additional arguments to the handler).
 On parse failure, throws \code{stop()} with \code{basename(file)} and \code{line} in the
 message.
+}
+\seealso{
+\code{\link[=process_decorators]{process_decorators()}}, \code{\link{openeo-process}}
 }
 \keyword{internal}
