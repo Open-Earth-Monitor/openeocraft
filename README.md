@@ -1,7 +1,105 @@
 # OpenEOcraft
-OpenEOcraft offers a robust R framework designed for the development and deployment of openEO API applications. This package simplifies the process of creating RESTful openEO web services with its user-friendly and flexible interface. Built on Plumber, OpenEOcraft prioritizes ease of use, scalability, and adaptability.
+
+**OpenEOcraft** is a generic R-based framework for Earth observation (EO) data cube analysis that plugs into the [openEO](https://openeo.org/) ecosystem. It connects R’s geospatial, statistical, and machine learning stacks to openEO clients (R, Python, Julia, JavaScript, Web Editor) through a standard REST API and process graphs, with STAC-oriented data discovery where configured. Compared with backends tied to a single cube engine, OpenEOcraft is built for **multi-library** workflows (e.g. [sits](https://github.com/e-sensing/sits), [stars](https://r-spatial.github.io/stars/), [terra](https://rspatial.org/terra/)) under one openEO-compliant surface.
+
+The implementation follows a modular layout: an **R execution engine**, a **process graph translation core**, and a **REST API** (Plumber). A central extension point is the **decorator-based process registry**: R functions tagged with `#* @openeo-process` are discovered at startup, paired with JSON process definitions, and exposed on `/processes` for clients.
 
 <img src="man/figures/openeocraft-architecture.png" alt="OpenEOcraft Architecture"  />
+
+## Three-layer architecture
+
+| Layer | Role |
+| ----- | ---- |
+| **API** | openEO-compliant HTTP routes (`/processes`, `/jobs`, `/result`, …), auth, CORS, optional STAC integration. |
+| **Core** | Parses JSON process graphs, resolves dependencies, maps nodes to R calls, job orchestration (no HTTP in the core). |
+| **R engine** | Runs workflows in isolated job contexts; integrates cube and ML code (e.g. sits raster cubes, or your own adapters). |
+
+### R packages: end-to-end or mix-and-match
+
+You are not locked into a single R library. **One option** is to standardize on a stack (e.g. [sits](https://github.com/e-sensing/sits) for cubes, indices, and ML) and use it **end to end** across the processes you expose. **Another option** is to combine packages **where each step needs them**: the same backend can register processes that call [stars](https://r-spatial.github.io/stars/) or [terra](https://rspatial.org/terra/) for raster work, [gstat](https://cran.r-project.org/package=gstat) or related tools for **geostatistical modelling**, [caret](https://cran.r-project.org/package=caret) or [tidymodels](https://www.tidymodels.org/) for **classical ML**, [torch](https://torch.mlverse.org/) for **deep learning**, and so on. Each `#* @openeo-process` function is ordinary R—import and wire dependencies per process, as long as inputs and outputs fit your job pipeline and process JSON contracts.
+
+## Decorator-based process registration
+
+Processes are **declarative**: you define an ordinary R function and prefix it with `#* @openeo-process` in a processes source file (see [`R/decorators.R`](R/decorators.R) and [`R/run.R`](R/run.R)). At load time, OpenEOcraft scans these chunks and looks for JSON descriptors in a `processes/` directory **next to that source file**—for example [`inst/ml/processes/ndvi.json`](inst/ml/processes/ndvi.json) next to [`inst/ml/processes.R`](inst/ml/processes.R). If you add your own process file elsewhere, the same layout applies (`…/processes/<id>.json` beside that `.R` file); this repo ships only the **ml** module (see [`DEVELOPMENT.md`](DEVELOPMENT.md)). That keeps the core free of one-off patches for every new algorithm and lowers the effort needed to expose additional R methods as openEO processes.
+
+### Example: ML prediction with **sits**
+
+A minimal pattern for wrapping sits classification as an openEO process is:
+
+```r
+#* @openeo-process
+ml_predict <- function(model, data) {
+  data <- sits::sits_classify(data, ml_model = model)
+  data <- sits::sits_label_classification(data)
+  data
+}
+```
+
+You still add or maintain `inst/ml/processes/ml_predict.json` so parameters, return type, and descriptions match the openEO process spec expected by clients. The shipped implementation in this repo lives in [`inst/ml/processes.R`](inst/ml/processes.R) and extends this idea with the full ML process set (e.g. `ml_fit`, `mlm_class_tempcnn`, STAC-MLM helpers).
+
+### Shipped **ndvi** (sits)
+
+The only **ndvi** implementation included in this repository is in [`inst/ml/processes.R`](inst/ml/processes.R): it runs on **regular sits raster cubes** (NIR/red via sits’ raster apply path). Its openEO contract is [`inst/ml/processes/ndvi.json`](inst/ml/processes/ndvi.json): **`data`** (required datacube with a **bands** dimension), **`nir`** and **`red`** (optional band names / common names, defaults `"nir"` and `"red"`), **`target_band`** (optional `null` or a string matching `^\\w+$`). Returns: if **`target_band`** is `null`, the result has **no** bands dimension; if it is a string, the bands dimension is kept and gains that label (`BandExists` if the name already exists). Exceptions in the JSON (`DimensionAmbiguous`, `NirBandAmbiguous`, `RedBandAmbiguous`, `BandExists`) describe client-visible failures.
+
+### Example **stars** / **terra** **ndvi** (not shipped)
+
+The **stars** and **terra** snippets below are **documentation examples only**. They are **not** present in the repo, **not** registered by the default server, and **not** part of the distributed package. They sketch how you could implement the **same** openEO `ndvi` process id using another cube representation if you add your own process file, copy [`inst/ml/processes/ndvi.json`](inst/ml/processes/ndvi.json) beside it (same parameter schema for clients), and wire [`load_processes()`](R/run.R) to that file. The decorator expects JSON at `dirname(<your_processes.R>)/processes/ndvi.json` (e.g. a hypothetical `inst/stars/processes.R` + `inst/stars/processes/ndvi.json`). Only one `ndvi` implementation should be active per server instance.
+
+**R signature** (must stay aligned with [`inst/ml/processes.R`](inst/ml/processes.R) and [`ndvi.json`](inst/ml/processes/ndvi.json)):
+
+```r
+ndvi <- function(data, nir = "nir", red = "red", target_band = NULL)
+```
+
+**Example: stars** (template — cube should expose a **bands** dimension named `band` in `st_dimensions`; resolve `nir`/`red` against band **names** as in the spec):
+
+```r
+# Example only — not in repo. Place e.g. inst/stars/processes.R and copy ndvi.json alongside.
+#* @openeo-process
+ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
+  d <- stars::st_dimensions(data)
+  band_i <- which(names(d) == "band")
+  if (length(band_i) != 1L) {
+    stop("DimensionAmbiguous: expected a single bands dimension")
+  }
+  margin <- setdiff(seq_along(d), band_i)
+  labs <- as.character(d[[band_i]]$values)
+  out <- stars::st_apply(data, margin, function(v) {
+    names(v) <- labs
+    (v[nir] - v[red]) / (v[nir] + v[red])
+  })
+  if (is.null(target_band)) {
+    # openEO: output has no bands dimension — drop a length-1 band axis if present
+    return(out)
+  }
+  if (!grepl("^\\w+$", target_band)) {
+    stop("target_band must be NULL or match ^\\\\w+$")
+  }
+  names(out) <- target_band
+  c(data, out, along = "band")
+}
+```
+
+**Example: terra** (template — `SpatRaster` layers; `nir` / `red` are layer names; `target_band = NULL` returns **only** the NDVI layer, consistent with dropping the bands dimension):
+
+```r
+# Example only — not in repo. Place e.g. inst/terra/processes.R and copy ndvi.json alongside.
+#* @openeo-process
+ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
+  x <- terra::rast(data)
+  nd <- (x[[nir]] - x[[red]]) / (x[[nir]] + x[[red]])
+  if (is.null(target_band)) {
+    return(nd)
+  }
+  if (!grepl("^\\w+$", target_band)) {
+    stop("target_band must be NULL or match ^\\\\w+$")
+  }
+  names(nd) <- target_band
+  terra::c(x, nd)
+}
+```
+
+**Clients** (e.g. Sentinel-2) pass explicit band names when metadata does not use common names `red` / `nir`, e.g. `nir="B08", red="B04", target_band="NDVI"` — see the Python workflow below.
 
 ## Quick Start with Docker Hub
 
@@ -121,7 +219,7 @@ Requires a Python client with ML helpers, e.g.:
 pip install git+https://github.com/PondiB/openeo-python-client.git
 ```
 
-**Timeline / bands:** [`samples_deforestation_rondonia.rds`](https://github.com/Open-Earth-Monitor/openeocraft/raw/main/inst/demo-paper-2025/data/samples_deforestation_rondonia.rds) was built for a **P16D** cube (not P1M) and the same preprocessing as that R script (**600 m** resolution, selected bands + NDVI). If `cube_regularize` uses a different **`period`** or **`resolution`**, sits raises **`.check_samples_tile_match_timeline: tile timeline does not match samples timeline`**. Use **`B04` / `B08`** in `ndvi` after regularize. For a smaller 10-band cube without NDVI, see the second Python block and [`01_ml_api_eo_data_cubes.ipynb`](inst/demo-lps-2025/01_ml_api_eo_data_cubes.ipynb).
+**Timeline / bands:** [`samples_deforestation_rondonia.rds`](https://github.com/Open-Earth-Monitor/openeocraft/raw/main/inst/demo-paper-2025/data/samples_deforestation_rondonia.rds) was built for a **P16D** cube (not P1M) and the same preprocessing as that R script (**600 m** resolution, selected bands + NDVI). If `cube_regularize` uses a different **`period`** or **`resolution`**, sits raises **`.check_samples_tile_match_timeline: tile timeline does not match samples timeline`**. After regularize, call `ndvi` with explicit band names if needed, e.g. **`nir="B08"`**, **`red="B04"`**, **`target_band="NDVI"`** (see [`inst/ml/processes/ndvi.json`](inst/ml/processes/ndvi.json)). For a smaller 10-band cube without NDVI, see the second Python block and [`01_ml_api_eo_data_cubes.ipynb`](inst/demo-lps-2025/01_ml_api_eo_data_cubes.ipynb).
 
 ```python
 #!/usr/bin/env python3
@@ -168,7 +266,7 @@ datacube = datacube.process(
     },
 )
 
-datacube = datacube.ndvi(red="B04", nir="B08", target_band="NDVI")
+datacube = datacube.ndvi(nir="B08", red="B04", target_band="NDVI")
 
 tempcnn_model_init = connection.mlm_class_tempcnn(
     optimizer="adam",
