@@ -1,0 +1,118 @@
+{
+  "id": "ml_validate",
+  "summary": "Validate ML model performance",
+  "description": "Evaluates a machine learning model on training/validation data using cross-validation or a hold-out split. Returns performance metrics such as accuracy, kappa, precision, recall, and F1 score.",
+  "categories": [
+    "machine learning",
+    "model evaluation"
+  ],
+  "experimental": true,
+  "parameters": [
+    {
+      "name": "model",
+      "description": "An untrained machine learning model object that will be trained and evaluated.",
+      "schema": {
+        "type": "object",
+        "subtype": "ml-model"
+      }
+    },
+    {
+      "name": "training_data",
+      "description": "Training samples. Can be provided as a URL to a data file, a local file path, or an inline data object depending on the backend implementation.",
+      "schema": [
+        {
+          "type": "string",
+          "subtype": "uri"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    {
+      "name": "validation_data",
+      "description": "Optional separate validation samples. If not provided, validation is performed using a split from training_data or cross-validation.",
+      "optional": true,
+      "default": null,
+      "schema": [
+        {
+          "type": "string",
+          "subtype": "uri"
+        },
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    {
+      "name": "target",
+      "description": "Name of the target/label column in the data.",
+      "optional": true,
+      "default": "label",
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "validation_split",
+      "description": "Fraction of training data used for validation when no validation_data is provided and cv <= 1.",
+      "optional": true,
+      "default": 0.2,
+      "schema": {
+        "type": "number",
+        "minimum": 0,
+        "exclusiveMaximum": 1
+      }
+    },
+    {
+      "name": "cv",
+      "description": "Number of cross-validation folds. If 0 or 1, uses a single train/validation split instead of cross-validation.",
+      "optional": true,
+      "default": 5,
+      "schema": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    {
+      "name": "seed",
+      "description": "Random seed for reproducibility of data splits and model training.",
+      "optional": true,
+      "default": null,
+      "schema": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      }
+    }
+  ],
+  "returns": {
+    "description": "Validation results including performance metrics.",
+    "schema": {
+      "type": "object",
+      "subtype": "ml-validation-result",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "description": "Performance metrics (accuracy, kappa, etc.)."
+        },
+        "confusion_matrix": {
+          "type": "array",
+          "description": "Confusion matrix if applicable."
+        }
+      }
+    }
+  },
+  "links": [
+    {
+      "href": "https://scikit-learn.org/stable/modules/cross_validation.html",
+      "title": "Scikit-learn Cross-validation Documentation",
+      "type": "text/html",
+      "rel": "about"
+    }
+  ]
+}

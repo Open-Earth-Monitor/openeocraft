@@ -1,0 +1,46 @@
+{
+    "id": "load_result",
+    "summary": "Load a job result by its identifier",
+    "description": "Retrieves and loads the outputs of a completed job or task based on the provided unique identifier.",
+    "categories": [
+        "cubes",
+        "import"
+    ],
+    "experimental": true,
+    "parameters": [
+        {
+            "name": "id",
+            "description": "The unique identifier for the job to be loaded.",
+            "schema": {
+                "type": "string"
+            }
+        }
+    ],
+    "returns": {
+        "description": "The outputs of the job.",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["pending", "running", "completed", "failed"],
+                    "description": "The current status of the job."
+                },
+                "configuration": {
+                    "type": "object",
+                    "description": "The configuration or settings of the job when it was created."
+                },
+                "results": {
+                    "type": "object",
+                    "description": "The output of the job if it has been completed.",
+                    "properties": {
+                        "data": {
+                            "type": "object",
+                            "description": "The processed data output"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

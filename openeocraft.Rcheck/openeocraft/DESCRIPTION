@@ -1,0 +1,37 @@
+Package: openeocraft
+Title: Craft and Serve openEO API Applications in R
+Version: 0.2.0
+Authors@R: c(
+    person("Rolf", "Simoes", email = "rolf.simoes@opengeohub.org",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-0953-4132")),
+    person("Brian", "Pondi", email = "brian.pondi@uni-muenster.de",
+           role = "aut",
+           comment = c(ORCID = "0009-0008-0367-1690")),
+    person(given = "OpenGeoHub Foundation",
+           email = "support@opengeohub.org",
+           role = "cph"))
+Author: Rolf Simoes [aut, cre], Brian Pondi [aut], OpenGeoHub Foundation [cph]
+Maintainer: Rolf Simoes <rolf.simoes@opengeohub.org>
+Description: Provides an R framework for crafting and serving openEO API
+    applications by building on the plumber package. The friendly and
+    extensible interface helps create RESTful openEO web services that
+    prioritise ease of use, scalability, and flexibility.
+License: MIT + file LICENSE
+URL: https://github.com/Open-Earth-Monitor/openeocraft
+BugReports: https://github.com/Open-Earth-Monitor/openeocraft/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends: R (>= 4.1.0)
+Imports: plumber, jsonlite, base64enc, callr, swagger
+Suggests: openstac, sits, terra, knitr, rmarkdown, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Collate: 'utils.R' 'utils-api.R' 'data.R' 'decorators.R' 'links.R'
+        'namespace.R' 'serializers.R' 'wellknown.R' 'api.R'
+        'api-openeo_v1.R' 'collections.R' 'jobs.R' 'pgraphs.R' 'mock.R'
+        'run.R'
+NeedsCompilation: no
+Packaged: 2026-03-31 11:09:37 UTC; brianpondi
+Built: R 4.5.2; ; 2026-03-31 11:09:41 UTC; unix
