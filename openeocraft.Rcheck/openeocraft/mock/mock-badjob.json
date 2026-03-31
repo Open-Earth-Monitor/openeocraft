@@ -1,5 +1,0 @@
-{
-  "title": "NDVI based on Sentinel 2",
-  "description": "Deriving minimum NDVI measurements over pixel time series of Sentinel 2",
-  "log_level": "warning"
-}
