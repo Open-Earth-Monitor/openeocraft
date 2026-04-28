@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout repository
@@ -39,6 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           install.packages("remotes")
+          remotes::install_github("Open-Earth-Monitor/openstac", ref = "dev")
           remotes::install_deps(dependencies = TRUE, upgrade = "never")
           remotes::install_local(".", dependencies = TRUE, upgrade = "never")
         shell: Rscript {0}

@@ -21,6 +21,7 @@ with_temp_home <- function(code) {
 }
 
 create_files_context <- function() {
+    testthat::skip_if_not_installed("openstac")
     candidates <- c(
         "docker/plumber.R",
         "../docker/plumber.R",
