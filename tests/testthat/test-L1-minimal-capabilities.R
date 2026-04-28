@@ -10,7 +10,7 @@ api <- create_openeo_v1(
         "OpenEOcraft offers a robust R framework designed for the ",
         "development and deployment of openEO API applications."
     ),
-    backend_version = "0.3.0",
+    backend_version = "0.3.1",
     stac_api = list(
         get = function(key) {
             if (key == "stac_version") {
