@@ -1,6 +1,6 @@
 Package: openeocraft
 Title: Craft and Serve openEO API Applications in R
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: c(
     person("Rolf", "Simoes", email = "rolf.simoes@opengeohub.org",
            role = c("aut", "cre"),

@@ -44,7 +44,7 @@ api <- create_openeo_v1(
   id = "openeocraft",
   title = "openEO compliant R backend",
   description = "OpenEOcraft offers a robust R framework designed for the development and deployment of openEO API applications.",
-  backend_version = "0.3.0",
+  backend_version = "0.3.1",
   stac_api = stac_api,
   work_dir = "~/openeo-tests",
   conforms_to = NULL,
@@ -352,4 +352,241 @@ function(req, res, folder, asset) {
     res$body <- readBin(path, what = "raw", n = file.info(path)$size)
   }
   res
+}
+
+workspace_root_dir <- function(req) {
+  token <- get_token(req)
+  user <- get_token_user(api, token)
+  root_dir <- file.path(api_user_workspace(api, user), "root")
+  if (!dir.exists(root_dir)) {
+    dir.create(root_dir, recursive = TRUE)
+  }
+  root_dir
+}
+
+decode_workspace_path <- function(path) {
+  if (is.null(path) || !nzchar(path)) {
+    api_stop(400L, "Path is missing")
+  }
+  decoded <- utils::URLdecode(path)
+  decoded <- gsub("^/+", "", decoded)
+  if (!nzchar(decoded)) {
+    api_stop(400L, "Path is missing")
+  }
+  if (grepl("\\\\", decoded)) {
+    api_stop(400L, "Invalid path")
+  }
+  parts <- strsplit(decoded, "/", fixed = TRUE)[[1]]
+  if (any(parts %in% c(".", "..", ""))) {
+    api_stop(400L, "Invalid path")
+  }
+  decoded
+}
+
+resolve_workspace_path <- function(root_dir, path) {
+  rel_path <- decode_workspace_path(path)
+  root_norm <- normalizePath(root_dir, winslash = "/", mustWork = TRUE)
+  abs_path <- file.path(root_norm, rel_path)
+  abs_path <- gsub("//+", "/", abs_path)
+  if (!identical(abs_path, root_norm) &&
+      !startsWith(abs_path, paste0(root_norm, "/"))) {
+    api_stop(400L, "Invalid path")
+  }
+  list(relative = rel_path, absolute = abs_path)
+}
+
+workspace_file_record <- function(file_path, root_dir) {
+  root_norm <- normalizePath(root_dir, winslash = "/", mustWork = FALSE)
+  file_norm <- normalizePath(file_path, winslash = "/", mustWork = TRUE)
+  rel <- sub(paste0("^", root_norm, "/"), "", file_norm)
+  info <- file.info(file_norm)
+  list(
+    name = rel,
+    size = unname(info$size),
+    modified = format(info$mtime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+}
+
+workspace_parse_limit <- function(req) {
+  if (!"limit" %in% names(req$args) || !nzchar(req$args$limit)) {
+    return(NULL)
+  }
+  limit <- suppressWarnings(as.integer(req$args$limit))
+  if (is.na(limit) || limit < 1) {
+    api_stop(400L, "limit parameter must be >= 1")
+  }
+  limit
+}
+
+workspace_parse_page <- function(req) {
+  if (!"page" %in% names(req$args) || !nzchar(req$args$page)) {
+    return(1L)
+  }
+  page <- suppressWarnings(as.integer(req$args$page))
+  if (is.na(page) || page < 1) {
+    api_stop(400L, "page parameter must be >= 1")
+  }
+  page
+}
+
+workspace_prune_empty_dirs <- function(start_dir, root_dir) {
+  current <- normalizePath(start_dir, winslash = "/", mustWork = FALSE)
+  root_norm <- normalizePath(root_dir, winslash = "/", mustWork = FALSE)
+  while (!identical(current, root_norm) &&
+         startsWith(current, paste0(root_norm, "/"))) {
+    if (!dir.exists(current)) {
+      current <- dirname(current)
+      next
+    }
+    has_children <- length(list.files(current, all.files = TRUE, no.. = TRUE)) > 0
+    if (has_children) {
+      break
+    }
+    unlink(current, recursive = TRUE, force = TRUE)
+    next_dir <- dirname(current)
+    if (identical(next_dir, current)) {
+      break
+    }
+    current <- next_dir
+  }
+}
+
+#* List all files in the workspace
+#* @serializer unboxedJSON
+#* @get /files
+function(req, res) {
+  print("GET /files")
+  root_dir <- workspace_root_dir(req)
+  limit <- workspace_parse_limit(req)
+  page <- workspace_parse_page(req)
+
+  files <- list.files(
+    root_dir,
+    recursive = TRUE,
+    full.names = TRUE,
+    include.dirs = FALSE,
+    no.. = TRUE
+  )
+  if (length(files)) {
+    info <- file.info(files)
+    files <- files[!info$isdir]
+  }
+  records <- lapply(files, workspace_file_record, root_dir = root_dir)
+
+  links <- list()
+  if (!is.null(limit)) {
+    total <- length(records)
+    total_pages <- max(1L, as.integer(ceiling(total / limit)))
+    page <- min(page, total_pages)
+    from <- (page - 1L) * limit + 1L
+    to <- min(page * limit, total)
+    if (total == 0L) {
+      records <- list()
+    } else {
+      records <- records[from:to]
+    }
+    host <- get_host(api, req)
+    if (page < total_pages) {
+      links <- c(links, list(list(
+        rel = "next",
+        href = make_url(host, "/files", limit = limit, page = page + 1L)
+      )))
+    }
+    if (page > 1L) {
+      links <- c(links, list(list(
+        rel = "prev",
+        href = make_url(host, "/files", limit = limit, page = page - 1L)
+      )))
+      links <- c(links, list(list(
+        rel = "first",
+        href = make_url(host, "/files", limit = limit, page = 1L)
+      )))
+    }
+    if (page < total_pages) {
+      links <- c(links, list(list(
+        rel = "last",
+        href = make_url(host, "/files", limit = limit, page = total_pages)
+      )))
+    }
+  }
+
+  list(files = records, links = links)
+}
+
+#* Download a file from the workspace
+#* @get /files/<path:path>
+function(req, res, path) {
+  print("GET /files/<path>")
+  root_dir <- workspace_root_dir(req)
+  target <- resolve_workspace_path(root_dir, path)
+  if (!file.exists(target$absolute)) {
+    api_stop(404L, "File not found")
+  }
+  if (dir.exists(target$absolute)) {
+    api_stop(400L, "FileOperationUnsupported")
+  }
+  res$setHeader("Content-Type", ext_content_type(target$absolute))
+  res$body <- readBin(
+    target$absolute,
+    what = "raw",
+    n = file.info(target$absolute)$size
+  )
+  res
+}
+
+#* Upload a file to the workspace
+#* @serializer unboxedJSON
+#* @put /files/<path:path>
+function(req, res, path) {
+  print("PUT /files/<path>")
+  root_dir <- workspace_root_dir(req)
+  target <- resolve_workspace_path(root_dir, path)
+  dir.create(dirname(target$absolute), recursive = TRUE, showWarnings = FALSE)
+
+  payload <- req$postBody
+  if (is.null(payload)) {
+    payload <- raw(0)
+  } else if (is.character(payload)) {
+    payload <- charToRaw(payload)
+  }
+  if (!is.raw(payload)) {
+    api_stop(400L, "Invalid request body")
+  }
+
+  con <- file(target$absolute, open = "wb")
+  writeBin(payload, con)
+  close(con)
+
+  info <- file.info(target$absolute)
+  list(
+    path = target$relative,
+    size = unname(info$size),
+    modified = format(info$mtime, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+}
+
+#* Delete a file from the workspace
+#* @serializer unboxedJSON
+#* @delete /files/<path:path>
+function(req, res, path) {
+  print("DELETE /files/<path>")
+  root_dir <- workspace_root_dir(req)
+  target <- resolve_workspace_path(root_dir, path)
+  if (!file.exists(target$absolute) && !dir.exists(target$absolute)) {
+    api_stop(404L, "File not found")
+  }
+
+  if (dir.exists(target$absolute)) {
+    unlink(target$absolute, recursive = TRUE)
+    workspace_prune_empty_dirs(dirname(target$absolute), root_dir)
+  } else {
+    unlink(target$absolute, recursive = FALSE)
+    workspace_prune_empty_dirs(dirname(target$absolute), root_dir)
+  }
+  if (file.exists(target$absolute) || dir.exists(target$absolute)) {
+    api_stop(500L, "Could not delete workspace path")
+  }
+
+  res$status <- 204L
+  list()
 }

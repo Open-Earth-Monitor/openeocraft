@@ -7,3 +7,5 @@ docker
 ^\.Rcheck$
 ^\.\.Rcheck$
 ^\.lintr$
+^\.positai$
+^\.claude$

@@ -60,3 +60,55 @@ test_that("ML processes file eval()s in API sandbox when sits is installed", {
     expect_true(fmt("GeoTIFF"))
     expect_false(fmt("netCDF"))
 })
+
+test_that("load_uploaded_files process loads RDS from workspace paths", {
+    candidates <- c(
+        "inst/ml/processes.R",
+        "../inst/ml/processes.R",
+        "../../inst/ml/processes.R"
+    )
+    f <- candidates[file.exists(candidates)][1]
+    skip_if(is.na(f), "inst/ml/processes.R not found")
+
+    api <- create_openeo_v1(
+        id = "ml-test-load-uploaded",
+        title = "t",
+        description = "t",
+        backend_version = "0",
+        stac_api = NULL,
+        work_dir = tempdir(),
+        conforms_to = NULL,
+        production = FALSE
+    )
+    openeocraft:::setup_namespace(api)
+    ns <- openeocraft:::get_namespace(api)
+    expect_error(
+        eval(parse(f, encoding = "UTF-8"), envir = ns),
+        NA
+    )
+    expect_true(exists("load_uploaded_files", envir = ns, inherits = FALSE))
+
+    root_dir <- file.path(api_user_workspace(api, "mock_user"), "root", "uploads")
+    dir.create(root_dir, recursive = TRUE, showWarnings = FALSE)
+    expected <- data.frame(v = c(1L, 2L))
+    saveRDS(expected, file.path(root_dir, "cube.rds"))
+
+    req <- mock_req("/", method = "GET")
+    env <- create_env(api, "mock_user", list(id = "job-id"), req)
+
+    result <- eval(
+        quote(load_uploaded_files(paths = list("./uploads/cube.rds"), format = "RDS")),
+        envir = env,
+        enclos = ns
+    )
+    expect_identical(result, expected)
+
+    expect_error(
+        eval(
+            quote(load_uploaded_files(paths = list("../outside.rds"), format = "RDS")),
+            envir = env,
+            enclos = ns
+        ),
+        "FileNotFound"
+    )
+})
