@@ -39,7 +39,13 @@ jobs:
       - name: Install dependencies
         run: |
           install.packages("remotes")
-          remotes::install_github("Open-Earth-Monitor/openstac", ref = "dev")
+          tryCatch(
+            remotes::install_url("https://github.com/Open-Earth-Monitor/openstac/archive/refs/heads/dev.tar.gz"),
+            error = function(e) {
+              message("openstac dev tarball unavailable, falling back to main: ", conditionMessage(e))
+              remotes::install_url("https://github.com/Open-Earth-Monitor/openstac/archive/refs/heads/main.tar.gz")
+            }
+          )
           remotes::install_deps(dependencies = TRUE, upgrade = "never")
           remotes::install_local(".", dependencies = TRUE, upgrade = "never")
         shell: Rscript {0}
