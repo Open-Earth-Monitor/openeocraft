@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          install.packages("remotes")
+          install.packages(c("remotes", "testthat"))
           tryCatch(
             remotes::install_url("https://github.com/Open-Earth-Monitor/openstac/archive/refs/heads/dev.tar.gz"),
             error = function(e) {
