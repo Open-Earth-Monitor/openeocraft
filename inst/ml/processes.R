@@ -900,6 +900,199 @@ load_collection <- function(id,
 }
 
 
+# Load user-uploaded workspace files and return a data cube-like object.
+#
+# Args:
+#   paths: Character vector of workspace-relative file paths.
+#   format: Input format identifier (e.g. GTiff, GeoTIFF, RDS).
+#   options: Optional list of loader options. For GeoTIFF, supports
+#     source, collection, tile, band, parse_info and delim.
+#
+# Returns:
+#   A cube object for downstream processes. For RDS, returns the R object
+#   (or row-bound data.frame for multiple files).
+#
+# Raises:
+#   openeocraft::api_stop(404) for missing files;
+#   openeocraft::api_stop(400) for invalid paths or unsupported formats.
+#
+#* @openeo-process
+load_uploaded_files <- function(paths, format, options = list()) {
+    base::message("[load_uploaded_files] START")
+    base::on.exit(base::message("[load_uploaded_files] END"))
+
+    env <- openeocraft::current_env()
+    workspace_root <- base::file.path(
+        openeocraft::api_user_workspace(env$api, env$user),
+        "root"
+    )
+    if (!base::dir.exists(workspace_root)) {
+        base::dir.create(workspace_root, recursive = TRUE)
+    }
+    root_norm <- base::normalizePath(workspace_root, winslash = "/", mustWork = TRUE)
+
+    if (base::is.null(paths) || !base::length(paths)) {
+        openeocraft::api_stop(400, "Parameter 'paths' must contain at least one file path")
+    }
+    if (base::is.list(paths)) {
+        paths <- base::unlist(paths, use.names = FALSE)
+    }
+    if (!base::is.character(paths)) {
+        openeocraft::api_stop(400, "Parameter 'paths' must be an array of strings")
+    }
+
+    if (!base::is.character(format) || base::length(format) != 1L || !base::nzchar(format)) {
+        openeocraft::api_stop(400, "Parameter 'format' must be a non-empty string")
+    }
+    fmt <- base::gsub("[^a-z0-9]", "", base::tolower(format))
+
+    resolve_workspace_file <- function(p) {
+        if (!base::is.character(p) || base::length(p) != 1L || !base::nzchar(p)) {
+            openeocraft::api_stop(400, "Invalid file path in 'paths'")
+        }
+        rel <- utils::URLdecode(p)
+        rel <- base::sub("^\\./", "", rel)
+        rel <- base::sub("^/+", "", rel)
+        if (!base::nzchar(rel) || base::grepl("\\\\", rel)) {
+            openeocraft::api_stop(400, "Invalid file path in 'paths'")
+        }
+        parts <- base::strsplit(rel, "/", fixed = TRUE)[[1]]
+        if (base::any(parts %in% base::c("", ".", ".."))) {
+            openeocraft::api_stop(404, "FileNotFound: path outside workspace")
+        }
+        abs <- base::gsub("//+", "/", base::file.path(root_norm, rel))
+        if (!base::startsWith(abs, base::paste0(root_norm, "/")) && abs != root_norm) {
+            openeocraft::api_stop(404, "FileNotFound: path outside workspace")
+        }
+        if (!base::file.exists(abs) || base::dir.exists(abs)) {
+            openeocraft::api_stop(404, base::paste0("FileNotFound: ", rel))
+        }
+        abs
+    }
+
+    file_paths <- base::vapply(paths, resolve_workspace_file, character(1))
+
+    if (fmt == "rds") {
+        objs <- base::lapply(file_paths, base::readRDS)
+        if (base::length(objs) == 1L) {
+            return(objs[[1]])
+        }
+        if (base::all(base::vapply(objs, base::is.data.frame, logical(1)))) {
+            return(base::do.call(base::rbind, objs))
+        }
+        openeocraft::api_stop(
+            400,
+            "FormatUnsuitable: multiple RDS files must contain compatible data.frames"
+        )
+    }
+
+    if (!fmt %in% base::c("gtiff", "geotiff", "tif", "tiff")) {
+        openeocraft::api_stop(
+            400,
+            base::paste0("FormatUnsuitable: unsupported input format '", format, "'")
+        )
+    }
+
+    if (!base::requireNamespace("sits", quietly = TRUE)) {
+        openeocraft::api_stop(500, "Package 'sits' is required to load GeoTIFF files")
+    }
+
+    if (base::is.null(options) || !base::is.list(options)) {
+        options <- list()
+    }
+
+    source <- options[["source"]]
+    if (base::is.null(source) || !base::is.character(source) || !base::nzchar(source[[1]])) {
+        source <- "MPC"
+    }
+    collection <- options[["collection"]]
+    if (base::is.null(collection) ||
+        !base::is.character(collection) ||
+        !base::nzchar(collection[[1]])) {
+        collection <- "SENTINEL-2-L2A"
+    }
+    tile <- options[["tile"]]
+    if (base::is.null(tile) || !base::is.character(tile) || !base::nzchar(tile[[1]])) {
+        tile <- "T000000"
+    }
+    base_band <- options[["band"]]
+    if (base::is.null(base_band) ||
+        !base::is.character(base_band) ||
+        !base::nzchar(base_band[[1]])) {
+        base_band <- "B02"
+    }
+    parse_info <- options[["parse_info"]]
+    if (base::is.null(parse_info)) {
+        parse_info <- base::c("X1", "X2", "tile", "band", "date")
+    }
+    delim <- options[["delim"]]
+    if (base::is.null(delim) || !base::is.character(delim) || !base::nzchar(delim[[1]])) {
+        delim <- "_"
+    }
+
+    stage_dir <- base::tempfile("uploaded-cube-")
+    base::dir.create(stage_dir, recursive = TRUE)
+    base::on.exit(base::unlink(stage_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+    staged_bands <- base::character(0)
+    for (i in base::seq_along(file_paths)) {
+        src <- file_paths[[i]]
+        stamp <- base::as.Date(base::file.info(src)$mtime)
+        if (base::is.na(stamp)) {
+            stamp <- base::as.Date("2000-01-01")
+        }
+        band <- base_band
+        if (base::length(file_paths) > 1L) {
+            band <- base::sprintf("B%02d", ((i - 1L) %% 12L) + 1L)
+        }
+        staged_bands <- base::c(staged_bands, band)
+        ext <- tools::file_ext(src)
+        if (!base::nzchar(ext)) {
+            ext <- "tif"
+        }
+        staged_name <- base::paste0(
+            "upl",
+            delim,
+            "wrk",
+            delim,
+            tile,
+            delim,
+            band,
+            delim,
+            base::format(stamp, "%Y-%m-%d"),
+            ".",
+            ext
+        )
+        dst <- base::file.path(stage_dir, staged_name)
+        ok <- base::file.copy(src, dst, overwrite = TRUE)
+        if (!base::isTRUE(ok)) {
+            openeocraft::api_stop(500, base::paste0("Could not stage file: ", base::basename(src)))
+        }
+    }
+
+    base::tryCatch(
+        {
+            sits::sits_cube(
+                source = source[[1]],
+                collection = collection[[1]],
+                data_dir = stage_dir,
+                parse_info = parse_info,
+                delim = delim[[1]],
+                bands = base::unique(staged_bands),
+                multicores = .openeocraft_multicores(),
+                progress = FALSE
+            )
+        },
+        error = function(e) {
+            openeocraft::api_stop(
+                400,
+                base::paste0("FormatUnsuitable: Data can't be loaded with the requested format. ", e$message)
+            )
+        }
+    )
+}
+
+
 # Random Forest classification model spec for ml_fit (sits_rfor).
 #
 # Args:

@@ -278,7 +278,13 @@ new_token <- function(credentials, user, valid_days = 30) {
 #' @rdname credential_helpers
 #' @export
 get_token <- function(req) {
-    gsub("^.*//", "", req$HTTP_AUTHORIZATION)
+    auth <- req$HTTP_AUTHORIZATION
+    if (is.null(auth) || !nzchar(auth)) {
+        return(character())
+    }
+    auth <- trimws(auth)
+    auth <- sub("^Bearer[[:space:]]+", "", auth, ignore.case = TRUE)
+    gsub("^.*//", "", auth)
 }
 #' @rdname credential_helpers
 #' @export
