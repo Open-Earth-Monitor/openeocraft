@@ -22,23 +22,16 @@ jobs:
         with:
           r-version: 'release'
 
-      - name: Install system dependencies (Linux only)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-
-      - name: Cache R packages
-        uses: actions/cache@v3
+      - name: Setup R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-${{ hashFiles('**/DESCRIPTION') }}
-          restore-keys: |
-            ${{ runner.os }}-r-
+          dependencies: '"hard"'
+          extra-packages: |
+            any::remotes
+            any::testthat
 
-      - name: Install dependencies
+      - name: Install openstac (dev with main fallback)
         run: |
-          install.packages(c("remotes", "testthat"))
           tryCatch(
             remotes::install_url("https://github.com/Open-Earth-Monitor/openstac/archive/refs/heads/dev.tar.gz"),
             error = function(e) {
@@ -46,12 +39,17 @@ jobs:
               remotes::install_url("https://github.com/Open-Earth-Monitor/openstac/archive/refs/heads/main.tar.gz")
             }
           )
-          remotes::install_deps(dependencies = TRUE, upgrade = "never")
-          remotes::install_local(".", dependencies = TRUE, upgrade = "never")
+        shell: Rscript {0}
+
+      - name: Install package
+        run: |
+          remotes::install_local(".", dependencies = FALSE, upgrade = "never")
+          if (!requireNamespace("testthat", quietly = TRUE)) {
+            stop("testthat was not installed successfully.")
+          }
         shell: Rscript {0}
 
       - name: Run tests
         run: |
-          library(testthat)
-          test_dir("tests", reporter = "summary")
+          testthat::test_local(reporter = "summary")
         shell: Rscript {0}

@@ -40,6 +40,8 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+Remotes:
+    Open-Earth-Monitor/openstac@dev
 Collate:
     'utils.R'
     'utils-api.R'
