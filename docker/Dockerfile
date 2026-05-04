@@ -59,12 +59,8 @@ RUN Rscript -e "remotes::install_github('Open-Earth-Monitor/openstac', ref = 'de
 RUN Rscript -e "remotes::install_local('/opt/dockerfiles', dependencies = TRUE, upgrade = 'always', verbose = TRUE)" && \
     Rscript -e "if (!require('openeocraft', quietly=TRUE)) stop('openeocraft installation failed')"
 
-# Verify critical packages are installed
-RUN Rscript -e "if (!require('plumber', quietly=TRUE)) stop('plumber is not installed')" && \
-    Rscript -e "if (!require('openstac', quietly=TRUE)) stop('openstac is not installed')" && \
-    Rscript -e "if (!require('openeocraft', quietly=TRUE)) stop('openeocraft is not installed')" && \
-    Rscript -e "if (!require('jsonlite', quietly=TRUE)) stop('jsonlite is not installed')" && \
-    Rscript -e "cat('All critical packages verified successfully\n')"
+# Fail build if any expected runtime package is missing (incl. sits, torch)
+RUN Rscript /opt/dockerfiles/docker/verify-r-deps.R
 
 # cmd or entrypoint for startup
 CMD ["Rscript", "/opt/dockerfiles/docker/server.R"]
