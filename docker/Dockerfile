@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libproj-dev libgdal-dev libgeos-dev \
     libnetcdf-dev libcurl4-openssl-dev libcpprest-dev \
     libsqlite3-dev libboost-all-dev \
-    libsodium-dev libudunits2-dev \
+    libsodium-dev libudunits2-dev libuv1-dev \
     zlib1g-dev libunwind-dev libssl-dev libxml2-dev \
     doxygen graphviz \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -32,7 +32,7 @@ RUN git clone --depth 1 --branch 20230802.1 https://github.com/abseil/abseil-cpp
     cmake --install /tmp/abseil/build && \
     rm -rf /tmp/abseil
 
-ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 RUN R -e "install.packages(c('remotes'), repos='https://cloud.r-project.org')"
 RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
@@ -59,12 +59,8 @@ RUN Rscript -e "remotes::install_github('Open-Earth-Monitor/openstac', ref = 'de
 RUN Rscript -e "remotes::install_local('/opt/dockerfiles', dependencies = TRUE, upgrade = 'always', verbose = TRUE)" && \
     Rscript -e "if (!require('openeocraft', quietly=TRUE)) stop('openeocraft installation failed')"
 
-# Verify critical packages are installed
-RUN Rscript -e "if (!require('plumber', quietly=TRUE)) stop('plumber is not installed')" && \
-    Rscript -e "if (!require('openstac', quietly=TRUE)) stop('openstac is not installed')" && \
-    Rscript -e "if (!require('openeocraft', quietly=TRUE)) stop('openeocraft is not installed')" && \
-    Rscript -e "if (!require('jsonlite', quietly=TRUE)) stop('jsonlite is not installed')" && \
-    Rscript -e "cat('All critical packages verified successfully\n')"
+# Fail build if any expected runtime package is missing (incl. sits, torch)
+RUN Rscript /opt/dockerfiles/docker/verify-r-deps.R
 
 # cmd or entrypoint for startup
 CMD ["Rscript", "/opt/dockerfiles/docker/server.R"]

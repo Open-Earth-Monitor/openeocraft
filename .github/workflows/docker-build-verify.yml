@@ -1,0 +1,41 @@
+name: Docker build verify
+
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+    paths:
+      - "docker/**"
+      - "DESCRIPTION"
+      - "NAMESPACE"
+      - "R/**"
+      - "inst/**"
+
+concurrency:
+  group: docker-verify-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build:
+    name: Build Docker image (no push)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: false
+          tags: openeocraft:verify
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

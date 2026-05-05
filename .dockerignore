@@ -5,6 +5,7 @@
 docker/*
 !docker/plumber.R
 !docker/server.R
+!docker/verify-r-deps.R
 tests/
 *.Rproj
 *.md
