@@ -40,9 +40,12 @@ RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
 # Install basic packages first (these are dependencies for others)
 RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits'), repos='https://cloud.r-project.org')"
 
-# Install torch's Lantern library (required for deep learning models like TempCNN)
-# TORCH_INSTALL=1 auto-confirms the interactive prompt
-RUN TORCH_INSTALL=1 R -e "torch::install_torch()"
+# Install torch's Lantern library (required for deep learning models like TempCNN).
+# TORCH_INSTALL=1 auto-confirms the interactive prompt.
+# The second R call fails the build immediately if install_torch() left Lantern
+# absent — without it, install failures are silent and only surface at runtime.
+RUN TORCH_INSTALL=1 R -e "torch::install_torch()" && \
+    R -e "t <- torch::torch_tensor(1L); stopifnot(as.numeric(t) == 1L); message('Lantern OK')"
 
 
 # create directories
