@@ -15,7 +15,8 @@ on:
       - "inst/**"
 
 concurrency:
-  group: docker-verify-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  group: docker-verify-${{ github.workflow }}-${{ github.event.pull_request.number
+    || github.sha }}
   cancel-in-progress: true
 
 jobs:
