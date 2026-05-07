@@ -129,6 +129,44 @@
     base::as.integer(base::min(usable, cap))
 }
 
+# Best-effort cube dimensions for operator-facing logs (sits raster cube).
+.openeocraft_log_cube_diag <- function(data, label) {
+    if (!base::is.data.frame(data)) {
+        return(base::invisible(NULL))
+    }
+    nr <- base::nrow(data)
+    nb <- base::length(base::tryCatch(
+        sits::sits_bands(data),
+        error = function(...) base::character(0)
+    ))
+    nt <- base::length(base::tryCatch(
+        sits::sits_timeline(data),
+        error = function(...) base::double(0)
+    ))
+    base::message(
+        "[cube_regularize] ",
+        label,
+        ": ",
+        nr,
+        " tile row(s), ",
+        nt,
+        " time label(s), ",
+        nb,
+        " band(s)"
+    )
+    work <- base::as.numeric(nr) * base::as.numeric(nt) * base::as.numeric(nb)
+    if (base::is.finite(work) && work > 5e5) {
+        base::message(
+            "[cube_regularize] Large workload (rows×times×bands ≈ ",
+            base::prettyNum(work, big.mark = ","),
+            "). sits_regularize after copy is usually far slower than copy; ",
+            "narrow spatial_extent / temporal_extent, raise resolution (meters), ",
+            "or select fewer bands (avoid loading all + SCL for ML)."
+        )
+    }
+    base::invisible(NULL)
+}
+
 # Memory budget in GB for sits/torch-style operations.
 #
 # Args:
@@ -2477,8 +2515,10 @@ cube_regularize <- function(data, resolution, period) {
             output_dir = raw_dir
         )
         base::message("[cube_regularize] sits_cube_copy() returned")
+        .openeocraft_log_cube_diag(data, "After local copy (before regularize)")
     }
 
+    .openeocraft_log_cube_diag(data, "Entering sits_regularize")
     # Regularize (often the slowest step: I/O + time-series alignment; progress
     # bars may stall for a long time between updates, especially over AWS/STAC.)
     base::message(
