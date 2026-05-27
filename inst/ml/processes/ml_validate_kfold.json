@@ -1,16 +1,15 @@
 {
   "id": "ml_validate_kfold",
-  "summary": "K-fold cross-validation for ML models",
-  "description": "Evaluates a machine learning model using k-fold cross-validation. The training data is split into k folds, and the model is trained k times, each time using k-1 folds for training and the remaining fold for validation. Returns aggregated performance metrics across all folds.",
+  "summary": "Validate a machine learning model with k-fold cross-validation",
+  "description": "Evaluates a machine learning model using k-fold cross-validation. The training data is split into k folds; the model is trained k times, each time using k-1 folds for training and the remaining fold for validation. Aggregated performance metrics are written to ``metrics.json`` in the job directory. The model is then refit on the full training set and returned with cross-validation scores attached in its metadata, so it can be used directly for prediction with ``ml_predict()`` or persisted with ``save_ml_model()``.",
   "categories": [
-    "machine learning",
-    "model evaluation"
+    "machine learning"
   ],
   "experimental": true,
   "parameters": [
     {
       "name": "model",
-      "description": "An untrained machine learning model object that will be trained and evaluated.",
+      "description": "A machine learning model to evaluate. Must be an untrained model specification (for example from ``mlm_class_random_forest()`` or ``mlm_class_tempcnn()``) that supports cross-validation and training.",
       "schema": {
         "type": "object",
         "subtype": "ml-model"
@@ -18,7 +17,7 @@
     },
     {
       "name": "training_data",
-      "description": "Training samples. Can be provided as a URL to a data file, a local file path, or an inline data object depending on the backend implementation.",
+      "description": "Training samples used for cross-validation and for the final refit. Can be provided as a URL to a data file, a local file path, or an inline data object depending on the backend implementation.",
       "schema": [
         {
           "type": "string",
@@ -39,12 +38,41 @@
     },
     {
       "name": "target",
-      "description": "Name of the target/label column in the data.",
+      "description": "The name of the variable in the training data that serves as the ground truth for evaluation. Set to `null` for unsupervised or self-supervised tasks.",
       "optional": true,
       "default": "label",
-      "schema": {
-        "type": "string"
-      }
+      "schema": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    {
+      "name": "scoring",
+      "description": "One or more metrics to include in ``metrics.json``. Supported overall metrics include 'accuracy', 'kappa', and related confidence statistics. Per-class metrics such as 'f1', 'precision', 'recall', 'sensitivity', and 'specificity' are included when requested.",
+      "optional": true,
+      "default": [
+        "accuracy",
+        "kappa"
+      ],
+      "schema": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     {
       "name": "seed",
@@ -60,26 +88,16 @@
     }
   ],
   "returns": {
-    "description": "Cross-validation results including aggregated performance metrics across all folds.",
+    "description": "The model refit on the full training set, enriched with cross-validation scores in its metadata. The model can be directly used for prediction with ``ml_predict()``.",
     "schema": {
       "type": "object",
-      "subtype": "ml-validation-result",
-      "properties": {
-        "metrics": {
-          "type": "object",
-          "description": "Aggregated performance metrics (accuracy, kappa, etc.) across all folds."
-        },
-        "folds": {
-          "type": "integer",
-          "description": "Number of folds used."
-        }
-      }
+      "subtype": "ml-model"
     }
   },
   "links": [
     {
-      "href": "https://scikit-learn.org/stable/modules/cross_validation.html#k-fold",
-      "title": "Scikit-learn K-Fold Cross-Validation Documentation",
+      "href": "https://doi.org/10.1214/09-SS054",
+      "title": "Arlot & Celisse (2010) - A Survey of Cross-Validation Procedures for Model Selection",
       "type": "text/html",
       "rel": "about"
     }

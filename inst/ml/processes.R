@@ -1752,7 +1752,10 @@ mlm_class_lighttae <- function(epochs = 150,
 
     base::tryCatch(
         {
-            labels <- base::unique(training_obj$label)
+            labels <- sits:::.samples_labels(training_obj)
+            if (base::length(labels) == 0L) {
+                labels <- base::unique(training_obj$label)
+            }
             if (base::length(labels) > 0) {
                 base::attr(trained_model, "mlm_labels") <- labels
             }
@@ -1911,88 +1914,159 @@ ml_predict <- function(data, model) {
     data
 }
 
-# Validate a model spec on training data; write metrics.json STAC sidecar.
+# Normalize openEO validation scoring to a lowercase character vector.
 #
 # Args:
-#   model: mlm_class_* spec with ml_method and ml_args.
-#   training_data, validation_data: Sample sources (see .openeocraft_load_samples).
-#   target: Reserved label column name.
-#   validation_split: Used when cv <= 1.
-#   cv: Folds; if >1 runs sits_kfold_validate.
-#   seed: Optional RNG.
+#   scoring: NULL, a metric name string, or a list/vector of metric names.
 #
 # Returns:
-#   list(metrics = list from metrics.json rows).
+#   Character vector of metric names; defaults to accuracy and kappa when NULL.
 #
 # Raises:
-#   openeocraft::api_stop(400) if model not validatable; load_sample stops.
+#   openeocraft::api_stop(400) when scoring is not string, list, or NULL.
+.openeocraft_normalize_scoring <- function(scoring) {
+    if (base::is.null(scoring)) {
+        return(base::c("accuracy", "kappa"))
+    }
+    if (base::is.character(scoring) && base::length(scoring) == 1L) {
+        return(base::tolower(scoring))
+    }
+    if (base::is.list(scoring) || (base::is.character(scoring) && base::length(scoring) > 1L)) {
+        values <- base::unlist(scoring, use.names = FALSE)
+        if (!base::all(base::is.character(values))) {
+            openeocraft::api_stop(400, "scoring must contain only strings.")
+        }
+        return(base::tolower(values))
+    }
+    openeocraft::api_stop(400, "scoring must be a string, a list of strings, or null.")
+}
+
+# Build a validation metrics payload from a sits/caret accuracy object.
 #
-#* @openeo-process
-ml_validate <- function(model,
-                        training_data,
-                        validation_data = NULL,
-                        target = "label",
-                        validation_split = 0.2,
-                        cv = 5,
-                        seed = NULL) {
-    base::message("[ml_validate] START")
-    base::on.exit(base::message("[ml_validate] END"))
-
-    if (!base::is.null(seed)) {
-        base::set.seed(seed)
-    }
-
-    if (base::is.null(model$ml_method) || base::is.null(model$ml_args)) {
-        openeocraft::api_stop(400, "Model does not support validation.")
-    }
-    ml_method <- base::do.call(model$ml_method, model$ml_args)
-    training_obj <- .openeocraft_load_samples(training_data, "training_data")
-    base::message("[ml_validate] Training samples loaded: ", base::nrow(training_obj))
-
-    validation_obj <- NULL
-    if (!base::is.null(validation_data)) {
-        validation_obj <- .openeocraft_load_samples(validation_data, "validation_data")
-        base::message("[ml_validate] Validation samples loaded: ", base::nrow(validation_obj))
-    }
-
-    base::message("[ml_validate] Running validation...")
-    if (base::is.null(cv) || cv <= 1) {
-        acc_obj <- sits::sits_validate(
-            samples = training_obj,
-            samples_validation = validation_obj,
-            validation_split = validation_split,
-            ml_method = ml_method
-        )
+# Args:
+#   acc_obj: sits_accuracy or confusionMatrix object.
+#   scoring: Metric names (see .openeocraft_normalize_scoring).
+#   method: Validation method label (e.g. "kfold", "holdout").
+#   folds: Optional fold count for cross-validation.
+#
+# Returns:
+#   List with method, scoring, overall, optional by_class, and confusion_matrix.
+.openeocraft_validation_metrics_payload <- function(acc_obj,
+                                                    scoring = NULL,
+                                                    method = "validation",
+                                                    folds = NULL) {
+    scoring <- .openeocraft_normalize_scoring(scoring)
+    acc <- if (base::inherits(acc_obj, "sits_accuracy") ||
+        base::inherits(acc_obj, "confusionMatrix")) {
+        acc_obj
     } else {
-        base::message("[ml_validate] Using ", cv, "-fold cross-validation")
-        acc_obj <- sits::sits_kfold_validate(
-            samples = training_obj,
-            folds = cv,
-            ml_method = ml_method,
-            multicores = .openeocraft_multicores(),
-            progress = FALSE
-        )
+        sits::sits_accuracy(acc_obj)
     }
-
-    summary_df <- .openeocraft_accuracy_summary_df(acc_obj)
-    base::message(
-        "[ml_validate] Validation complete. Accuracy: ",
-        base::round(summary_df$Accuracy[1], 4)
+    summary_df <- .openeocraft_accuracy_summary_df(acc)
+    overall_map <- base::c(
+        accuracy = "Accuracy",
+        kappa = "Kappa",
+        accuracylower = "AccuracyLower",
+        accuracyupper = "AccuracyUpper",
+        accuracynull = "AccuracyNull",
+        accuracypvalue = "AccuracyPValue",
+        mcnemarpvalue = "McnemarPValue"
     )
+    overall_out <- list()
+    if (base::is.data.frame(summary_df) && base::nrow(summary_df) > 0L) {
+        overall_metrics <- base::intersect(scoring, base::names(overall_map))
+        for (metric_name in overall_metrics) {
+            col_name <- overall_map[[metric_name]]
+            if (col_name %in% base::names(summary_df)) {
+                overall_out[[metric_name]] <- summary_df[[col_name]][1]
+            }
+        }
+    }
+    by_class_cols <- base::c(
+        f1 = "F1",
+        precision = "Precision",
+        recall = "Recall",
+        sensitivity = "Sensitivity",
+        specificity = "Specificity",
+        balanced_accuracy = "Balanced Accuracy"
+    )
+    by_class_out <- list()
+    if (!base::is.null(acc[["byClass"]])) {
+        bc <- acc[["byClass"]]
+        if (base::is.matrix(bc)) {
+            bc <- base::as.data.frame(bc, stringsAsFactors = FALSE)
+        }
+        if (base::is.data.frame(bc)) {
+            class_names <- base::rownames(bc)
+            per_class_metrics <- base::intersect(scoring, base::names(by_class_cols))
+            if (base::length(per_class_metrics) > 0L && base::length(class_names) > 0L) {
+                for (i in base::seq_along(class_names)) {
+                    row <- list(
+                        class = base::sub("^Class: ", "", class_names[[i]])
+                    )
+                    for (metric_name in per_class_metrics) {
+                        if (!metric_name %in% base::names(by_class_cols)) {
+                            next
+                        }
+                        col_name <- by_class_cols[[metric_name]]
+                        if (col_name %in% base::colnames(bc)) {
+                            row[[metric_name]] <- bc[i, col_name]
+                        }
+                    }
+                    by_class_out[[base::length(by_class_out) + 1L]] <- row
+                }
+            }
+        }
+    }
+    confusion <- NULL
+    if (!base::is.null(acc[["table"]])) {
+        cm <- base::unclass(base::as.matrix(acc[["table"]]))
+        cm_dimnames <- base::dimnames(cm)
+        if (!base::is.null(cm_dimnames) && base::length(cm_dimnames) >= 2L) {
+            confusion <- list(
+                labels = base::as.character(cm_dimnames[[2]]),
+                predictions = base::as.character(cm_dimnames[[1]]),
+                matrix = cm
+            )
+        }
+    }
+    payload <- list(
+        method = method,
+        scoring = base::as.list(scoring),
+        overall = overall_out
+    )
+    if (!base::is.null(folds)) {
+        payload$folds <- folds
+    }
+    if (base::length(by_class_out) > 0L) {
+        payload$by_class <- by_class_out
+    }
+    if (!base::is.null(confusion)) {
+        payload$confusion_matrix <- confusion
+    }
+    payload
+}
 
+# Write validation metrics.json and register it on the job STAC collection.
+#
+# Args:
+#   metrics_payload: List produced by .openeocraft_validation_metrics_payload().
+#   log_label: Prefix for log messages.
+#
+# Returns:
+#   metrics_payload (same object, for chaining).
+.openeocraft_write_validation_metrics <- function(metrics_payload, log_label) {
     metrics_json <- jsonlite::toJSON(
-        summary_df,
-        dataframe = "rows",
+        metrics_payload,
         auto_unbox = TRUE,
-        digits = 16
+        digits = 16,
+        null = "null"
     )
-
     env <- openeocraft::current_env()
     job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
     host <- openeocraft::get_host(env$api, env$req)
     metrics_file <- base::file.path(job_dir, "metrics.json")
     base::writeLines(metrics_json, metrics_file)
-
     asset_href <- openeocraft::make_job_files_url(
         host = host,
         user = env$user,
@@ -2010,22 +2084,178 @@ ml_validate <- function(model,
     jsonlite::write_json(
         x = collection,
         path = base::file.path(job_dir, "_collection.json"),
-        auto_unbox = TRUE
+        auto_unbox = TRUE,
+        digits = 16
+    )
+    base::message("[", log_label, "] Validation metrics written to metrics.json")
+    metrics_payload
+}
+
+# Attach validation metadata to a trained sits model.
+#
+# Args:
+#   trained_model: Object returned by ml_fit or model$train().
+#   metrics_payload: Validation metrics list.
+#   scoring: Normalized scoring vector.
+#   method: Validation method label.
+#   folds: Optional fold count.
+#
+# Returns:
+#   trained_model with mlm_validation_* attributes set.
+.openeocraft_attach_ml_validation_metadata <- function(trained_model,
+                                                       metrics_payload,
+                                                       scoring,
+                                                       method,
+                                                       folds = NULL) {
+    base::attr(trained_model, "mlm_validation_method") <- method
+    base::attr(trained_model, "mlm_validation_scoring") <- scoring
+    base::attr(trained_model, "mlm_validation_scores") <- metrics_payload$overall
+    base::attr(trained_model, "mlm_validation_metrics") <- metrics_payload
+    if (!base::is.null(folds)) {
+        base::attr(trained_model, "mlm_validation_folds") <- folds
+    }
+    trained_model
+}
+
+# True when x is a trained sits model returned by ml_fit / model$train().
+.openeocraft_is_trained_sits_model <- function(model) {
+    base::is.function(model) &&
+        base::any(base::grepl("_model$", base::class(model)))
+}
+
+# Evaluate a trained sits model on a labelled validation sample set.
+#
+# Args:
+#   trained_model: sits model function from ml_fit or tuning final fit.
+#   validation_obj: sits samples tibble with labels.
+#
+# Returns:
+#   sits_accuracy / confusionMatrix object.
+#
+# Raises:
+#   openeocraft::api_stop(500) if caret is unavailable; sits errors otherwise.
+.openeocraft_validate_trained_model <- function(trained_model, validation_obj) {
+    if (!base::requireNamespace("caret", quietly = TRUE)) {
+        openeocraft::api_stop(500, "Package 'caret' is required for model validation.")
+    }
+    predictors <- sits:::.predictors(
+        samples = validation_obj,
+        ml_model = trained_model
+    )
+    values <- sits:::.pred_features(predictors)
+    values <- trained_model(values)
+    prob_matrix <- base::as.matrix(values)
+    labels <- base::attr(trained_model, "mlm_labels")
+    if (base::is.null(labels) || base::length(labels) != base::ncol(prob_matrix)) {
+        openeocraft::api_stop(
+            400,
+            "Trained model is missing mlm_labels in sits prediction order; refit with ml_fit()."
+        )
+    }
+    predicted_labels <- labels[
+        sits:::C_label_max_prob(prob_matrix)
+    ]
+    predicted <- base::factor(predicted_labels, levels = labels)
+    reference <- base::factor(
+        sits:::.pred_references(predictors),
+        levels = labels
+    )
+    acc_obj <- caret::confusionMatrix(predicted, reference)
+    base::attr(acc_obj, "class") <- base::c(
+        "sits_accuracy",
+        base::class(acc_obj)
+    )
+    acc_obj
+}
+
+# Validate a trained model on a hold-out sample set; write metrics.json sidecar.
+#
+# Args:
+#   model: Trained sits model from ml_fit(), ml_tune_grid(), or ml_tune_random().
+#   validation_set: Sample source (see .openeocraft_load_samples).
+#   target: Reserved label column name.
+#   scoring: Metric name(s) for metrics.json.
+#
+# Returns:
+#   Trained model with mlm_validation_* attributes; metrics.json job asset.
+#
+# Raises:
+#   openeocraft::api_stop(400) if model is not trained; sample load errors.
+#
+#* @openeo-process
+ml_validate <- function(model,
+                        validation_set,
+                        target = "label",
+                        scoring = c("accuracy", "kappa")) {
+    base::message("[ml_validate] START")
+    base::on.exit(base::message("[ml_validate] END"))
+
+    if (!.openeocraft_is_trained_sits_model(model)) {
+        openeocraft::api_stop(
+            400,
+            "model must be a trained ml-model from ml_fit(), ml_tune_grid(), or ml_tune_random()."
+        )
+    }
+
+    validation_obj <- .openeocraft_load_samples(
+        validation_set,
+        param_name = "validation_set",
+        wrap_io_errors = TRUE
+    )
+    base::message(
+        "[ml_validate] Validation samples loaded: ",
+        base::nrow(validation_obj)
     )
 
-    list(
-        metrics = jsonlite::fromJSON(metrics_json, simplifyVector = FALSE)
+    scoring_norm <- .openeocraft_normalize_scoring(scoring)
+    base::message("[ml_validate] Running validation on trained model...")
+    acc_obj <- .openeocraft_validate_trained_model(model, validation_obj)
+
+    metrics_payload <- .openeocraft_validation_metrics_payload(
+        acc_obj,
+        scoring = scoring_norm,
+        method = "holdout",
+        folds = NULL
+    )
+    has_metrics <- base::length(metrics_payload$overall) > 0L ||
+        base::length(metrics_payload$by_class) > 0L ||
+        !base::is.null(metrics_payload$confusion_matrix)
+    if (!has_metrics) {
+        openeocraft::api_stop(
+            400,
+            "None of the requested scoring metrics were found in the validation results."
+        )
+    }
+    if ("accuracy" %in% base::names(metrics_payload$overall)) {
+        base::message(
+            "[ml_validate] Validation complete. Accuracy: ",
+            base::round(metrics_payload$overall$accuracy, 4)
+        )
+    } else {
+        base::message("[ml_validate] Validation complete.")
+    }
+    .openeocraft_write_validation_metrics(metrics_payload, "ml_validate")
+    .openeocraft_attach_ml_validation_metadata(
+        model,
+        metrics_payload,
+        scoring_norm,
+        method = "holdout",
+        folds = NULL
     )
 }
 
-# K-fold cross-validation with fixed fold count; writes metrics.json like ml_validate.
+# K-fold cross-validation; refit on full data and return enriched ml-model.
 #
 # Args:
-#   model: mlm_class_* spec; training_data: sample source; folds: integer >= 2.
-#   target, seed: same semantics as ml_validate.
+#   model: mlm_class_* spec with ml_method, ml_args, and train().
+#   training_data: Sample source (see .openeocraft_load_samples).
+#   folds: Integer >= 2.
+#   target: Reserved label column name.
+#   scoring: Metric name(s) to include in metrics.json (string, list, or NULL).
+#   seed: Optional RNG.
 #
 # Returns:
-#   list(metrics, folds).
+#   Trained sits model with mlm_validation_* attributes; metrics.json job asset.
 #
 # Raises:
 #   openeocraft::api_stop(400) on bad folds or model; sample load errors.
@@ -2035,6 +2265,7 @@ ml_validate_kfold <- function(model,
                               training_data,
                               folds,
                               target = "label",
+                              scoring = c("accuracy", "kappa"),
                               seed = NULL) {
     base::message("[ml_validate_kfold] START")
     base::on.exit(base::message("[ml_validate_kfold] END"))
@@ -2050,6 +2281,10 @@ ml_validate_kfold <- function(model,
     if (base::is.null(model$ml_method) || base::is.null(model$ml_args)) {
         openeocraft::api_stop(400, "Model does not support validation.")
     }
+    if (!base::is.function(model$train)) {
+        openeocraft::api_stop(400, "Model does not support training after validation.")
+    }
+    scoring_norm <- .openeocraft_normalize_scoring(scoring)
     ml_method <- base::do.call(model$ml_method, model$ml_args)
     training_obj <- .openeocraft_load_samples(training_data, "training_data")
     base::message("[ml_validate_kfold] Training samples loaded: ", base::nrow(training_obj))
@@ -2063,48 +2298,44 @@ ml_validate_kfold <- function(model,
         progress = FALSE
     )
 
-    summary_df <- .openeocraft_accuracy_summary_df(acc_obj)
-    base::message(
-        "[ml_validate_kfold] Cross-validation complete. Accuracy: ",
-        base::round(summary_df$Accuracy[1], 4)
+    metrics_payload <- .openeocraft_validation_metrics_payload(
+        acc_obj,
+        scoring = scoring_norm,
+        method = "kfold",
+        folds = folds
     )
-
-    metrics_json <- jsonlite::toJSON(
-        summary_df,
-        dataframe = "rows",
-        auto_unbox = TRUE,
-        digits = 16
-    )
-
-    env <- openeocraft::current_env()
-    job_dir <- openeocraft::job_get_dir(env$api, env$user, env$job$id)
-    host <- openeocraft::get_host(env$api, env$req)
-    metrics_file <- base::file.path(job_dir, "metrics.json")
-    base::writeLines(metrics_json, metrics_file)
-
-    asset_href <- openeocraft::make_job_files_url(
-        host = host,
-        user = env$user,
-        job_id = env$job$id,
-        file = "metrics.json"
-    )
-    collection <- openeocraft::job_empty_collection(env$api, env$user, env$job)
-    collection$assets <- list(
-        metrics = list(
-            href = asset_href,
-            type = "application/json",
-            roles = list("data")
+    has_metrics <- base::length(metrics_payload$overall) > 0L ||
+        base::length(metrics_payload$by_class) > 0L ||
+        !base::is.null(metrics_payload$confusion_matrix)
+    if (!has_metrics) {
+        openeocraft::api_stop(
+            400,
+            "None of the requested scoring metrics were found in the validation results."
         )
-    )
-    jsonlite::write_json(
-        x = collection,
-        path = base::file.path(job_dir, "_collection.json"),
-        auto_unbox = TRUE,
-        digits = 16
-    )
+    }
+    if ("accuracy" %in% base::names(metrics_payload$overall)) {
+        base::message(
+            "[ml_validate_kfold] Cross-validation complete. Accuracy: ",
+            base::round(metrics_payload$overall$accuracy, 4)
+        )
+    } else {
+        base::message("[ml_validate_kfold] Cross-validation complete.")
+    }
+    .openeocraft_write_validation_metrics(metrics_payload, "ml_validate_kfold")
 
-    list(
-        metrics = jsonlite::fromJSON(metrics_json, simplifyVector = FALSE),
+    base::message("[ml_validate_kfold] Refitting model on full training set...")
+    trained_model <- model$train(training_obj)
+    .openeocraft_attach_ml_fit_metadata(
+        trained_model,
+        model,
+        training_obj,
+        ml_args_for_hyperparameters = NULL
+    )
+    .openeocraft_attach_ml_validation_metadata(
+        trained_model,
+        metrics_payload,
+        scoring_norm,
+        method = "kfold",
         folds = folds
     )
 }
