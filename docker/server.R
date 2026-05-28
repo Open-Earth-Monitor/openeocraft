@@ -1,3 +1,8 @@
+# Suppress torch's interactive "Do you want to continue?" prompt before any
+# package load triggers torch's .onLoad hook (via openeocraft -> sits -> torch).
+# Must be set here, before library() calls, for it to take effect in time.
+Sys.setenv(TORCH_INSTALL = "1")
+
 # TO-DO: show R errors into terminal
 # Determine plumber file path - works both locally and in Docker
 docker_path <- "/opt/dockerfiles/docker/plumber.R"

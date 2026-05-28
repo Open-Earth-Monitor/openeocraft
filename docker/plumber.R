@@ -9,6 +9,32 @@
 library(openeocraft)
 library(plumber)
 
+# Ensure torch Lantern binary is present before any ML process tries to use it.
+# install_torch() is a no-op when Lantern is already installed; it only runs the
+# download when the binary is missing (first local run, or a broken Docker build).
+if (requireNamespace("torch", quietly = TRUE)) {
+  lantern_ok <- tryCatch({
+    torch::torch_tensor(1L)
+    TRUE
+  }, error = function(e) FALSE)
+
+  if (!lantern_ok) {
+    message("[startup] Lantern binary not found — running install_torch()...")
+    tryCatch(
+      torch::install_torch(),
+      error = function(e) {
+        warning(
+          "[startup] install_torch() failed: ", conditionMessage(e),
+          "\nTorch-based processes (TempCNN, TAE, LightTAE) will not work.",
+          call. = FALSE
+        )
+      }
+    )
+  } else {
+    message("[startup] torch Lantern OK.")
+  }
+}
+
 # Increase request body size limit (100MB) to handle large payloads
 # such as serialized training datasets in process graphs
 options(plumber.maxRequestSize = 1024 * 1024 * 100)

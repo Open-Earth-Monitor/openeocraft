@@ -59,6 +59,55 @@ test_that("ML processes file eval()s in API sandbox when sits is installed", {
     expect_true(fmt("GTiff"))
     expect_true(fmt("GeoTIFF"))
     expect_false(fmt("netCDF"))
+
+    metrics_fn <- get(
+        ".openeocraft_validation_metrics_payload",
+        envir = ns,
+        inherits = FALSE
+    )
+    data(samples_l8_rondonia_2bands, package = "sits", envir = environment())
+    acc <- sits::sits_kfold_validate(
+        samples_l8_rondonia_2bands,
+        folds = 3L,
+        progress = FALSE
+    )
+    payload <- metrics_fn(
+        acc,
+        scoring = c("accuracy", "kappa", "f1", "precision", "recall"),
+        method = "kfold",
+        folds = 3L
+    )
+    expect_true("accuracy" %in% names(payload$overall))
+    expect_true(length(payload$by_class) > 0L)
+    expect_false(is.null(payload$confusion_matrix))
+    expect_error(jsonlite::toJSON(payload, auto_unbox = TRUE), NA)
+
+    is_trained <- get(
+        ".openeocraft_is_trained_sits_model",
+        envir = ns,
+        inherits = FALSE
+    )
+    validate_trained <- get(
+        ".openeocraft_validate_trained_model",
+        envir = ns,
+        inherits = FALSE
+    )
+    data(samples_l8_rondonia_2bands, package = "sits", envir = environment())
+    n <- nrow(samples_l8_rondonia_2bands)
+    train <- samples_l8_rondonia_2bands[seq_len(floor(n * 0.8)), ]
+    val <- samples_l8_rondonia_2bands[seq(floor(n * 0.8) + 1, n), ]
+    trained <- sits::sits_train(train, sits::sits_rfor(num_trees = 50))
+    base::attr(trained, "mlm_labels") <- sits:::.samples_labels(train)
+    expect_true(is_trained(trained))
+    expect_false(is_trained(list(ml_method = sits::sits_rfor, ml_args = list())))
+    holdout_acc <- validate_trained(trained, val)
+    holdout_payload <- metrics_fn(
+        holdout_acc,
+        scoring = c("accuracy", "kappa", "f1"),
+        method = "holdout"
+    )
+    expect_true("accuracy" %in% names(holdout_payload$overall))
+    expect_error(jsonlite::toJSON(holdout_payload, auto_unbox = TRUE), NA)
 })
 
 test_that("load_uploaded_files process loads RDS from workspace paths", {
