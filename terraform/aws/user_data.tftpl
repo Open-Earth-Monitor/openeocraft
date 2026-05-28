@@ -1,0 +1,92 @@
+#!/bin/bash
+set -euxo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y docker.io awscli jq curl ca-certificates gnupg lsb-release
+
+systemctl enable docker
+systemctl start docker
+
+%{ if swap_size_gb > 0 ~}
+if ! swapon --show | grep -q '/swapfile'; then
+  fallocate -l ${swap_size_gb}G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=$(( ${swap_size_gb} * 1024 ))
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+%{ endif ~}
+
+%{ if enable_gpu ~}
+apt-get install -y "linux-headers-$(uname -r)" || true
+apt-get install -y "nvidia-driver-${nvidia_driver_major}"
+
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+  gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+apt-get update
+apt-get install -y nvidia-container-toolkit
+nvidia-ctk runtime configure --runtime=docker
+systemctl restart docker
+
+for _ in $(seq 1 30); do
+  if nvidia-smi >/var/log/openeocraft-nvidia-smi.log 2>&1; then
+    break
+  fi
+  sleep 10
+done
+%{ endif ~}
+
+WORKSPACE_DIR="/var/openeo/workspace"
+mkdir -p "$WORKSPACE_DIR"
+
+%{ if mount_workspace ~}
+DEVICE="${workspace_device}"
+# Nitro instances expose attached EBS as /dev/nvme*n1 instead of /dev/sdf.
+for _ in $(seq 1 60); do
+  if [ -b "$DEVICE" ]; then
+    break
+  fi
+  NVME_DEVICE="$(lsblk -dn -o NAME,TYPE | awk '$2 == "disk" && $1 != "nvme0n1" { print "/dev/" $1; exit }')"
+  if [ -n "$${NVME_DEVICE:-}" ] && [ -b "$NVME_DEVICE" ]; then
+    DEVICE="$NVME_DEVICE"
+    break
+  fi
+  sleep 5
+done
+
+if [ -b "$DEVICE" ]; then
+  if ! blkid "$DEVICE" >/dev/null 2>&1; then
+    mkfs.ext4 -F "$DEVICE"
+  fi
+  mount "$DEVICE" "$WORKSPACE_DIR"
+  UUID="$(blkid -s UUID -o value "$DEVICE")"
+  grep -q "$UUID" /etc/fstab || echo "UUID=$UUID $WORKSPACE_DIR ext4 defaults,nofail 0 2" >> /etc/fstab
+fi
+%{ endif ~}
+
+docker pull ${docker_image}
+
+docker rm -f openeocraft >/dev/null 2>&1 || true
+
+docker run -d \
+  --name openeocraft \
+  --restart unless-stopped \
+  -p ${api_port}:8000 \
+%{ if enable_gpu ~}
+  --gpus all \
+%{ endif ~}
+  --cpus="${docker_cpus}" \
+%{ if docker_memory_gb > 0 ~}
+  -m ${docker_memory_gb}g \
+%{ endif ~}
+  -v "$WORKSPACE_DIR:/var/openeo/workspace" \
+  ${docker_image}
+
+echo "OpenEOcraft started on port ${api_port}" > /var/log/openeocraft-bootstrap.log

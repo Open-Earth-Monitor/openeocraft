@@ -1,0 +1,27 @@
+# CPU-only fallback (no GPU quota required). Minimum 16 GB RAM for OpenEOcraft.
+# Copy to terraform.tfvars if you cannot launch g4dn instances yet.
+
+aws_region   = "us-east-1"
+project_name = "openeocraft"
+
+key_name = "my-keypair"
+
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+enable_gpu    = false
+instance_type = "t3.xlarge" # 4 vCPU, 16 GB RAM
+
+docker_cpus      = 4
+docker_memory_gb = 14
+
+swap_size_gb             = 0
+root_volume_size_gb      = 50
+workspace_volume_size_gb = 0
+
+docker_image = "brianpondi/openeocraft:latest"
+
+tags = {
+  Environment = "dev"
+  Workload    = "cpu"
+}

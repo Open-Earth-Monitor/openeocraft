@@ -1,0 +1,28 @@
+aws_region   = "us-east-1"
+project_name = "openeocraft-gpu"
+
+# Existing EC2 key pair in the target region (required).
+key_name = "my-keypair"
+
+# Restrict to your public IP: curl -s ifconfig.me → x.x.x.x/32
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+# GPU defaults: g4dn.xlarge = 4 vCPU, 16 GB RAM, 1x NVIDIA T4
+enable_gpu          = true
+instance_type       = "g4dn.xlarge"
+nvidia_driver_major = 535
+
+docker_cpus      = 4
+docker_memory_gb = 14
+
+swap_size_gb             = 0
+root_volume_size_gb      = 120
+workspace_volume_size_gb = 200
+
+docker_image = "brianpondi/openeocraft:latest"
+
+tags = {
+  Environment = "dev"
+  Workload    = "gpu"
+}
