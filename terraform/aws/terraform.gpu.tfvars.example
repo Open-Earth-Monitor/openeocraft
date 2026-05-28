@@ -1,0 +1,28 @@
+# Same as terraform.tfvars.example — GPU is the default configuration.
+# Copy either file to terraform.tfvars and edit key_name + CIDR blocks.
+
+aws_region   = "us-east-1"
+project_name = "openeocraft-gpu"
+
+key_name = "my-keypair"
+
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+enable_gpu          = true
+instance_type       = "g4dn.xlarge"
+nvidia_driver_major = 535
+
+docker_cpus      = 4
+docker_memory_gb = 14
+
+swap_size_gb             = 0
+root_volume_size_gb      = 120
+workspace_volume_size_gb = 200
+
+docker_image = "brianpondi/openeocraft:latest"
+
+tags = {
+  Environment = "dev"
+  Workload    = "gpu"
+}

@@ -163,6 +163,95 @@ docker-compose up
 - Force rebuild and restart: `docker-compose up --build --force-recreate --no-deps -d`
 - Rebuild with no cache: `docker-compose build --no-cache && docker-compose up`
 
+### AWS EC2
+
+OpenEOcraft ships as a Docker image (`brianpondi/openeocraft:latest`). The image targets **linux/amd64** (required for **torch**); use an x86_64 instance, not Graviton/ARM.
+
+1. **Launch an instance** — Ubuntu 22.04 LTS or Amazon Linux 2023 is fine. For ML jobs, size the instance for CPU/RAM (e.g. `c6i.4xlarge` or larger) or use a **GPU** instance (e.g. `g4dn.xlarge`) for TempCNN / torch workloads.
+2. **Security group** — allow inbound **TCP 8000** from your client IP (or from a load balancer). Restrict SSH (22) to your IP only.
+3. **Install Docker** on the instance (Ubuntu example):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo usermod -aG docker "$USER"
+newgrp docker
+```
+
+4. **Run OpenEOcraft** — bind port 8000 and set container CPU/memory so auto-tuning matches your quota (see [Resource guidelines](#resource-guidelines-docker-and-production)):
+
+```bash
+docker run -d --name openeocraft --restart unless-stopped \
+  -p 8000:8000 \
+  --cpus="16" -m 64g \
+  brianpondi/openeocraft:latest
+```
+
+5. **GPU (optional)** — install the [NVIDIA driver](https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/index.html) and [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html), then:
+
+```bash
+docker run -d --name openeocraft --restart unless-stopped \
+  --gpus all -p 8000:8000 \
+  --cpus="8" -m 32g \
+  brianpondi/openeocraft:latest
+```
+
+6. **Connect** — from your laptop: `http://<ec2-public-ip>:8000`. Default basic auth in the shipped image is often `user` / `password` (see [Authentication](#authentication)). For production, put **HTTPS** in front (Application Load Balancer + ACM certificate, or nginx/Caddy on the instance) and replace default credentials.
+
+**Persistence:** job output and workspace data live inside the container unless you mount a volume, e.g.:
+
+```bash
+docker run -d --name openeocraft --restart unless-stopped \
+  -p 8000:8000 -v openeocraft-data:/var/openeo/workspace \
+  brianpondi/openeocraft:latest
+```
+
+#### Terraform (recommended)
+
+For repeatable EC2 provisioning, use the Terraform stack in [`terraform/aws/README.md`](terraform/aws/README.md). Defaults target **GPU** (`g4dn.xlarge`, 16 GB RAM, NVIDIA T4) with NVIDIA drivers and `docker run --gpus all`. See the README for GPU vCPU quota, auth, and CPU fallback (`t3.xlarge`).
+
+```bash
+cd terraform/aws
+cp terraform.tfvars.example terraform.tfvars
+# Set key_name, ssh_cidr_blocks, api_cidr_blocks
+terraform init
+terraform apply
+```
+
+After apply, use the `api_url` output (e.g. `http://54.x.x.x:8000`). Allow 15–20 minutes for GPU bootstrap on first boot.
+
+### Azure Virtual Machine
+
+The same Docker workflow applies on Azure.
+
+1. **Create a VM** — Ubuntu 22.04 LTS, **Standard D** or **Standard E** series for CPU/RAM-heavy jobs, or **NC-series** (e.g. `Standard_NC4as_T4_v3`) for GPU/torch. Choose **x64** (not Arm).
+2. **Network security group** — allow inbound **TCP 8000** (and SSH from your IP).
+3. **Install Docker** (same commands as EC2 above), then run the container:
+
+```bash
+docker run -d --name openeocraft --restart unless-stopped \
+  -p 8000:8000 \
+  --cpus="16" -m 64g \
+  brianpondi/openeocraft:latest
+```
+
+4. **GPU (optional)** — install NVIDIA drivers on the VM and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html), then use `--gpus all` as in the EC2 example.
+5. **Connect** — `http://<vm-public-ip>:8000`. Use a reverse proxy or **Azure Application Gateway** for TLS in production.
+
+**Alternative:** you can run the same image on **Azure Container Instances** or **AKS** if you already use container orchestration; the image, port (`8000`), resource limits, and optional GPU settings are unchanged.
+
+### Production checklist (any cloud)
+
+| Item | Recommendation |
+| ---- | -------------- |
+| **Architecture** | x86_64 / amd64 only |
+| **Port** | 8000 (Plumber listens on `0.0.0.0`) |
+| **Resources** | Set Docker `--cpus` / `-m` (or K8s limits) so sits/torch auto-tuning matches the quota |
+| **Auth** | Do not expose default `user`/`password` on the public internet; configure credentials for your deployment |
+| **TLS** | Terminate HTTPS at a load balancer or reverse proxy |
+| **Storage** | Mount a volume on `/var/openeo/workspace` for job results and uploaded files |
+| **GPU** | NVIDIA driver + Container Toolkit + `docker run --gpus all` |
+
 ## Resource guidelines (Docker and production)
 
 OpenEOcraft does **not** probe the physical host directly. It uses **whatever CPUs and memory the R process sees** (inside the container, that is usually the **cgroup** limit from Docker or Kubernetes).
