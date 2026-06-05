@@ -280,6 +280,36 @@
     stop(err, call. = FALSE)
 }
 
+# Coerce openEO / JSON boolean arguments to a strict logical scalar.
+.openeocraft_as_bool <- function(x, default = FALSE) {
+    if (base::is.null(x)) {
+        return(default)
+    }
+    if (base::is.logical(x) && base::length(x) == 1L) {
+        return(base::isTRUE(x))
+    }
+    if (base::is.character(x) && base::length(x) == 1L) {
+        normalized <- base::tolower(base::trimws(x))
+        if (normalized %in% base::c("true", "t", "1", "yes")) {
+            return(TRUE)
+        }
+        if (normalized %in% base::c("false", "f", "0", "no")) {
+            return(FALSE)
+        }
+    }
+    if (base::is.numeric(x) && base::length(x) == 1L) {
+        return(x != 0)
+    }
+    default
+}
+
+# Detect untrained openEO model specs (mlm_class_* lists), not sits_train output.
+.openeocraft_is_ml_model_spec <- function(x) {
+    base::is.list(x) &&
+        "train" %in% base::names(x) &&
+        base::is.function(x$train)
+}
+
 # Wrap sits_train with start/finish messages and elapsed wall time.
 #
 # sits/torch often drives txtProgressBar to stderr; openEO job logs may show long
@@ -1863,6 +1893,7 @@ ml_fit <- function(model, training_set, target = "label") {
         training_obj,
         ml_args_for_hyperparameters = NULL
     )
+    trained_model
 }
 
 # Classify a cube with a trained model and apply label layer (openEO).
@@ -3540,17 +3571,19 @@ import_ml_model <- function(name, folder) {
 # Args:
 #   data: Trained model with optional mlm_* attributes from ml_fit.
 #   name: Model id / filename stem; options: MLM overrides and optional code_asset.
+#   return_model: If TRUE, return `data` after save (for in-graph chaining); else TRUE/FALSE.
 #
 # Returns:
-#   TRUE on success; FALSE on non-HTTP runtime errors inside tryCatch.
+#   TRUE/FALSE when return_model is FALSE; input model when return_model is TRUE and save succeeds.
 #
 # Raises:
 #   openeocraft::api_stop on validation; rethrows api errors from inner tryCatch.
 #
 #* @openeo-process
-save_ml_model <- function(data, name, options = list()) {
+save_ml_model <- function(data, name, options = list(), return_model = FALSE) {
     base::message("[save_ml_model] START")
     base::on.exit(base::message("[save_ml_model] END"))
+    return_model <- .openeocraft_as_bool(return_model, default = FALSE)
     # Input validation
     if (!base::is.character(name) ||
         base::length(name) != 1 || base::nchar(name) == 0) {
@@ -3560,6 +3593,15 @@ save_ml_model <- function(data, name, options = list()) {
     # Validate data parameter - must be non-null to save
     if (base::is.null(data)) {
         openeocraft::api_stop(400, "Parameter 'data' must be a non-null model object")
+    }
+    if (.openeocraft_is_ml_model_spec(data)) {
+        openeocraft::api_stop(
+            400,
+            paste0(
+                "Parameter 'data' must be a trained model from ml_fit(), ",
+                "not an untrained model specification"
+            )
+        )
     }
 
     # --- Infer MLM metadata from model attributes (set by ml_fit) ---
@@ -3989,6 +4031,13 @@ save_ml_model <- function(data, name, options = list()) {
                 path = public_collection_json_path,
                 auto_unbox = TRUE
             )
+
+            if (return_model) {
+                saved_model <- base::readRDS(file)
+                base::attr(saved_model, "mlm:save_name") <- name
+                base::attr(saved_model, "mlm:save_href") <- model_href
+                return(saved_model)
+            }
 
             return(TRUE)
         },

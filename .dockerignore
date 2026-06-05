@@ -6,6 +6,7 @@ docker/*
 !docker/plumber.R
 !docker/server.R
 !docker/verify-r-deps.R
+!docker/install-torch.R
 tests/
 *.Rproj
 *.md

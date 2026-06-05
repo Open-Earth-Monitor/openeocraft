@@ -41,11 +41,13 @@ RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
 RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits'), repos='https://cloud.r-project.org')"
 
 # Install torch's Lantern library (required for deep learning models like TempCNN).
-# TORCH_INSTALL=1 auto-confirms the interactive prompt.
-# The second R call fails the build immediately if install_torch() left Lantern
-# absent — without it, install failures are silent and only surface at runtime.
-RUN TORCH_INSTALL=1 R -e "torch::install_torch()" && \
-    R -e "t <- torch::torch_tensor(1L); stopifnot(as.numeric(t) == 1L); message('Lantern OK')"
+# TORCH_INSTALL=1 auto-confirms the interactive prompt; CUDA=cpu avoids GPU binary
+# detection on build hosts without NVIDIA drivers. Retries + long timeout help CI
+# survive slow downloads (~170 MB libtorch as of torch 0.17).
+ENV TORCH_INSTALL=1
+ENV CUDA=cpu
+COPY docker/install-torch.R /tmp/install-torch.R
+RUN Rscript /tmp/install-torch.R
 
 
 # create directories
