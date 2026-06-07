@@ -1,0 +1,30 @@
+project_id   = "my-gcp-project"
+region       = "us-central1"
+zone         = "us-central1-a"
+project_name = "openeocraft-gpu"
+
+# Paste the contents of your ~/.ssh/id_ed25519.pub (or id_rsa.pub).
+ssh_public_key = "ssh-ed25519 AAAA... you@host"
+
+# Restrict to your public IP: curl -s ifconfig.me → x.x.x.x/32
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+# GPU defaults: g2-standard-8 = 8 vCPU, 32 GB RAM, 1x NVIDIA L4
+enable_gpu          = true
+machine_type        = "g2-standard-8"
+nvidia_driver_major = 535
+
+docker_cpus      = 8
+docker_memory_gb = 30
+
+swap_size_gb             = 0
+boot_disk_size_gb        = 120
+workspace_disk_size_gb   = 200
+
+docker_image = "brianpondi/openeocraft:latest"
+
+labels = {
+  environment = "dev"
+  workload    = "gpu"
+}

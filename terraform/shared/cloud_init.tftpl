@@ -4,7 +4,7 @@ set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
-apt-get install -y docker.io awscli jq curl ca-certificates gnupg lsb-release
+apt-get install -y docker.io jq curl ca-certificates gnupg lsb-release
 
 systemctl enable docker
 systemctl start docker
@@ -48,7 +48,6 @@ mkdir -p "$WORKSPACE_DIR"
 
 %{ if mount_workspace ~}
 DEVICE="${workspace_device}"
-# Nitro instances expose attached EBS as /dev/nvme*n1 instead of /dev/sdf.
 for _ in $(seq 1 60); do
   if [ -b "$DEVICE" ]; then
     break

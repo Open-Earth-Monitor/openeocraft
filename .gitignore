@@ -14,6 +14,8 @@ workspace
 *.tfplan
 crash.log
 terraform/aws/terraform.tfvars
+terraform/azure/terraform.tfvars
+terraform/gcp/terraform.tfvars
 
 # inst/demo-lps-2025/00_ml_month.ipynb — openEO job downloads
 inst/demo-lps-2025/data/output-month/

@@ -1,0 +1,28 @@
+# CPU-only fallback (no GPU quota required). Minimum 32 GB RAM for OpenEOcraft.
+
+project_id   = "my-gcp-project"
+region       = "us-central1"
+zone         = "us-central1-a"
+project_name = "openeocraft"
+
+ssh_public_key = "ssh-ed25519 AAAA... you@host"
+
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+enable_gpu   = false
+machine_type = "n2-standard-8" # 8 vCPU, 32 GB RAM
+
+docker_cpus      = 8
+docker_memory_gb = 30
+
+swap_size_gb             = 0
+boot_disk_size_gb        = 50
+workspace_disk_size_gb   = 0
+
+docker_image = "brianpondi/openeocraft:latest"
+
+labels = {
+  environment = "dev"
+  workload    = "cpu"
+}

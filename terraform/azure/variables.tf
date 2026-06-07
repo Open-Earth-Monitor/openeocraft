@@ -1,7 +1,7 @@
-variable "aws_region" {
-  description = "AWS region for the OpenEOcraft EC2 instance."
+variable "location" {
+  description = "Azure region for the OpenEOcraft VM."
   type        = string
-  default     = "us-east-1"
+  default     = "eastus"
 }
 
 variable "project_name" {
@@ -10,14 +10,20 @@ variable "project_name" {
   default     = "openeocraft-gpu"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type. Must be x86_64 (no Graviton) for torch/linux/amd64. Default g4dn.2xlarge provides 32 GB RAM and one NVIDIA T4 GPU."
+variable "vm_size" {
+  description = "Azure VM size. Must be x64 (not Arm) for torch/linux/amd64. Default Standard_NC8as_T4_v3 provides 56 GB RAM and one NVIDIA T4 GPU."
   type        = string
-  default     = "g4dn.2xlarge"
+  default     = "Standard_NC8as_T4_v3"
 }
 
-variable "key_name" {
-  description = "Name of an existing EC2 key pair for SSH access."
+variable "admin_username" {
+  description = "Admin username for SSH access."
+  type        = string
+  default     = "azureuser"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key content for VM authentication."
   type        = string
 }
 
@@ -60,7 +66,7 @@ variable "docker_cpus" {
 }
 
 variable "docker_memory_gb" {
-  description = "Memory limit passed to docker run (-m), in gigabytes. Set to 0 to omit the limit. Default 30 GB on a 32 GB g4dn.2xlarge leaves headroom for the OS."
+  description = "Memory limit passed to docker run (-m), in gigabytes. Set to 0 to omit the limit. Default 30 GB on a 32+ GB VM leaves headroom for the OS."
   type        = number
   default     = 30
 
@@ -88,28 +94,16 @@ variable "nvidia_driver_major" {
   default     = 535
 }
 
-variable "root_volume_size_gb" {
-  description = "Root EBS volume size in GB."
+variable "os_disk_size_gb" {
+  description = "OS managed disk size in GB."
   type        = number
   default     = 120
 }
 
-variable "workspace_volume_size_gb" {
-  description = "Optional separate EBS volume for /var/openeo/workspace. Set to 0 to disable."
+variable "workspace_disk_size_gb" {
+  description = "Optional separate managed disk for /var/openeo/workspace. Set to 0 to disable."
   type        = number
   default     = 200
-}
-
-variable "enable_ssm" {
-  description = "Attach an IAM instance profile so you can connect with AWS Systems Manager Session Manager."
-  type        = bool
-  default     = true
-}
-
-variable "associate_public_ip" {
-  description = "Assign a public IPv4 address to the instance."
-  type        = bool
-  default     = true
 }
 
 variable "tags" {

@@ -117,7 +117,7 @@ resource "aws_instance" "openeocraft" {
   associate_public_ip_address = var.associate_public_ip
   iam_instance_profile        = var.enable_ssm ? aws_iam_instance_profile.ssm[0].name : null
 
-  user_data = templatefile("${path.module}/user_data.tftpl", {
+  user_data = templatefile("${path.module}/../shared/cloud_init.tftpl", {
     docker_image        = var.docker_image
     docker_cpus         = var.docker_cpus
     docker_memory_gb    = var.docker_memory_gb
