@@ -39,6 +39,10 @@ locals {
   subnet_id = sort(data.aws_subnets.default.ids)[0]
 }
 
+data "aws_subnet" "selected" {
+  id = local.subnet_id
+}
+
 resource "aws_security_group" "openeocraft" {
   name        = "${local.name_prefix}-sg"
   description = "SSH and OpenEOcraft API access"
@@ -108,6 +112,19 @@ resource "aws_iam_instance_profile" "ssm" {
   role = aws_iam_role.ssm[0].name
 }
 
+resource "aws_ebs_volume" "workspace" {
+  count = var.workspace_volume_size_gb > 0 ? 1 : 0
+
+  availability_zone = data.aws_subnet.selected.availability_zone
+  size              = var.workspace_volume_size_gb
+  type              = "gp3"
+  encrypted         = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-workspace"
+  })
+}
+
 resource "aws_instance" "openeocraft" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
@@ -117,13 +134,13 @@ resource "aws_instance" "openeocraft" {
   associate_public_ip_address = var.associate_public_ip
   iam_instance_profile        = var.enable_ssm ? aws_iam_instance_profile.ssm[0].name : null
 
-  user_data = templatefile("${path.module}/user_data.tftpl", {
+  user_data = templatefile("${path.module}/../shared/cloud_init.tftpl", {
     docker_image        = var.docker_image
     docker_cpus         = var.docker_cpus
     docker_memory_gb    = var.docker_memory_gb
     api_port            = var.api_port
     mount_workspace     = var.workspace_volume_size_gb > 0
-    workspace_device    = "/dev/sdf"
+    workspace_device    = var.workspace_volume_size_gb > 0 ? "/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${aws_ebs_volume.workspace[0].id}" : ""
     enable_gpu          = var.enable_gpu
     nvidia_driver_major = var.nvidia_driver_major
     swap_size_gb        = var.swap_size_gb
@@ -150,19 +167,6 @@ resource "aws_instance" "openeocraft" {
   lifecycle {
     ignore_changes = [ami]
   }
-}
-
-resource "aws_ebs_volume" "workspace" {
-  count = var.workspace_volume_size_gb > 0 ? 1 : 0
-
-  availability_zone = aws_instance.openeocraft.availability_zone
-  size              = var.workspace_volume_size_gb
-  type              = "gp3"
-  encrypted         = true
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-workspace"
-  })
 }
 
 resource "aws_volume_attachment" "workspace" {

@@ -2,7 +2,7 @@
 
 This stack provisions a single **x86_64** EC2 instance in the **default VPC**, installs Docker via cloud-init, installs the **NVIDIA driver + NVIDIA Container Toolkit** (GPU mode), pulls the OpenEOcraft image, and starts the API on port **8000**.
 
-**Default target:** `g4dn.xlarge` (4 vCPU, **16 GB RAM**, 1× NVIDIA T4) with `docker run --gpus all`.
+**Default target:** `g4dn.2xlarge` (8 vCPU, **32 GB RAM**, 1× NVIDIA T4) with `docker run --gpus all`.
 
 ## Prerequisites
 
@@ -69,7 +69,7 @@ request a quota increase:
 
 1. AWS Console → **Service Quotas** → region **us-east-1**
 2. **Amazon EC2** → **Running On-Demand G and VT instances**
-3. **Request increase at account-level** → at least **4 vCPUs** (one `g4dn.xlarge`)
+3. **Request increase at account-level** → at least **8 vCPUs** (one `g4dn.2xlarge`)
 
 Or CLI:
 
@@ -79,7 +79,7 @@ aws service-quotas request-service-quota-increase \
   --region us-east-1 \
   --service-code ec2 \
   --quota-code L-DB2E81BA \
-  --desired-value 4
+  --desired-value 8
 ```
 
 Check status:
@@ -93,7 +93,7 @@ aws service-quotas get-service-quota \
   --query 'Quota.Value'
 ```
 
-Wait until the value is **≥ 4** and the request status is **APPROVED**, then `terraform apply` again.
+Wait until the value is **≥ 8** and the request status is **APPROVED**, then `terraform apply` again.
 
 ## What gets created
 
@@ -108,27 +108,27 @@ The stack uses the **default VPC** and the first available subnet. For productio
 
 ## Variables
 
-See [`variables.tf`](variables.tf). Defaults target GPU with **16 GB instance RAM**:
+See [`variables.tf`](variables.tf). Defaults target GPU with **32 GB instance RAM**:
 
 | Variable | Default | Notes |
 | -------- | ------- | ----- |
 | `enable_gpu` | `true` | Installs NVIDIA stack; container runs with `--gpus all` |
-| `instance_type` | `g4dn.xlarge` | 4 vCPU, **16 GB RAM**, 1× T4; x86_64 only (no Graviton) |
-| `docker_cpus` / `docker_memory_gb` | `4` / `14` | Container limits; 14 GB leaves ~2 GB for the OS on g4dn.xlarge |
+| `instance_type` | `g4dn.2xlarge` | 8 vCPU, **32 GB RAM**, 1× T4; x86_64 only (no Graviton) |
+| `docker_cpus` / `docker_memory_gb` | `8` / `30` | Container limits; 30 GB leaves ~2 GB for the OS on g4dn.2xlarge |
 | `nvidia_driver_major` | `535` | Ubuntu driver package during bootstrap |
 | `root_volume_size_gb` | `120` | Root disk for OS, drivers, Docker image |
 | `workspace_volume_size_gb` | `200` | Set to `0` to skip separate data volume |
-| `swap_size_gb` | `0` | Only for very small CPU fallbacks (e.g. `t3.micro`) |
+| `swap_size_gb` | `0` | Only for very small CPU fallbacks |
 | `enable_ssm` | `true` | `aws ssm start-session --target <instance-id>` |
 
 ### CPU fallback (no GPU quota yet)
 
-Use at least **16 GB RAM** for OpenEOcraft (torch + sits). Copy [`terraform.cpu.tfvars.example`](terraform.cpu.tfvars.example):
+Use at least **32 GB RAM** for OpenEOcraft (torch + sits). Copy [`terraform.cpu.tfvars.example`](terraform.cpu.tfvars.example):
 
 ```hcl
 enable_gpu    = false
-instance_type = "t3.xlarge"   # 16 GB RAM
-docker_memory_gb = 14
+instance_type = "m5.2xlarge"   # 32 GB RAM
+docker_memory_gb = 30
 ```
 
 Do **not** use `t3.micro` / `t3.small` — the container will OOM or never become reachable.
@@ -167,7 +167,7 @@ curl -s -o /dev/null -w "%{http_code}\n" $(terraform output -raw api_url)
 | Bootstrap still running | `sudo tail -f /var/log/cloud-init-output.log` — wait 15–20 min |
 | Wrong IP in security group | `curl -s ifconfig.me` → update CIDRs in `terraform.tfvars` → `terraform apply` |
 | Container crashed | `sudo docker ps -a` and `sudo docker logs openeocraft` |
-| Instance too small | Use `g4dn.xlarge` or `t3.xlarge` (16 GB RAM minimum) |
+| Instance too small | Use `g4dn.2xlarge` or `m5.2xlarge` (32 GB RAM minimum) |
 | GPU quota pending | Wait for G/VT vCPU quota approval |
 
 ## Remote state (recommended for teams)
@@ -178,8 +178,8 @@ Uncomment the `backend "s3"` block in [`versions.tf`](versions.tf) and create an
 
 | Instance | Approx. cost (us-east-1) |
 | -------- | -------------------------- |
-| `g4dn.xlarge` | ~$0.50+/hr + EBS |
-| `t3.xlarge` (CPU fallback) | ~$0.17/hr |
+| `g4dn.2xlarge` | ~$0.75+/hr + EBS |
+| `m5.2xlarge` (CPU fallback) | ~$0.38/hr |
 
 Stop charges when finished:
 
