@@ -1,0 +1,42 @@
+name: Terraform validate
+
+on:
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - "terraform/**"
+  push:
+    branches:
+      - dev
+    paths:
+      - "terraform/**"
+
+concurrency:
+  group: terraform-validate-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate ${{ matrix.cloud }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, azure, gcp]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+
+      - name: Terraform init
+        working-directory: terraform/${{ matrix.cloud }}
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: terraform/${{ matrix.cloud }}
+        run: terraform validate

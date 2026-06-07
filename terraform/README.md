@@ -10,7 +10,7 @@ All defaults target **at least 32 GB instance RAM** (30 GB container limit, leav
 | Azure | [`azure/`](azure/) | `Standard_NC8as_T4_v3` (56 GB, 1× T4) | `Standard_D8s_v5` (32 GB) |
 | GCP | [`gcp/`](gcp/) | `g2-standard-8` (32 GB, 1× L4) | `n2-standard-8` (32 GB) |
 
-Bootstrap scripts live in [`shared/cloud_init.tftpl`](shared/cloud_init.tftpl) and are shared across clouds.
+Bootstrap scripts live in [`shared/cloud_init.tftpl`](shared/cloud_init.tftpl) and are shared across clouds. Workspace disks are mounted only via stable cloud-specific device paths (never heuristic disk guessing); if the data disk is not ready, bootstrap falls back to a directory on the root filesystem.
 
 ## Quick start
 

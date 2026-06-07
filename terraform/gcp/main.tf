@@ -20,7 +20,7 @@ locals {
     docker_memory_gb    = var.docker_memory_gb
     api_port            = var.api_port
     mount_workspace     = var.workspace_disk_size_gb > 0
-    workspace_device    = "/dev/sdb"
+    workspace_device    = "/dev/disk/by-id/google-workspace"
     enable_gpu          = var.enable_gpu
     nvidia_driver_major = var.nvidia_driver_major
     swap_size_gb        = var.swap_size_gb
