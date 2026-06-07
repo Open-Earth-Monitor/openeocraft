@@ -4,7 +4,7 @@ set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
-apt-get install -y docker.io awscli jq curl ca-certificates gnupg lsb-release
+apt-get install -y docker.io jq curl ca-certificates gnupg lsb-release
 
 systemctl enable docker
 systemctl start docker
@@ -47,21 +47,18 @@ WORKSPACE_DIR="/var/openeo/workspace"
 mkdir -p "$WORKSPACE_DIR"
 
 %{ if mount_workspace ~}
-DEVICE="${workspace_device}"
-# Nitro instances expose attached EBS as /dev/nvme*n1 instead of /dev/sdf.
+DEVICE=""
 for _ in $(seq 1 60); do
-  if [ -b "$DEVICE" ]; then
-    break
-  fi
-  NVME_DEVICE="$(lsblk -dn -o NAME,TYPE | awk '$2 == "disk" && $1 != "nvme0n1" { print "/dev/" $1; exit }')"
-  if [ -n "$${NVME_DEVICE:-}" ] && [ -b "$NVME_DEVICE" ]; then
-    DEVICE="$NVME_DEVICE"
+  if [ -b "${workspace_device}" ]; then
+    DEVICE="${workspace_device}"
     break
   fi
   sleep 5
 done
 
-if [ -b "$DEVICE" ]; then
+if [ -z "$DEVICE" ]; then
+  echo "WARNING: workspace device ${workspace_device} not found after waiting; using $WORKSPACE_DIR on root filesystem" >> /var/log/openeocraft-bootstrap.log
+elif ! mountpoint -q "$WORKSPACE_DIR"; then
   if ! blkid "$DEVICE" >/dev/null 2>&1; then
     mkfs.ext4 -F "$DEVICE"
   fi
