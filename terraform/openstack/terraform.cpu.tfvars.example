@@ -1,0 +1,31 @@
+# CPU-only default (32+ GB RAM). Copy to terraform.tfvars and set flavor_name for your cloud.
+
+region       = ""
+project_name = "openeocraft"
+
+key_pair_name = "my-keypair"
+
+flavor_name = "m1.8xlarge"
+image_name  = "Ubuntu 22.04"
+
+external_network_name = "public"
+floating_ip_pool      = "public"
+
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+enable_gpu = false
+
+docker_cpus      = 8
+docker_memory_gb = 30
+
+swap_size_gb             = 0
+root_volume_size_gb      = 50
+workspace_volume_size_gb = 0
+
+docker_image = "brianpondi/openeocraft:latest"
+
+tags = {
+  Environment = "dev"
+  Workload    = "cpu"
+}

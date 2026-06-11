@@ -208,10 +208,10 @@ docker run -d --name openeocraft --restart unless-stopped \
 
 #### Terraform (recommended)
 
-For repeatable cloud provisioning, use the Terraform stacks in [`terraform/README.md`](terraform/README.md). Defaults target **GPU with at least 32 GB RAM** on AWS (`g4dn.2xlarge`), Azure (`Standard_NC8as_T4_v3`), and GCP (`g2-standard-8`), with NVIDIA drivers and `docker run --gpus all`. See each cloud README for quota, auth, and CPU fallbacks.
+For repeatable cloud provisioning, use the Terraform stacks in [`terraform/README.md`](terraform/README.md). Defaults target **GPU with at least 32 GB RAM** on AWS, Azure, and GCP; OpenStack uses a configurable `flavor_name` with a **32 GB RAM minimum**. See each cloud README for quota, auth, and CPU fallbacks.
 
 ```bash
-cd terraform/aws    # or azure/ or gcp/
+cd terraform/aws    # or azure/, gcp/, or openstack/
 cp terraform.tfvars.example terraform.tfvars
 # Set credentials, key pair / SSH key, ssh_cidr_blocks, api_cidr_blocks
 terraform init
