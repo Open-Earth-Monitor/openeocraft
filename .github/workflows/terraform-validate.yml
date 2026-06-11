@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cloud: [aws, azure, gcp]
+        cloud: [aws, azure, gcp, openstack]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

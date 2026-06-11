@@ -1,0 +1,33 @@
+region       = ""
+project_name = "openeocraft"
+
+# Existing Nova key pair (required).
+key_pair_name = "my-keypair"
+
+# Pick a flavor with >= 32 GB RAM on your cloud: openstack flavor list
+flavor_name = "m1.8xlarge"
+image_name  = "Ubuntu 22.04"
+
+# External network / floating IP pool on your OpenStack (often "public" or "ext-net").
+external_network_name = "public"
+floating_ip_pool      = "public"
+
+# Restrict to your public IP: curl -s ifconfig.me → x.x.x.x/32
+ssh_cidr_blocks = ["203.0.113.10/32"]
+api_cidr_blocks = ["203.0.113.10/32"]
+
+enable_gpu = false
+
+docker_cpus      = 8
+docker_memory_gb = 30
+
+swap_size_gb             = 0
+root_volume_size_gb      = 120
+workspace_volume_size_gb = 200
+
+docker_image = "brianpondi/openeocraft:latest"
+
+tags = {
+  Environment = "dev"
+  Workload    = "cpu"
+}
