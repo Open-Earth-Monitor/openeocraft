@@ -4,7 +4,7 @@
 
 pkgs <- c(
   "gdalcubes", "plumber", "useful", "s2", "sf", "rstac", "geojsonsf",
-  "jsonlite", "base64enc", "ids", "callr", "sits",
+  "jsonlite", "base64enc", "ids", "callr", "sits", "caret",
   "torch",
   "openstac", "openeocraft",
   "swagger"

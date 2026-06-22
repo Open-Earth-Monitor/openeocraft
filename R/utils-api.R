@@ -97,8 +97,23 @@ api_success <- function(status, ...) {
 }
 #' @rdname api_helpers
 #' @export
+.openeocraft_default_api_base_url <- function() {
+    env_host <- Sys.getenv("OPENEOCRAFT_API_BASE_URL", unset = "")
+    if (nzchar(env_host)) {
+        return(env_host)
+    }
+    if (file.exists("/.dockerenv")) {
+        return("http://127.0.0.1:8000")
+    }
+    NULL
+}
+
 get_host <- function(api, req) {
     host <- api_attr(api, "api_base_url")
+    if (!is.null(host) && nzchar(host)) {
+        return(host)
+    }
+    host <- .openeocraft_default_api_base_url()
     if (!is.null(host)) {
         return(host)
     }
