@@ -66,16 +66,30 @@ file <- system.file("ml/db.rds", package = "openeocraft")
 stac_api <- openstac::set_db(stac_api, driver = "local", file = file)
 
 # Create openEO API object
+work_dir <- if (file.exists("/.dockerenv")) {
+  "/var/openeo"
+} else {
+  "~/openeo-tests"
+}
+
 api <- create_openeo_v1(
   id = "openeocraft",
   title = "openEO compliant R backend",
   description = "OpenEOcraft offers a robust R framework designed for the development and deployment of openEO API applications.",
   backend_version = "0.3.1",
   stac_api = stac_api,
-  work_dir = "~/openeo-tests",
+  work_dir = work_dir,
   conforms_to = NULL,
   production = FALSE
 )
+
+api_base_url <- Sys.getenv("OPENEOCRAFT_API_BASE_URL", unset = "")
+if (!nzchar(api_base_url) && file.exists("/.dockerenv")) {
+  api_base_url <- "http://127.0.0.1:8000"
+}
+if (nzchar(api_base_url)) {
+  assign("api_base_url", api_base_url, envir = attr(api, "env"))
+}
 
 # set_credentials(api, file = "~/openeo-tests/openeo-credentials.rds")
 set_credentials(api, file = "~/openeo-credentials.rds")

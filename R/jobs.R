@@ -124,19 +124,15 @@ job_del_dir <- function(api, user, job_id) {
 }
 
 procs_read_rds <- function(api) {
-    file <- file.path(api_workdir(api), "procs.rds")
-    if (!file.exists(file)) {
+    procs <- api_attr(api, "bg_procs")
+    if (is.null(procs)) {
         return(list())
     }
-    procs <- readRDS(file)
     procs
 }
 
 procs_save_rds <- function(api, procs) {
-    file <- file.path(api_workdir(api), "procs.rds")
-    tryCatch(saveRDS(procs, file), error = function(e) {
-        api_stop(500, "Could not save the procs file")
-    })
+    api_attr(api, "bg_procs") <- procs
     invisible(NULL)
 }
 logs_read_rds <- function(api, user, job_id) {
@@ -211,16 +207,79 @@ job_async <- function(api, req, user, job_id) {
     job_dir <- job_get_dir(api, user, job_id)
     # Update job status
     job_upd_status(api, user, job_id, "running")
+    cmdargs <- c("--slave", "--no-save", "--no-restore")
     proc <- suppressMessages(callr::r_bg(
-        func = function(api, req, user, job_id) {
-            openeocraft::job_sync(api, req, user, job_id)
+        func = function(user, job_id) {
+            api <- openeocraft:::.openeocraft_worker_api()
+            openeocraft::job_sync(api, req = list(), user = user, job_id = job_id)
         },
-        args = list(api, req, user, job_id),
+        args = list(user, job_id),
+        cmdargs = cmdargs,
         stdout = file.path(job_dir, "_stdout.log"),
         stderr = file.path(job_dir, "_stderr.log"),
-        poll_connection = FALSE
+        poll_connection = FALSE,
+        supervise = TRUE
     ))
     proc
+}
+
+#' Mark running jobs as error when the callr worker has died.
+#'
+#' @keywords internal
+job_reconcile_bg_process <- function(api, user, job_id) {
+    jobs <- job_read_rds(api, user)
+    if (!(job_id %in% names(jobs))) {
+        return(NULL)
+    }
+    job <- jobs[[job_id]]
+    if (!(job$status %in% c("running", "created"))) {
+        return(job)
+    }
+    procs <- procs_read_rds(api)
+    proc <- procs[[job_id]]
+    worker_dead <- is.null(proc)
+    if (!worker_dead) {
+        worker_dead <- !tryCatch(proc$is_alive(), error = function(e) FALSE)
+    }
+    if (!worker_dead) {
+        return(job)
+    }
+    created <- tryCatch(
+        as.POSIXct(job$created, tz = "UTC"),
+        error = function(e) NA
+    )
+    if (!is.na(created)) {
+        age_sec <- as.numeric(difftime(Sys.time(), created, units = "secs"))
+        if (age_sec < 15) {
+            return(job)
+        }
+    }
+    exit_code <- tryCatch(proc$get_exit_code(), error = function(e) NA_integer_)
+    log_path <- file.path(job_get_dir(api, user, job_id), "_stderr.log")
+    tail_err <- character(0)
+    if (file.exists(log_path)) {
+        lines <- readLines(log_path, warn = FALSE)
+        lines <- lines[nzchar(lines)]
+        if (length(lines)) {
+            tail_err <- tail(lines, 3L)
+        }
+    }
+    msg <- paste(
+        c(
+            sprintf(
+                "Background worker exited unexpectedly (exit code %s).",
+                exit_code
+            ),
+            tail_err
+        ),
+        collapse = "\n"
+    )
+    log_append(api, user, job_id, 100L, "error", msg)
+    job_upd_status(api, user, job_id, .job_status_error)
+    procs[[job_id]] <- NULL
+    procs_save_rds(api, procs)
+    jobs <- job_read_rds(api, user)
+    jobs[[job_id]]
 }
 #' @rdname job_helpers
 #' @export

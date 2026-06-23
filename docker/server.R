@@ -3,6 +3,35 @@
 # Must be set here, before library() calls, for it to take effect in time.
 Sys.setenv(TORCH_INSTALL = "1")
 
+# Limit BLAS/torch threads before any worker forks (sits_regularize uses multicore).
+Sys.setenv(
+  OMP_NUM_THREADS = Sys.getenv("OMP_NUM_THREADS", "1"),
+  MKL_NUM_THREADS = Sys.getenv("MKL_NUM_THREADS", "1"),
+  OPENBLAS_NUM_THREADS = Sys.getenv("OPENBLAS_NUM_THREADS", "1"),
+  TORCH_NUM_THREADS = Sys.getenv("TORCH_NUM_THREADS", "1")
+)
+
+# Plumber parent only; callr job workers pick up OPENEOCRAFT_* via processes.R + .onLoad.
+if (file.exists("/.dockerenv")) {
+  options(
+    openeocraft.resource_fraction = as.numeric(
+      Sys.getenv("OPENEOCRAFT_RESOURCE_FRACTION", "0.5")
+    ),
+    openeocraft.multicores_max = as.integer(
+      Sys.getenv("OPENEOCRAFT_MULTICORES_MAX", "4")
+    ),
+    openeocraft.memsize = as.integer(Sys.getenv("OPENEOCRAFT_MEMSIZE", "16")),
+    openeocraft.memsize_auto = FALSE
+  )
+  message(
+    "[startup] Docker resource limits: multicores_max=",
+    getOption("openeocraft.multicores_max"),
+    ", memsize=",
+    getOption("openeocraft.memsize"),
+    " GB"
+  )
+}
+
 # TO-DO: show R errors into terminal
 # Determine plumber file path - works both locally and in Docker
 docker_path <- "/opt/dockerfiles/docker/plumber.R"

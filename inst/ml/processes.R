@@ -22,12 +22,33 @@
 #   Numeric scalar in [0.05, 1], from getOption("openeocraft.resource_fraction")
 #   or 0.75 when unset/invalid.
 .openeocraft_resource_fraction <- function() {
+    env_frac <- base::Sys.getenv("OPENEOCRAFT_RESOURCE_FRACTION", unset = "")
+    if (base::nzchar(env_frac)) {
+        f <- base::suppressWarnings(base::as.numeric(env_frac))
+        if (base::is.finite(f)) {
+            return(base::min(1, base::max(0.05, f)))
+        }
+    }
     f <- base::getOption("openeocraft.resource_fraction", 0.75)
     if (!base::is.numeric(f) || base::length(f) != 1L || base::is.na(f)) {
         return(0.75)
     }
     f <- base::as.numeric(f)
     base::min(1, base::max(0.05, f))
+}
+
+.openeocraft_in_docker <- function() {
+    base::file.exists("/.dockerenv")
+}
+
+.openeocraft_skip_cube_copy <- function() {
+    if (!.openeocraft_in_docker()) {
+        return(FALSE)
+    }
+    base::identical(
+        base::tolower(base::Sys.getenv("OPENEOCRAFT_SKIP_CUBE_COPY", "true")),
+        "true"
+    )
 }
 
 # Total system RAM in gigabytes (best effort across OS APIs).
@@ -104,6 +125,11 @@
 # Returns:
 #   Positive integer; at least 1, at most getOption("openeocraft.multicores_max", 16L).
 .openeocraft_multicores <- function() {
+    # sits uses fork-based parallel workers; in Docker they often die (OOM /
+    # amd64 emulation) and leave zombie R while the job hangs at ~0% CPU.
+    if (.openeocraft_in_docker()) {
+        return(1L)
+    }
     frac <- .openeocraft_resource_fraction()
     cores <- base::tryCatch(
         parallel::detectCores(logical = FALSE),
@@ -116,6 +142,13 @@
     }
     usable <- base::max(1L, base::as.integer(base::floor(cores * frac)))
     cap <- base::getOption("openeocraft.multicores_max", 16L)
+    env_cap <- base::Sys.getenv("OPENEOCRAFT_MULTICORES_MAX", unset = "")
+    if (base::nzchar(env_cap)) {
+        env_cap <- base::suppressWarnings(base::as.integer(env_cap))
+        if (!base::is.na(env_cap) && env_cap >= 1L) {
+            cap <- env_cap
+        }
+    }
     if (!base::is.numeric(cap) || base::length(cap) != 1L || base::is.na(cap)) {
         cap <- 16L
     }
@@ -176,6 +209,13 @@
 #   Integer GB: explicit openeocraft.memsize, or auto from total RAM * fraction,
 #   or 8 when auto is off or detection fails (clamped to [1, 256] when auto).
 .openeocraft_memsize <- function() {
+    env_mem <- base::Sys.getenv("OPENEOCRAFT_MEMSIZE", unset = "")
+    if (base::nzchar(env_mem)) {
+        mem <- base::suppressWarnings(base::as.integer(env_mem))
+        if (!base::is.na(mem) && mem >= 1L) {
+            return(mem)
+        }
+    }
     explicit <- base::getOption("openeocraft.memsize", NULL)
     if (!base::is.null(explicit)) {
         mem <- explicit
@@ -2763,21 +2803,27 @@ cube_regularize <- function(data, resolution, period) {
         "source" %in% base::names(data) &&
         !base::all(data$source == "LOCAL")
     if (is_remote) {
-        raw_dir <- base::file.path(job_dir, "raw")
-        if (!base::dir.exists(raw_dir)) {
-            base::dir.create(raw_dir, recursive = TRUE)
+        if (!.openeocraft_skip_cube_copy()) {
+            raw_dir <- base::file.path(job_dir, "raw")
+            if (!base::dir.exists(raw_dir)) {
+                base::dir.create(raw_dir, recursive = TRUE)
+            }
+            base::message(
+                "[cube_regularize] sits_cube_copy(multicores=", mc, ") ..."
+            )
+            data <- sits::sits_cube_copy(
+                cube = data,
+                roi = roi,
+                multicores = mc,
+                output_dir = raw_dir
+            )
+            base::message("[cube_regularize] sits_cube_copy() returned")
+            .openeocraft_log_cube_diag(data, "After local copy (before regularize)")
+        } else {
+            base::message(
+                "[cube_regularize] Skipping sits_cube_copy (Docker / OPENEOCRAFT_SKIP_CUBE_COPY)"
+            )
         }
-        base::message(
-            "[cube_regularize] sits_cube_copy(multicores=", mc, ") ..."
-        )
-        data <- sits::sits_cube_copy(
-            cube = data,
-            roi = roi,
-            multicores = mc,
-            output_dir = raw_dir
-        )
-        base::message("[cube_regularize] sits_cube_copy() returned")
-        .openeocraft_log_cube_diag(data, "After local copy (before regularize)")
     }
 
     .openeocraft_log_cube_diag(data, "Entering sits_regularize")
