@@ -1,5 +1,13 @@
 # OpenEOcraft
 
+[![Unit Tests](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/tests.yml/badge.svg?branch=dev)](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/tests.yml)
+[![Docker build](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/docker-build-verify.yml/badge.svg?branch=dev)](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/docker-build-verify.yml)
+[![Terraform validate](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/terraform-validate.yml/badge.svg?branch=dev)](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/terraform-validate.yml)
+[![Docker publish](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/docker-compose-workflow.yml/badge.svg?branch=deploy)](https://github.com/Open-Earth-Monitor/openeocraft/actions/workflows/docker-compose-workflow.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/brianpondi/openeocraft.svg)](https://hub.docker.com/r/brianpondi/openeocraft)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![R](https://img.shields.io/badge/R-%3E%3D4.5.0-blue)](https://www.r-project.org/)
+
 **OpenEOcraft** is a generic R-based framework for Earth observation (EO) data cube analysis that plugs into the [openEO](https://openeo.org/) ecosystem. It connects R’s geospatial, statistical, and machine learning stacks to openEO clients (R, Python, Julia, JavaScript, Web Editor) through a standard REST API and process graphs, with STAC-oriented data discovery where configured. Compared with backends tied to a single cube engine, OpenEOcraft is built for **multi-library** workflows (e.g. [sits](https://github.com/e-sensing/sits), [stars](https://r-spatial.github.io/stars/), [terra](https://rspatial.org/terra/), [gdalcubes](https://github.com/appelmar/gdalcubes)) under one openEO-compliant surface.
 
 The implementation follows a modular layout: an **R execution engine**, a **process graph translation core**, and a **REST API** (Plumber). A central extension point is the **decorator-based process registry**: R functions tagged with `#* @openeo-process` are discovered at startup, paired with JSON process definitions, and exposed on `/processes` for clients.
