@@ -16,7 +16,6 @@ services:
       OPENEOCRAFT_MEMSIZE: "16"
       OPENEOCRAFT_RESOURCE_FRACTION: "0.5"
       OPENEOCRAFT_API_BASE_URL: "http://127.0.0.1:8000"
-    cpus: "8"
     mem_limit: 32g
     container_name: openeocraft
     ports:
