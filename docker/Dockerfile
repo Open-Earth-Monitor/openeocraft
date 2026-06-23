@@ -5,6 +5,13 @@ FROM --platform=${BUILD_PLATFORM} r-base:4.5.0
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 ENV CXXFLAGS="-O2 -pipe -std=gnu++17"
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
+ENV TORCH_NUM_THREADS=1
+ENV OPENEOCRAFT_MULTICORES_MAX=4
+ENV OPENEOCRAFT_MEMSIZE=16
+ENV OPENEOCRAFT_RESOURCE_FRACTION=0.5
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates gnupg apt-transport-https \
@@ -18,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnetcdf-dev libcurl4-openssl-dev libcpprest-dev \
     libsqlite3-dev libboost-all-dev \
     libsodium-dev libudunits2-dev libuv1-dev \
+    libharfbuzz-dev libfribidi-dev libfreetype6-dev \
     zlib1g-dev libunwind-dev libssl-dev libxml2-dev \
     doxygen graphviz \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -38,7 +46,7 @@ RUN R -e "install.packages(c('remotes'), repos='https://cloud.r-project.org')"
 RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
 
 # Install basic packages first (these are dependencies for others)
-RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits'), repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits', 'caret'), repos='https://cloud.r-project.org')"
 
 # Install torch's Lantern library (required for deep learning models like TempCNN).
 # TORCH_INSTALL=1 auto-confirms the interactive prompt; CUDA=cpu avoids GPU binary

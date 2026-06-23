@@ -1,12 +1,30 @@
 services:
   openeocraft:
+    platform: linux/amd64 # Required for torch - no ARM64 Linux binaries available
     build:
       context: .
       dockerfile: docker/Dockerfile
     environment:
-      - TZ=Etc/UTC
-      - DEBIAN_FRONTEND=noninteractive
+      TZ: Etc/UTC
+      DEBIAN_FRONTEND: noninteractive
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      TORCH_NUM_THREADS: "1"
+      # sits fork workers crash in Docker; keep sequential (see .openeocraft_multicores)
+      OPENEOCRAFT_MULTICORES_MAX: "1"
+      OPENEOCRAFT_SKIP_CUBE_COPY: "true"
+      OPENEOCRAFT_API_BASE_URL: "http://127.0.0.1:8000"
+      OPENEOCRAFT_MEMSIZE: "16"
+      OPENEOCRAFT_RESOURCE_FRACTION: "0.5"
+    cpus: "8"
+    mem_limit: 32g
     container_name: openeocraft
     ports:
       - "8000:8000"
-    restart: always
+    restart: unless-stopped
+    volumes:
+      - openeocraft-workspace:/var/openeo/workspace
+
+volumes:
+  openeocraft-workspace:

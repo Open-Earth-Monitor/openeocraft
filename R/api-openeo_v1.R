@@ -213,6 +213,10 @@ api_job_info.openeo_v1 <- function(api, req, res, job_id) {
     }
     # Retrieve the job from the jobs_list
     job <- jobs[[job_id]]
+    reconciled <- job_reconcile_bg_process(api, user, job_id)
+    if (!is.null(reconciled)) {
+        job <- reconciled
+    }
     res$status <- 200L
     # TODO: populate links?
     job
