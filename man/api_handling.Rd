@@ -212,7 +212,7 @@ api <- create_openeo_v1(
     id = "demo",
     title = "Demo",
     description = "Demo API",
-    backend_version = "0.3.1",
+    backend_version = "0.4.1",
     stac_api = NULL,
     work_dir = tempdir(),
     production = FALSE
