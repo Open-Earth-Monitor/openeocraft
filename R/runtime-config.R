@@ -71,7 +71,7 @@ openeocraft_worker_api <- function() {
         id = "openeocraft",
         title = "openEO compliant R backend",
         description = "openEOcraft worker",
-        backend_version = "0.3.1",
+        backend_version = "0.4.1",
         stac_api = NULL,
         work_dir = work_dir,
         production = FALSE

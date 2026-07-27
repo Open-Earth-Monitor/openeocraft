@@ -79,7 +79,7 @@ api <- create_openeo_v1(
   id = "openeocraft",
   title = "openEO compliant R backend",
   description = "OpenEOcraft offers a robust R framework designed for the development and deployment of openEO API applications.",
-  backend_version = "0.3.1",
+  backend_version = "0.4.1",
   stac_api = stac_api,
   work_dir = work_dir,
   conforms_to = NULL,

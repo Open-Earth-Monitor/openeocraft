@@ -396,7 +396,7 @@ api_workdir <- function(api) {
 #' \donttest{
 #' api <- create_openeo_v1(
 #'     id = "demo", title = "Demo", description = "Demo",
-#'     backend_version = "0.3.1", stac_api = NULL,
+#'     backend_version = "0.4.1", stac_api = NULL,
 #'     work_dir = tempdir(), production = FALSE
 #' )
 #' api_user_workspace(api, "alice")
