@@ -4,9 +4,13 @@ on:
   pull_request:
     branches:
       - dev
+      - main
+      - master
   push:
     branches:
       - dev
+      - main
+      - master
     paths:
       - "docker/**"
       - "DESCRIPTION"

@@ -3,7 +3,7 @@
 
 on:
   push:
-    branches: [main, master, dev, clean-up]
+    branches: [main, master, dev]
   pull_request:
     branches: [main, master, dev]
 
@@ -30,7 +30,7 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: r-lib/actions/setup-pandoc@v2
 

@@ -4,11 +4,15 @@ on:
   pull_request:
     branches:
       - dev
+      - main
+      - master
     paths:
       - "terraform/**"
   push:
     branches:
       - dev
+      - main
+      - master
     paths:
       - "terraform/**"
 
