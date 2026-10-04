@@ -15,6 +15,9 @@
   by `GET /ml_models` can be loaded. Ids that resolved before resolve the
   same way.
 * OpenAPI 3.0 description of the L3-ML endpoints in `inst/openapi/l3-ml.yaml`.
+* Example notebooks and scripts (`inst/demo-lps-2025/`, `inst/demo-sw-paper-2025/`,
+  `inst/demo-ml-paper-2026/`, `inst/examples/`) moved to
+  <https://github.com/Open-Earth-Monitor/openeocraft-examples>.
 
 ## openeocraft 0.4.1
 
