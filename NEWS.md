@@ -1,5 +1,21 @@
 # NEWS.md
 
+## openeocraft (development version)
+
+* Proposed L3-ML API profile: new `GET /ml_runtimes` endpoint (ML1-ML8) to
+  declare ML runtimes keyed by STAC MLM `mlm:framework`, with training /
+  inference support, `mlm:artifact_type` values, workflow types, training
+  data formats and `mlm:accelerator` values. Declare runtimes with
+  `set_ml_runtimes()`, `new_ml_runtime()` and `new_ml_runtime_version()`;
+  `sits_ml_runtimes()` detects the bundled sits runtimes.
+* New `GET /ml_models` and `GET /ml_models/{model_id}` endpoints (ML10, ML11)
+  list stored models as STAC MLM Items; public models without auth, plus the
+  user's own models with a bearer token. Paginated with `limit` / `page`.
+* `load_ml_model` falls back to the public model folder, so every id listed
+  by `GET /ml_models` can be loaded. Ids that resolved before resolve the
+  same way.
+* OpenAPI 3.0 description of the L3-ML endpoints in `inst/openapi/l3-ml.yaml`.
+
 ## openeocraft 0.4.1
 
 * openEO L1/L2 compliance hardening: auth status codes, sync `/result`,

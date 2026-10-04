@@ -25,6 +25,12 @@
 #' \item `api_conformance`: Creates document as a response to
 #'   `/conformance` endpoint.
 #'
+#' \item `api_ml_runtimes`: Creates document as a response to
+#'   `/ml_runtimes` endpoint (see [set_ml_runtimes()]).
+#'
+#' \item `api_ml_models`, `api_ml_model`: Create documents as a response to
+#'   `/ml_models` and `/ml_models/{model_id}` endpoints.
+#'
 #' }
 #'
 #' @param api_class A character string specifying the custom S3 class
@@ -91,6 +97,9 @@
 #' @param job_id The identifier for the job
 #'
 #' @param process_graph_id Identifier of a stored user-defined process.
+#'
+#' @param model_id Identifier of a machine learning model stored on the
+#'   back-end, as listed by `GET /ml_models`.
 #'
 #' @param ... Additional arguments to be passed to the method-specific
 #'   functions.
@@ -301,6 +310,21 @@ api_process_graph_put <- function(api, req, res, process_graph_id) {
 #' @export
 api_process_graph_delete <- function(api, req, res, process_graph_id) {
     UseMethod("api_process_graph_delete", api)
+}
+#' @rdname api_handling
+#' @export
+api_ml_runtimes <- function(api, req, res) {
+    UseMethod("api_ml_runtimes", api)
+}
+#' @rdname api_handling
+#' @export
+api_ml_models <- function(api, req, res) {
+    UseMethod("api_ml_models", api)
+}
+#' @rdname api_handling
+#' @export
+api_ml_model <- function(api, req, res, model_id) {
+    UseMethod("api_ml_model", api)
 }
 # Deferred openEO endpoints (UDF runtimes, …):
 # see DEVELOPMENT.md "Roadmap / TODO triage".

@@ -415,3 +415,60 @@ api_process_graph_delete.openeo_v1 <- function(api, req, res, process_graph_id) 
     res$status <- 204L
     list()
 }
+#' @export
+api_ml_runtimes.openeo_v1 <- function(api, req, res) {
+    # Runtimes are the same for every user, so the endpoint never looks at
+    # the Authorization header (L3-ML requirement ML2).
+    get_ml_runtimes(api)
+}
+#' @export
+api_ml_models.openeo_v1 <- function(api, req, res) {
+    user <- get_optional_token_user(api, req)
+    models <- unname(lapply(
+        ml_models_list(api, user),
+        ml_model_doc,
+        api = api,
+        req = req
+    ))
+    host <- get_host(api, req)
+    doc <- list(models = models, links = list())
+    doc <- update_link(
+        doc,
+        rel = "self",
+        href = make_url(host, "/ml_models"),
+        type = "application/json"
+    )
+    page <- paginate_resource_list(
+        items = models,
+        doc = doc,
+        api = api,
+        req = req,
+        endpoint = "/ml_models",
+        limit = parse_pagination_limit(req),
+        page = parse_pagination_page(req)
+    )
+    page$doc$models <- page$items
+    page$doc
+}
+#' @export
+api_ml_model.openeo_v1 <- function(api, req, res, model_id) {
+    if (!is_string(model_id) ||
+        !grepl(.ml_model_id_pattern, model_id, perl = TRUE)) {
+        api_stop(
+            400L,
+            "Invalid model id '", model_id, "'. ",
+            "It must match the pattern ", .ml_model_id_pattern,
+            id = "ModelIdInvalid"
+        )
+    }
+    user <- get_optional_token_user(api, req)
+    record <- ml_model_get(api, user, model_id)
+    if (is.null(record)) {
+        api_stop(
+            404L,
+            "Model '", model_id, "' not found",
+            id = "ModelNotFound"
+        )
+    }
+    ml_model_doc(record, api, req)
+}
