@@ -126,6 +126,24 @@ ndvi <- function(data, nir = "nir", red = "red", target_band = NULL) {
 
 **Clients** (e.g. Sentinel-2) pass explicit band names when metadata does not use common names `red` / `nir`, e.g. `nir="B08", red="B04", target_band="NDVI"` — see the Python workflow below.
 
+## ML discovery endpoints (proposed L3-ML profile)
+
+Before submitting a job, a client can check what the back-end supports for machine learning. These endpoints implement the proposed L3-ML API profile (not yet ratified by openEO), and the contract is in [`inst/openapi/l3-ml.yaml`](inst/openapi/l3-ml.yaml).
+
+| Endpoint | Auth | Returns |
+|----------|------|---------|
+| `GET /ml_runtimes` | optional | Runtimes keyed by `mlm:framework` (`R CARET`, `Torch for R`), each with `default`, `versions`, and per version: `training`/`inference`, loadable and savable `mlm:artifact_type` values, `workflow_types`, `training_data_formats`, and `mlm:accelerator` values |
+| `GET /ml_models` | optional | `{ "models": [STAC MLM Items], "links": [...] }`. Public models are listed without auth; your own models are added with a bearer token. Supports `limit`/`page` |
+| `GET /ml_models/{model_id}` | optional | Full STAC MLM Item. The id can be passed to `load_ml_model` |
+
+`docker/plumber.R` declares the runtimes of the bundled sits processes at startup:
+
+```r
+set_ml_runtimes(api, sits_ml_runtimes())
+```
+
+A custom back-end declares its own runtimes with `new_ml_runtime()` and `new_ml_runtime_version()`. The declaration is checked against the profile vocabularies when it is set (see `?ml_runtimes`).
+
 ## Documentation
 
 - **Vignette:** after installing the package (with suggested packages **knitr** and **rmarkdown** so the HTML is built), run `vignette("openeocraft")` or `browseVignettes("openeocraft")` for *Introduction to OpenEOcraft* (mock `load_processes` example and links to deeper topics). The source is [`vignettes/openeocraft.Rmd`](vignettes/openeocraft.Rmd).

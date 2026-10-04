@@ -45,8 +45,13 @@ ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 RUN R -e "install.packages(c('remotes'), repos='https://cloud.r-project.org')"
 RUN R -e "install.packages(c('devtools'), repos='https://cloud.r-project.org')"
 
+# gdalcubes (used by sits) was archived on CRAN on 2026-09-16; install the
+# last CRAN release from the archive before sits.
+RUN Rscript -e "remotes::install_version('gdalcubes', version = '0.7.4', repos = 'https://cloud.r-project.org', upgrade = 'never')" && \
+    Rscript -e "if (!requireNamespace('gdalcubes', quietly = TRUE)) stop('gdalcubes installation failed')"
+
 # Install basic packages first (these are dependencies for others)
-RUN R -e "install.packages(c('gdalcubes','plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits', 'caret'), repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('plumber','useful','s2','sf','rstac','geojsonsf', 'jsonlite', 'base64enc', 'ids', 'callr' , 'sits', 'caret'), repos='https://cloud.r-project.org')"
 
 # Install torch's Lantern library (required for deep learning models like TempCNN).
 # TORCH_INSTALL=1 auto-confirms the interactive prompt; CUDA=cpu avoids GPU binary

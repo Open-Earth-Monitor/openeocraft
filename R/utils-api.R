@@ -694,3 +694,21 @@ paginate_resource_list <- function(items, doc, api, req, endpoint,
     }
     list(items = sliced, doc = doc)
 }
+
+#' Resolve the user of an optional bearer token
+#'
+#' For endpoints that work with and without authentication. Without an
+#' `Authorization` header it returns `NULL`; with one, the token must be
+#' valid, as in [get_token_user()].
+#'
+#' @param api API object.
+#' @param req Plumber request.
+#' @return User identifier, or `NULL` for anonymous requests.
+#' @keywords internal
+get_optional_token_user <- function(api, req) {
+    token <- get_token(req)
+    if (!length(token)) {
+        return(NULL)
+    }
+    get_token_user(api, token)
+}

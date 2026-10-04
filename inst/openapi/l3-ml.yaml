@@ -1,0 +1,391 @@
+openapi: 3.0.3
+info:
+  title: openEO L3-ML API profile (proposal)
+  version: 0.1.0
+  description: |
+    Proposed machine learning extension of the openEO API, as implemented by
+    openeocraft. It adds two read-only endpoints:
+
+    * `GET /ml_runtimes` declares the ML runtimes of a back-end (requirements
+      ML1 to ML8), modelled on `GET /udf_runtimes`.
+    * `GET /ml_models` and `GET /ml_models/{model_id}` list the models stored
+      on the back-end with their STAC MLM metadata (ML10, ML11), analogous to
+      `GET /collections` for `load_collection`.
+
+    Errors use the openEO error format (`id`, `code`, `message`).
+    Both endpoints are listed in the `endpoints` of `GET /`. They are not yet
+    ratified by the openEO Project Steering Committee.
+
+    Versioning: the profile follows the openEO API version it extends
+    (currently 1.2.x). New optional fields may be added in minor versions;
+    clients must ignore unknown fields. Renaming or removing a field needs a
+    new major version of the profile.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local openeocraft server (docker/server.R)
+tags:
+  - name: Machine Learning
+    description: Discovery of ML runtimes and stored ML models.
+paths:
+  /ml_runtimes:
+    get:
+      summary: Supported machine learning runtimes
+      operationId: list-ml-runtimes
+      description: |
+        Lists the ML runtimes of the back-end, keyed by STAC MLM
+        `mlm:framework` value. These keys are the values the back-end writes
+        into the `mlm:framework` property of the models it saves, so a client
+        can match a model to a runtime.
+
+        Works with and without authentication (ML2). The response is the
+        same for every user, so the `Authorization` header is ignored. An
+        empty object means the back-end declares no ML runtime.
+      tags: [Machine Learning]
+      security:
+        - {}
+        - Bearer: []
+      responses:
+        "200":
+          description: ML runtimes keyed by `mlm:framework` value.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ml_runtimes"
+              example:
+                R CARET:
+                  title: caret (R)
+                  description: Classical machine learning models trained through sits.
+                  default: 7.0.1
+                  versions:
+                    7.0.1:
+                      training: true
+                      inference: true
+                      artifact_types:
+                        load: [saveRDS]
+                        save: [saveRDS]
+                      workflow_types: [feature]
+                      training_data_formats: [vector_cube, sits_tibble_rds]
+                      accelerators: [amd64]
+                      architectures: [Random Forest, SVM, XGBoost]
+                      libraries:
+                        sits: { version: 1.5.4 }
+                        caret: { version: 7.0.1 }
+                  links:
+                    - rel: about
+                      href: https://topepo.github.io/caret/
+                      type: text/html
+        4XX:
+          $ref: "#/components/responses/client_error"
+        "500":
+          $ref: "#/components/responses/server_error"
+  /ml_models:
+    get:
+      summary: Machine learning models stored on the back-end
+      operationId: list-ml-models
+      description: |
+        Lists the models stored on the back-end as STAC Items that implement
+        the MLM extension (ML10). Each `id` can be passed to `load_ml_model`.
+
+        Without authentication only public models are listed. With a valid
+        bearer token the user's own models are added; when a user model and
+        a public model share an id, the user's model is listed, which is the
+        model `load_ml_model` loads for that user. An invalid token is
+        rejected with 403.
+      tags: [Machine Learning]
+      security:
+        - {}
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/pagination_limit"
+        - $ref: "#/components/parameters/pagination_page"
+      responses:
+        "200":
+          description: List of stored models.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ml_models"
+        "400":
+          $ref: "#/components/responses/client_error"
+        "403":
+          $ref: "#/components/responses/client_error_auth"
+        "500":
+          $ref: "#/components/responses/server_error"
+  /ml_models/{model_id}:
+    parameters:
+      - name: model_id
+        in: path
+        required: true
+        description: Model identifier, as accepted by `load_ml_model`.
+        schema:
+          $ref: "#/components/schemas/ml_model_id"
+    get:
+      summary: Full metadata of a stored machine learning model
+      operationId: describe-ml-model
+      description: |
+        Returns the full STAC MLM Item of one model (ML11). Visibility rules
+        are the same as for `GET /ml_models`.
+      tags: [Machine Learning]
+      security:
+        - {}
+        - Bearer: []
+      responses:
+        "200":
+          description: STAC Item implementing the MLM extension.
+          content:
+            application/geo+json:
+              schema:
+                $ref: "#/components/schemas/stac_mlm_item"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/stac_mlm_item"
+        "400":
+          description: The model id does not match `^[\w\-\.~]+$`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                id: ModelIdInvalid
+                code: 400
+                message: "Error: Invalid model id '../x'. It must match the pattern ^[\\w\\-\\.~]+$"
+        "403":
+          $ref: "#/components/responses/client_error_auth"
+        "404":
+          description: No model with this id is visible to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                id: ModelNotFound
+                code: 404
+                message: "Error: Model 'rf_rondonia' not found"
+        "500":
+          $ref: "#/components/responses/server_error"
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      description: openEO bearer token, `basic//<token>` or `oidc/<provider>/<token>`.
+  parameters:
+    pagination_limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size. Omitted means all models are returned.
+      schema:
+        type: integer
+        minimum: 1
+    pagination_page:
+      name: page
+      in: query
+      required: false
+      description: 1-based page number, used together with `limit`.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+  responses:
+    client_error:
+      description: Invalid request, for example `limit=0`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+    client_error_auth:
+      description: The bearer token is invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+          example:
+            id: HTTP403
+            code: 403
+            message: "Error: Invalid token"
+    server_error:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+  schemas:
+    error:
+      type: object
+      description: openEO error object.
+      required: [code, message]
+      properties:
+        id:
+          type: string
+          description: Error identifier, e.g. `ModelNotFound`.
+        code:
+          type: integer
+        message:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+    link:
+      type: object
+      required: [rel, href]
+      properties:
+        rel: { type: string }
+        href: { type: string, format: uri }
+        type: { type: string }
+        title: { type: string }
+    ml_runtimes:
+      type: object
+      description: Map from `mlm:framework` value to runtime.
+      additionalProperties:
+        $ref: "#/components/schemas/ml_runtime"
+    ml_runtime:
+      type: object
+      required: [title, default, versions]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          format: commonmark
+        default:
+          type: string
+          description: Default version; one of the keys of `versions` (ML3).
+        versions:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            $ref: "#/components/schemas/ml_runtime_version"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+    ml_runtime_version:
+      type: object
+      required:
+        - training
+        - inference
+        - artifact_types
+        - workflow_types
+        - training_data_formats
+        - accelerators
+      properties:
+        training:
+          type: boolean
+          description: Whether models can be trained (ML4).
+        inference:
+          type: boolean
+          description: Whether models can be used for inference (ML4).
+        artifact_types:
+          type: object
+          description: STAC MLM `mlm:artifact_type` values (ML5).
+          required: [load, save]
+          properties:
+            load:
+              type: array
+              items: { type: string }
+            save:
+              type: array
+              items: { type: string }
+        workflow_types:
+          type: array
+          description: Supported workflow types (ML6).
+          minItems: 1
+          items:
+            type: string
+            enum: [feature, time_series, spatial_patch]
+        training_data_formats:
+          type: array
+          description: |
+            Accepted training data formats (ML7). Contains `vector_cube`
+            whenever `training` is true; empty when it is false.
+          items: { type: string }
+        accelerators:
+          type: array
+          description: STAC MLM `mlm:accelerator` values (ML8).
+          items:
+            type: string
+            enum: [amd64, cuda, xla, amd-rocm, intel-ipex-cpu, intel-ipex-gpu, macos-arm]
+        architectures:
+          type: array
+          description: Model architectures (`mlm:architecture`) of this version.
+          items: { type: string }
+        libraries:
+          type: object
+          description: Installed libraries, as in `GET /udf_runtimes`.
+          additionalProperties:
+            type: object
+            required: [version]
+            properties:
+              version: { type: string }
+    ml_model_id:
+      type: string
+      pattern: '^[\w\-\.~]+$'
+    ml_models:
+      type: object
+      required: [models, links]
+      properties:
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/stac_mlm_item"
+        links:
+          type: array
+          description: |
+            `self`, plus `next`, `prev`, `first` and `last` when paginated.
+          items:
+            $ref: "#/components/schemas/link"
+    stac_mlm_item:
+      type: object
+      description: |
+        STAC Item implementing the MLM extension
+        (https://github.com/stac-extensions/mlm). Relative links of the
+        stored Item are replaced by `self`, `parent` (`/ml_models`) and
+        `root` links; absolute links are kept.
+      required: [type, stac_version, stac_extensions, id, geometry, properties, assets, links]
+      properties:
+        type:
+          type: string
+          enum: [Feature]
+        stac_version:
+          type: string
+        stac_extensions:
+          type: array
+          items: { type: string, format: uri }
+        id:
+          $ref: "#/components/schemas/ml_model_id"
+        bbox:
+          type: array
+          items: { type: number }
+        geometry:
+          type: object
+          nullable: true
+        properties:
+          type: object
+          properties:
+            mlm:name: { type: string }
+            mlm:framework: { type: string }
+            mlm:architecture: { type: string }
+            mlm:tasks:
+              type: array
+              items: { type: string }
+          additionalProperties: true
+        assets:
+          type: object
+          additionalProperties:
+            type: object
+            required: [href]
+            properties:
+              href: { type: string }
+              roles:
+                type: array
+                items: { type: string }
+              mlm:artifact_type: { type: string }
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
