@@ -147,6 +147,7 @@ A custom back-end declares its own runtimes with `new_ml_runtime()` and `new_ml_
 ## Documentation
 
 - **Vignette:** after installing the package (with suggested packages **knitr** and **rmarkdown** so the HTML is built), run `vignette("openeocraft")` or `browseVignettes("openeocraft")` for *Introduction to OpenEOcraft* (mock `load_processes` example and links to deeper topics). The source is [`vignettes/openeocraft.Rmd`](vignettes/openeocraft.Rmd).
+- **Examples:** notebooks and scripts are in [Open-Earth-Monitor/openeocraft-examples](https://github.com/Open-Earth-Monitor/openeocraft-examples).
 - **R help:** decorator and runtime topics include `help("openeocraft_decorators", package = "openeocraft")`, `?load_processes`, and `help("openeo-process", package = "openeocraft")`.
 
 ## Quick Start with Docker Hub
@@ -341,14 +342,16 @@ For NVIDIA GPUs, run the container with GPU access (e.g. `docker run --gpus all 
 
 ## Example Workflows
 
+Runnable notebooks and scripts (Jupyter notebooks from the LPS 2025 demo, R scripts, and the paper use cases) live in a separate repository: **[Open-Earth-Monitor/openeocraft-examples](https://github.com/Open-Earth-Monitor/openeocraft-examples)**. The snippets below are self-contained summaries of the main workflows.
+
 ### Authentication
 
 - **Docker Hub quick start** (above): often `user` / `password`.
-- **Local / dev** (see `docker/plumber.R` and notebooks under `inst/demo-lps-2025/`): often `brian` / `123456`.
+- **Local / dev** (see `docker/plumber.R` and the [LPS 2025 notebooks](https://github.com/Open-Earth-Monitor/openeocraft-examples/tree/main/notebooks/lps-2025)): often `brian` / `123456`.
 
 ### Python example (first): P16D cube, NDVI, TempCNN — `00_ml_month.ipynb`
 
-Same pipeline as [`inst/demo-lps-2025/00_ml_month.ipynb`](inst/demo-lps-2025/00_ml_month.ipynb) and [`inst/demo-paper-2025/tempcnn_model_training.R`](inst/demo-paper-2025/tempcnn_model_training.R), as **one runnable script**. The worker downloads training samples from **HTTPS** (no local `readRDS`).
+Same pipeline as [`00_ml_month.ipynb`](https://github.com/Open-Earth-Monitor/openeocraft-examples/blob/main/notebooks/lps-2025/00_ml_month.ipynb) and [`tempcnn_model_training.R`](https://github.com/Open-Earth-Monitor/openeocraft-examples/blob/main/papers/sw-paper-2025/tempcnn_model_training.R), as **one runnable script**. The worker downloads training samples from **HTTPS** (no local `readRDS`).
 
 Requires a Python client with ML helpers, e.g.:
 
@@ -356,7 +359,7 @@ Requires a Python client with ML helpers, e.g.:
 pip install git+https://github.com/PondiB/openeo-python-client.git
 ```
 
-**Timeline / bands:** [`samples_deforestation_rondonia.rds`](https://github.com/e-sensing/sitsdata/raw/main/data/samples_deforestation_rondonia.rds) was built for a **P16D** cube (not P1M) and the same preprocessing as that R script (**600 m** resolution, selected bands + NDVI). If `cube_regularize` uses a different **`period`** or **`resolution`**, sits raises **`.check_samples_tile_match_timeline: tile timeline does not match samples timeline`**. After regularize, call `ndvi` with explicit band names if needed, e.g. **`nir="B08"`**, **`red="B04"`**, **`target_band="NDVI"`** (see [`inst/ml/processes/ndvi.json`](inst/ml/processes/ndvi.json)). For a smaller 10-band cube without NDVI, see the second Python block and [`01_ml_api_eo_data_cubes.ipynb`](https://github.com/Open-Earth-Monitor/openeocraft/blob/dev/inst/demo-lps-2025/01_ml_api_eo_data_cubes.ipynb).
+**Timeline / bands:** [`samples_deforestation_rondonia.rds`](https://github.com/e-sensing/sitsdata/raw/main/data/samples_deforestation_rondonia.rds) was built for a **P16D** cube (not P1M) and the same preprocessing as that R script (**600 m** resolution, selected bands + NDVI). If `cube_regularize` uses a different **`period`** or **`resolution`**, sits raises **`.check_samples_tile_match_timeline: tile timeline does not match samples timeline`**. After regularize, call `ndvi` with explicit band names if needed, e.g. **`nir="B08"`**, **`red="B04"`**, **`target_band="NDVI"`** (see [`inst/ml/processes/ndvi.json`](inst/ml/processes/ndvi.json)). For a smaller 10-band cube without NDVI, see the second Python block and [`01_ml_api_eo_data_cubes.ipynb`](https://github.com/Open-Earth-Monitor/openeocraft-examples/blob/main/notebooks/lps-2025/01_ml_api_eo_data_cubes.ipynb).
 
 ```python
 #!/usr/bin/env python3
@@ -369,8 +372,8 @@ USER = "user"
 PASSWORD = "password"
 
 TRAINING_RDS_URL = (
-    "https://github.com/Open-Earth-Monitor/openeocraft/raw/main/"
-    "inst/demo-paper-2025/data/samples_deforestation_rondonia.rds"
+    "https://github.com/Open-Earth-Monitor/openeocraft-examples/raw/main/"
+    "papers/sw-paper-2025/data/samples_deforestation_rondonia.rds"
 )
 
 connection = openeo.connect(BACKEND_URL)
@@ -427,7 +430,7 @@ job.start_and_wait()
 job.get_results().download_files("data/output")
 ```
 
-### R example: TempCNN on Rondonia (aligned with `inst/demo-lps-2025/`)
+### R example: TempCNN on Rondonia (aligned with the LPS 2025 notebooks)
 
 Use **`ml_fit(model = …, training_set = …)`** — the first argument must be the model spec from `mlm_class_*`. For [`samples_deforestation_rondonia.rds`](https://github.com/e-sensing/sitsdata/raw/main/data/samples_deforestation_rondonia.rds), the prediction cube must use the **same spectral bands** as the samples (10 S2 bands; **no** extra NDVI/`cloud` layer unless the RDS was built with them).
 
@@ -498,11 +501,11 @@ if (status$status == "finished") {
 }
 ```
 
-More patterns (export cube, RF-only training, etc.): `inst/examples/`. Training **without** the HTTP API: `inst/examples/04_ml_tempcnn.R` (uses `jsonlite::serializeJSON` on an in-memory sits object and `export_ml_model`).
+More patterns (export cube, RF-only training, etc.): [`scripts/`](https://github.com/Open-Earth-Monitor/openeocraft-examples/tree/main/scripts) in the examples repository. Training from an in-memory sits object: [`scripts/04_ml_tempcnn.R`](https://github.com/Open-Earth-Monitor/openeocraft-examples/blob/main/scripts/04_ml_tempcnn.R) (uses `jsonlite::serializeJSON` on an in-memory sits object and `export_ml_model`).
 
 ### Python: Rondonia TempCNN — `mpc`, P16D, 10 bands (no NDVI)
 
-Shorter alternative when you want **`mpc-sentinel-2-l2a`**, a **small bbox**, and **`samples_deforestation_rondonia.rds`** (10 bands, no NDVI). Same idea as [`01_ml_api_eo_data_cubes.ipynb`](inst/demo-lps-2025/01_ml_api_eo_data_cubes.ipynb).
+Shorter alternative when you want **`mpc-sentinel-2-l2a`**, a **small bbox**, and **`samples_deforestation_rondonia.rds`** (10 bands, no NDVI). Same idea as [`01_ml_api_eo_data_cubes.ipynb`](https://github.com/Open-Earth-Monitor/openeocraft-examples/blob/main/notebooks/lps-2025/01_ml_api_eo_data_cubes.ipynb).
 
 ```python
 import openeo
@@ -564,7 +567,7 @@ job.start_and_wait()
 job.get_results().download_files("output")
 ```
 
-**Other workflows:** Random forest + Breizh-style alignment (constants shared with R) live in `inst/examples/breizh_openeo_training_predict_aligned.py`. Step-by-step notebooks: `inst/demo-lps-2025/`.
+**Other workflows:** Random forest + Breizh-style alignment (constants shared with R) live in [`scripts/breizh_openeo_training_predict_aligned.py`](https://github.com/Open-Earth-Monitor/openeocraft-examples/blob/main/scripts/breizh_openeo_training_predict_aligned.py). Step-by-step notebooks: [`notebooks/lps-2025/`](https://github.com/Open-Earth-Monitor/openeocraft-examples/tree/main/notebooks/lps-2025).
 
 ## Citation
 

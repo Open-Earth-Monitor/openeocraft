@@ -20,6 +20,4 @@
 ^CODE_OF_CONDUCT\.md$
 ^CONTRIBUTING\.md$
 ^\.cursor$
-^inst/demo-
-^inst/examples$
 ^man/figures/.*\.excalidraw$
