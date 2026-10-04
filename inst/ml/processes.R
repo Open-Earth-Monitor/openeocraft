@@ -4386,7 +4386,7 @@ load_stac_ml <- function(uri,
     )
 }
 
-# Resolve model id to an RDS file under job or workspace models/ directories.
+# Resolve model id to an RDS file under job, workspace or public models/ directories.
 #
 # Args:
 #   id: Model name or path-like id matching ^[\\w\\-\\.~/]+$.
@@ -4492,6 +4492,19 @@ load_ml_model <- function(id) {
                     }
                 }
             }
+        }
+    }
+
+    # 5. Fall back to the public models folder, which GET /ml_models lists
+    #    and which is already readable without auth via /files/public.
+    if (base::is.null(model_file) && !base::grepl("/", id)) {
+        public_model_file <- base::file.path(
+            openeocraft::api_user_workspace(env$api, "public"),
+            "models",
+            model_filename
+        )
+        if (base::file.exists(public_model_file)) {
+            model_file <- public_model_file
         }
     }
 

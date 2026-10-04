@@ -180,6 +180,8 @@ TODO over leaving speculative notes in hot paths.
 | `/process_graphs` CRUD | Per-user UDP store (`process_graphs.rds`) |
 | Process `namespace` + UDP-by-`process_id` | `user` namespace; predefined when `namespace` is null |
 | CRAN packaging prep | No Remotes; soft STAC via Docker; `--as-cran` clean |
+| L3-ML `GET /ml_runtimes` (ML1-ML8) | `R/ml_runtimes.R`; `set_ml_runtimes(api, sits_ml_runtimes())` in `docker/plumber.R` |
+| L3-ML `GET /ml_models[/{id}]` (ML10-ML11) | `R/ml_models.R`; same lookup order as `load_ml_model`; spec in `inst/openapi/l3-ml.yaml` |
 
 ### Deferred (larger / product-dependent)
 
@@ -189,7 +191,7 @@ TODO over leaving speculative notes in hot paths.
 | Split eval environments / per-request process load | Isolation project; high blast radius |
 | Billing key on landing page | Needs product / config design |
 | Optional landing `rel`s (terms, privacy, create-form, …) | Product content; core links already present |
-| OIDC login, UDF runtimes, service types | Each is an openEO endpoint epic |
+| OIDC login, service types | Each is an openEO endpoint epic |
 | URL-based process namespaces | Remote UDP fetch; L2 satisfied by `user` namespace |
 | `POST /validation` | Optional companion to UDP CRUD |
 | openstac on CRAN | Tracked with Open-Earth-Monitor/openstac; Docker installs from GitHub |
@@ -198,6 +200,8 @@ TODO over leaving speculative notes in hot paths.
 | Process path markers + `usage_*` metrics | Spec-nice; large instrumentation |
 | OpenAPI response models | Low demand until typed clients need schemas |
 | `@openeo-import` / multi-file processes | Load-order and JSON layout design |
+| L3-ML ML9 (runtime/metadata mismatch errors) | `save_ml_model` writes `mlm:artifact_type = "application/octet-stream"` by default while the runtime declares `saveRDS`; align the default first, then let `load_stac_ml` reject mismatches with an error that names the field |
+| `GET /udf_runtimes` | Separate openEO endpoint epic; `/ml_runtimes` mirrors its shape |
 | `limit` pagination on `/jobs` and `/processes` | Done — optional `limit`/`page`; omit `limit` returns all |
 | `register_file_format()` API | Additive; formats remain hardcoded for now |
 

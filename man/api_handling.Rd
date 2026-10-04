@@ -24,6 +24,9 @@
 \alias{api_process_graph_get}
 \alias{api_process_graph_put}
 \alias{api_process_graph_delete}
+\alias{api_ml_runtimes}
+\alias{api_ml_models}
+\alias{api_ml_model}
 \alias{api_result.openeo_v1}
 \title{Handle API requests}
 \usage{
@@ -102,6 +105,12 @@ api_process_graph_put(api, req, res, process_graph_id)
 
 api_process_graph_delete(api, req, res, process_graph_id)
 
+api_ml_runtimes(api, req, res)
+
+api_ml_models(api, req, res)
+
+api_ml_model(api, req, res, model_id)
+
 \method{api_result}{openeo_v1}(api, req, res)
 }
 \arguments{
@@ -172,6 +181,9 @@ the request.}
 \item{job_id}{The identifier for the job}
 
 \item{process_graph_id}{Identifier of a stored user-defined process.}
+
+\item{model_id}{Identifier of a machine learning model stored on the
+back-end, as listed by \code{GET /ml_models}.}
 }
 \value{
 For API creation functions, returns a api object. For API
@@ -203,6 +215,12 @@ of errors in the API.
 
 \item \code{api_conformance}: Creates document as a response to
 \verb{/conformance} endpoint.
+
+\item \code{api_ml_runtimes}: Creates document as a response to
+\verb{/ml_runtimes} endpoint (see \code{\link[=set_ml_runtimes]{set_ml_runtimes()}}).
+
+\item \code{api_ml_models}, \code{api_ml_model}: Create documents as a response to
+\verb{/ml_models} and \verb{/ml_models/\{model_id\}} endpoints.
 
 }
 }

@@ -127,6 +127,10 @@ if (is.null(processes_file)) {
 
 load_processes(api, processes_file)
 
+# Declare the ML runtimes of the bundled sits processes (GET /ml_runtimes).
+# Detected once at startup from the installed packages.
+set_ml_runtimes(api, sits_ml_runtimes())
+
 #* Enable Cross-origin Resource Sharing
 #* @filter cors
 function(req, res) {
@@ -352,6 +356,31 @@ function(req, res, process_graph_id) {
 function(req, res, process_graph_id) {
   print("DELETE /process_graphs/<id>")
   api_process_graph_delete(api, req, res, process_graph_id)
+}
+
+#* List supported machine learning runtimes (L3-ML profile)
+#* @serializer unboxedJSON
+#* @get /ml_runtimes
+function(req, res) {
+  print("GET /ml_runtimes")
+  api_ml_runtimes(api, req, res)
+}
+
+#* List machine learning models stored on the back-end (L3-ML profile)
+#* @serializer unboxedJSON
+#* @get /ml_models
+function(req, res) {
+  print("GET /ml_models")
+  api_ml_models(api, req, res)
+}
+
+#* Full STAC MLM Item of a stored machine learning model (L3-ML profile)
+#* @param model_id model identifier, as accepted by load_ml_model
+#* @serializer unboxedJSON
+#* @get /ml_models/<model_id:str>
+function(req, res, model_id) {
+  print("GET /ml_models/<model_id>")
+  api_ml_model(api, req, res, model_id)
 }
 
 # NOTE:
