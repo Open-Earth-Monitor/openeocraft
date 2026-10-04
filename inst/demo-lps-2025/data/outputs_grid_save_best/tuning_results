@@ -1,1 +1,0 @@
-[{"epochs":20,"learning_rate":0.00050000000000000001,"metric":0.89600665557404324},{"epochs":40,"learning_rate":0.00050000000000000001,"metric":0.93094841930116468},{"epochs":20,"learning_rate":0.0001,"metric":0.86356073211314477},{"epochs":40,"learning_rate":0.0001,"metric":0.88186356073211314}]
